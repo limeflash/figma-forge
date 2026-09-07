@@ -4,6 +4,11 @@ Behaviours that cause most thrown scripts and silently wrong geometry, written
 against the sandbox Figma Forge actually runs in (`documentAccess:
 "dynamic-page"`, main thread, no browser APIs).
 
+Every claim here is checked against `@figma/plugin-typings` (MIT), which is also
+the source for the generated `api-reference.md` next to this file. When you need
+"does this node type have this property" or "what are the legal values", look
+there — it is exact and regenerated from the types, not remembered.
+
 ---
 
 ## The sandbox
@@ -33,6 +38,21 @@ in memory until asked for. The synchronous accessors throw:
 `figma.on("documentchange")` also requires `loadAllPagesAsync()` first, and
 throws otherwise.
 
+## Colour
+
+`RGB` is `{ r, g, b }` and `RGBA` is `{ r, g, b, a }` — all channels are **0 to
+1**, not 0–255. `{ r: 255, g: 0, b: 0 }` is not red; it is out of range.
+
+`SolidPaint.color` is an `RGB` and **has no alpha channel.** Transparency lives
+on the paint:
+
+```js
+node.fills = [{ type: "SOLID", color: { r: 1, g: 0, b: 0 }, opacity: 0.5 }];
+```
+
+Putting `a` inside `color` is the single most common paint error. It is silently
+ignored or throws, depending on where it lands.
+
 ## Text
 
 **Load fonts before every text write.** Setting `characters`, `fontName`,
@@ -49,6 +69,25 @@ A freshly created text node has Inter Regular — and still has to load it.
 `fontName`, `fontSize` and friends return `figma.mixed` when the text has ranges
 with different values. Compare against `figma.mixed` explicitly; it is a symbol,
 not `undefined`.
+
+`lineHeight` and `letterSpacing` are **objects, not numbers**:
+
+```js
+text.lineHeight    = { value: 24, unit: "PIXELS" };   // or "PERCENT", or { unit: "AUTO" }
+text.letterSpacing = { value: -1, unit: "PIXELS" };   // or "PERCENT"
+```
+
+Assigning a bare number throws.
+
+Font *style* names are file-dependent — a family may ship `"Semi Bold"` in one
+file and `"SemiBold"` in another. Discover them with
+`figma.listAvailableFontsAsync()` instead of guessing, and remember that
+`loadFontAsync` needs the exact pair.
+
+A new text node defaults to `textAutoResize: "WIDTH_AND_HEIGHT"`, which means it
+sizes to its content and **ignores `layoutSizingHorizontal: "FILL"`** — the node
+collapses to a thin thread instead of filling its parent. Set
+`textAutoResize = "HEIGHT"` (or `"NONE"`) before asking it to fill.
 
 Inside auto layout, prefer `layoutSizingHorizontal` / `layoutSizingVertical`
 over `textAutoResize` — they are the properties the parent actually honours.
@@ -77,6 +116,29 @@ node.fills = fills;
 **`resize()` resets sizing modes to `FIXED`.** Set sizing after resizing, never
 before. Figma Forge's `set` op handles this ordering; hand-written scripts must
 do it themselves.
+
+### Two different sizing enums
+
+They look interchangeable and are not:
+
+| Property | Values | Applies to |
+|---|---|---|
+| `layoutSizingHorizontal` / `layoutSizingVertical` | `"FIXED"` `"HUG"` `"FILL"` | auto-layout frames, their children, text nodes |
+| `primaryAxisSizingMode` / `counterAxisSizingMode` | `"FIXED"` `"AUTO"` | auto-layout frames only |
+
+`layoutSizing*` is the shorthand that maps to the Figma UI's sizing dropdown; it
+sets `layoutGrow`, `layoutAlign` and the axis sizing modes underneath. Prefer it.
+
+`counterAxisAlignItems` accepts `"MIN"` `"MAX"` `"CENTER"` `"BASELINE"` — there
+is **no `"STRETCH"`**. To stretch a child across the counter axis, set that
+child's `layoutSizing*` to `"FILL"`.
+
+### HUG parents collapse FILL children
+
+A child cannot fill a parent that is sizing itself to its children — the
+constraint is circular, and Figma resolves it by collapsing the child. If a
+child should be `"FILL"` on an axis, the parent must be `"FIXED"` on that axis.
+`layoutGrow` on a hugging parent compresses content the same way.
 
 Hidden children are excluded from the auto-layout flow. A `visible: false`
 sibling does not hold space.
@@ -142,6 +204,18 @@ Style setters are async under dynamic-page: `setFillStyleIdAsync`,
 `setStrokeStyleIdAsync`, `setTextStyleIdAsync`, `setEffectStyleIdAsync`,
 `setGridStyleIdAsync`.
 
+`setBoundVariableForPaint` returns a **copy** of the paint — it does not mutate
+the one you pass in. Ignoring the return value is a no-op that looks like it
+worked.
+
+A new variable defaults to `ALL_SCOPES`, meaning it is offered everywhere in the
+Figma UI. Set `scopes` explicitly so a corner-radius token does not show up in
+the colour picker.
+
+A new variable collection starts with exactly one mode, named `"Mode 1"`. Rename
+it and add the others before creating variables, or every variable will carry a
+meaningless mode name forever.
+
 An instance with no local binding may be **inheriting** a token from its main
 component. Absence of a binding is not evidence of a hardcoded value — check the
 main component before "fixing" it.
@@ -158,6 +232,24 @@ A node inside auto layout ignores `x`/`y` unless `layoutPositioning` is
 `"ABSOLUTE"`.
 
 ## Structure
+
+**New nodes land at (0, 0) of the page** and will sit on top of whatever is
+already there. Either append them into an auto-layout parent, which positions
+them for you, or set `x`/`y` explicitly. Reparenting does not reset position
+either — a node moved into a plain frame keeps the coordinates it had.
+
+`detachInstance()` returns a new `FrameNode` and consumes the instance: the
+instance's id, and the ids of everything under it, stop being valid. Anything
+holding those ids — including a plan you are midway through — is now stale.
+
+`figma.combineAsVariants(nodes, parent)` requires every node to be a
+`ComponentNode`; frames or instances throw. There is deliberately no
+`createComponentSet()`, because an empty component set is not a thing Figma
+supports.
+
+`addComponentProperty()` returns the generated property key as a string (like
+`"Label#12:0"`). Use the returned value — the suffix is assigned by Figma and
+cannot be predicted.
 
 `clone()` places the copy in the same parent as the original.
 
@@ -190,3 +282,30 @@ Figma Forge uses `ff.operation`, `ff.createdBy`, `ff.quarantinedFrom` and
 thrown script can leave partial mutations, and later user edits make the undo
 stack ambiguous. The Figma Forge journal is the authoritative record of what a
 write did.
+
+## Reading the error message
+
+Two thrown messages mean the same underlying thing — the property does not exist
+on that node type:
+
+- `"object is not extensible"` — you assigned a property the node does not have.
+- `"no such property"` — you read or called a member the node does not have.
+
+Neither is a sandbox quirk. Check `api-reference.md`: `itemSpacing` exists on
+four node types, `characters` on three. A `RectangleNode` has no `layoutMode`,
+and no amount of retrying will give it one.
+
+## Cost
+
+Async calls in the sandbox each cross into the host. That makes two habits worth
+having:
+
+- Batch independent awaits with `Promise.all` instead of a sequential loop.
+  Resolving forty main components one at a time is forty round trips.
+- Scope traversal to the smallest ancestor you know. `figma.root.findAll()`
+  walks every node on every page; `frame.findAllWithCriteria({ types: [...] })`
+  walks one subtree and filters in the host.
+
+Figma Forge's own index build is capped and reports truncation rather than
+running unbounded — a script that scans without limits will simply hit the
+bridge's command timeout instead.

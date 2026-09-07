@@ -1,0 +1,405 @@
+# Figma Plugin API reference
+
+Generated from `@figma/plugin-typings@1.138.0` (MIT, Copyright (c) 2021 Figma, Inc.) by `scripts/gen-api-reference.mjs`. Regenerate after upgrading the package rather than editing by hand.
+
+Two failures this file prevents: setting a property a node type does not have
+(Figma throws `object is not extensible`), and passing a value outside an enum.
+
+`ro` marks read-only — assigning to one throws or silently does nothing.
+Use the matching method instead (`width`/`height` → `resize()`).
+Node type names are listed without their `Node` suffix.
+
+## Enums
+
+Legal values for every string-union property. Values are case-sensitive.
+
+- **AnnotationCategoryColor** — `yellow` · `orange` · `red` · `pink` · `violet` · `blue` · `teal` · `green`
+- **AnnotationPropertyType** — `width` · `height` · `maxWidth` · `minWidth` · `maxHeight` · `minHeight` · `fills` · `strokes` · `effects` · `strokeWeight` · `cornerRadius` · `textStyleId` · `textAlignHorizontal` · `fontFamily` · `fontStyle` · `fontSize` · `fontWeight` · `lineHeight` · `letterSpacing` · `itemSpacing` · `padding` · `layoutMode` · `alignItems` · `opacity` · `mainComponent` · `gridRowGap` · `gridColumnGap` · `gridRowCount` · `gridColumnCount` · `gridRowAnchorIndex` · `gridColumnAnchorIndex` · `gridRowSpan` · `gridColumnSpan`
+- **ArgFreeEventType** — `selectionchange` · `currentpagechange` · `close` · `timerstart` · `timerstop` · `timerpause` · `timerresume` · `timeradjust` · `timerdone`
+- **BlendMode** — `PASS_THROUGH` · `NORMAL` · `DARKEN` · `MULTIPLY` · `LINEAR_BURN` · `COLOR_BURN` · `LIGHTEN` · `SCREEN` · `LINEAR_DODGE` · `COLOR_DODGE` · `OVERLAY` · `SOFT_LIGHT` · `HARD_LIGHT` · `DIFFERENCE` · `EXCLUSION` · `HUE` · `SATURATION` · `COLOR` · `LUMINOSITY`
+- **BuzzAssetType** — `CUSTOM` · `TWITTER_POST` · `LINKEDIN_POST` · `INSTA_POST_SQUARE` · `INSTA_POST_PORTRAIT` · `INSTA_STORY` · `INSTA_AD` · `FACEBOOK_POST` · `FACEBOOK_COVER_PHOTO` · `FACEBOOK_EVENT_COVER` · `FACEBOOK_AD_PORTRAIT` · `FACEBOOK_AD_SQUARE` · `PINTEREST_AD_PIN` · `TWITTER_BANNER` · `LINKEDIN_POST_SQUARE` · `LINKEDIN_POST_PORTRAIT` · `LINKEDIN_POST_LANDSCAPE` · `LINKEDIN_PROFILE_BANNER` · `LINKEDIN_ARTICLE_BANNER` · `LINKEDIN_AD_LANDSCAPE` · `LINKEDIN_AD_SQUARE` · `LINKEDIN_AD_VERTICAL` · `YOUTUBE_THUMBNAIL` · `YOUTUBE_BANNER` · `YOUTUBE_AD` · `TWITCH_BANNER` · `GOOGLE_LEADERBOARD_AD` · `GOOGLE_LARGE_AD` · `GOOGLE_MED_AD` · `GOOGLE_MOBILE_BANNER_AD` · `GOOGLE_SKYSCRAPER_AD` · `CARD_HORIZONTAL` · `CARD_VERTICAL` · `PRINT_US_LETTER` · `POSTER` · `BANNER_STANDARD` · `BANNER_WIDE` · `BANNER_ULTRAWIDE` · `NAME_TAG_PORTRAIT` · `NAME_TAG_LANDSCAPE` · `INSTA_REEL_COVER` · `ZOOM_BACKGROUND`
+- **CodeSyntaxPlatform** — `WEB` · `ANDROID` · `iOS`
+- **ComponentPropertyType** — `BOOLEAN` · `TEXT` · `INSTANCE_SWAP` · `VARIANT` · `SLOT`
+- **ConnectorStrokeCap** — `NONE` · `ARROW_EQUILATERAL` · `ARROW_LINES` · `TRIANGLE_FILLED` · `DIAMOND_FILLED` · `CIRCLE_FILLED` · `ERD_ZERO_OR_ONE` · `ERD_EXACTLY_ONE` · `ERD_ZERO_OR_MORE` · `ERD_ONE_OR_MORE` · `ERD_ONE` · `ERD_MANY`
+- **ConstraintType** — `MIN` · `CENTER` · `MAX` · `STRETCH` · `SCALE`
+- **EffectKeyframeFieldName** — `OFFSET_X` · `OFFSET_Y` · `RADIUS` · `SPREAD` · `COLOR` · `REFRACTION_RADIUS` · `SPECULAR_ANGLE` · `SPECULAR_INTENSITY` · `CHROMATIC_ABERRATION` · `SPLAY` · `REFRACTION_INTENSITY` · `START_RADIUS` · `NOISE_SIZE_X` · `NOISE_SIZE_Y` · `DENSITY` · `EFFECT_OPACITY` · `SECONDARY_COLOR`
+- **ExpressionFunction** — `ADDITION` · `SUBTRACTION` · `MULTIPLICATION` · `DIVISION` · `EQUALS` · `NOT_EQUAL` · `LESS_THAN` · `LESS_THAN_OR_EQUAL` · `GREATER_THAN` · `GREATER_THAN_OR_EQUAL` · `AND` · `OR` · `VAR_MODE_LOOKUP` · `NEGATE` · `NOT`
+- **FontStyle** — `REGULAR` · `ITALIC`
+- **HandleMirroring** — `NONE` · `ANGLE` · `ANGLE_AND_LENGTH`
+- **InheritedStyleField** — `fillStyleId` · `strokeStyleId` · `backgroundStyleId` · `textStyleId` · `effectStyleId` · `gridStyleId` · `strokeStyleId`
+- **KeyframePropertyFieldName** — `CORNER_RADIUS` · `STROKE_WEIGHT` · `STACK_SPACING` · `STACK_PADDING_LEFT` · `STACK_PADDING_TOP` · `STACK_PADDING_RIGHT` · `STACK_PADDING_BOTTOM` · `WIDTH` · `HEIGHT` · `RECTANGLE_TOP_LEFT_CORNER_RADIUS` · `RECTANGLE_TOP_RIGHT_CORNER_RADIUS` · `RECTANGLE_BOTTOM_LEFT_CORNER_RADIUS` · `RECTANGLE_BOTTOM_RIGHT_CORNER_RADIUS` · `BORDER_TOP_WEIGHT` · `BORDER_BOTTOM_WEIGHT` · `BORDER_LEFT_WEIGHT` · `BORDER_RIGHT_WEIGHT` · `STACK_COUNTER_SPACING` · `OPACITY` · `GRID_ROW_GAP` · `GRID_COLUMN_GAP` · `TRANSLATION_X` · `TRANSLATION_Y` · `TRANSLATION_XY` · `ROTATION` · `SCALE_X` · `SCALE_Y` · `SCALE_XY` · `PATH_TRIM_START` · `PATH_TRIM_END`
+- **LeadingTrim** — `CAP_HEIGHT` · `NONE`
+- **MaskType** — `ALPHA` · `VECTOR` · `LUMINANCE`
+- **MeasurementSide** — `TOP` · `RIGHT` · `BOTTOM` · `LEFT`
+- **Navigation** — `NAVIGATE` · `SWAP` · `OVERLAY` · `SCROLL_TO` · `CHANGE_TO`
+- **NodeChangeProperty** — `pointCount` · `name` · `width` · `height` · `minWidth` · `maxWidth` · `minHeight` · `maxHeight` · `parent` · `pluginData` · `constraints` · `locked` · `visible` · `opacity` · `blendMode` · `layoutGrids` · `guides` · `characters` · `openTypeFeatures` · `styledTextSegments` · `vectorNetwork` · `effects` · `exportSettings` · `arcData` · `autoRename` · `fontName` · `innerRadius` · `fontSize` · `lineHeight` · `leadingTrim` · `paragraphIndent` · `paragraphSpacing` · `textWrapStyle` · `listSpacing` · `hangingPunctuation` · `hangingList` · `letterSpacing` · `textAlignHorizontal` · `textAlignVertical` · `textCase` · `textDecoration` · `textAutoResize` · `textTruncation` · `maxLines` · `fills` · `topLeftRadius` · `topRightRadius` · `bottomLeftRadius` · `bottomRightRadius` · `constrainProportions` · `strokes` · `strokeWeight` · `strokeAlign` · `strokeCap` · `strokeJoin` · `strokeMiterLimit` · `booleanOperation` · `overflowDirection` · `dashPattern` · `backgrounds` · `handleMirroring` · `cornerRadius` · `cornerSmoothing` · `relativeTransform` · `x` · `y` · `rotation` · `isMask` · `maskType` · `clipsContent` · `type` · `overlayPositionType` · `overlayBackgroundInteraction` · `overlayBackground` · `prototypeStartNode` · `prototypeBackgrounds` · `expanded` · `fillStyleId` · `strokeStyleId` · `backgroundStyleId` · `textStyleId` · `effectStyleId` · `gridStyleId` · `description` · `layoutMode` · `layoutWrap` · `paddingLeft` · `paddingTop` · `paddingRight` · `paddingBottom` · `itemSpacing` · `counterAxisSpacing` · `layoutAlign` · `counterAxisSizingMode` · `primaryAxisSizingMode` · `primaryAxisAlignItems` · `counterAxisAlignItems` · `counterAxisAlignContent` · `layoutGrow` · `layoutPositioning` · `itemReverseZIndex` · `hyperlink` · `mediaData` · `stokeTopWeight` · `strokeBottomWeight` · `strokeLeftWeight` · `strokeRightWeight` · `reactions` · `flowStartingPoints` · `shapeType` · `connectorStart` · `connectorEnd` · `connectorLineType` · `connectorStartStrokeCap` · `connectorEndStrokeCap` · `codeLanguage` · `widgetSyncedState` · `componentPropertyDefinitions` · `componentPropertyReferences` · `componentProperties` · `embedData` · `linkUnfurlData` · `text` · `authorVisible` · `authorName` · `code` · `textBackground` · `gridAutoTracks` · `gridItemsPositioning` · `animationStyles` · `animations` · `manualKeyframeTracks`
+- **NotifyDequeueReason** — `timeout` · `dismiss` · `action_button_click`
+- **OpenTypeFeature** — `PCAP` · `C2PC` · `CASE` · `CPSP` · `TITL` · `UNIC` · `ZERO` · `SINF` · `ORDN` · `AFRC` · `DNOM` · `NUMR` · `LIGA` · `CLIG` · `DLIG` · `HLIG` · `RLIG` · `AALT` · `CALT` · `RCLT` · `SALT` · `RVRN` · `VERT` · `SWSH` · `CSWH` · `NALT` · `CCMP` · `STCH` · `HIST` · `SIZE` · `ORNM` · `ITAL` · `RAND` · `DTLS` · `FLAC` · `MGRK` · `SSTY` · `KERN` · `FWID` · `HWID` · `HALT` · `TWID` · `QWID` · `PWID` · `JUST` · `LFBD` · `OPBD` · `RTBD` · `PALT` · `PKNA` · `LTRA` · `LTRM` · `RTLA` · `RTLM` · `ABRV` · `ABVM` · `ABVS` · `VALT` · `VHAL` · `BLWF` · `BLWM` · `BLWS` · `AKHN` · `CJCT` · `CFAR` · `CPCT` · `CURS` · `DIST` · `EXPT` · `FALT` · `FINA` · `FIN2` · `FIN3` · `HALF` · `HALN` · `HKNA` · `HNGL` · `HOJO` · `INIT` · `ISOL` · `JP78` · `JP83` · `JP90` · `JP04` · `LJMO` · `LOCL` · `MARK` · `MEDI` · `MED2` · `MKMK` · `NLCK` · `NUKT` · `PREF` · `PRES` · `VPAL` · `PSTF` · `PSTS` · `RKRF` · `RPHF` · `RUBY` · `SMPL` · `TJMO` · `TNAM` · `TRAD` · `VATU` · `VJMO` · `VKNA` · `VKRN` · `VRTR` · `VRT2` · `SS01` · `SS02` · `SS03` · `SS04` · `SS05` · `SS06` · `SS07` · `SS08` · `SS09` · `SS10` · `SS11` · `SS12` · `SS13` · `SS14` · `SS15` · `SS16` · `SS17` · `SS18` · `SS19` · `SS20` · `CV01` · `CV02` · `CV03` · `CV04` · `CV05` · `CV06` · `CV07` · `CV08` · `CV09` · `CV10` · `CV11` · `CV12` · `CV13` · `CV14` · `CV15` · `CV16` · `CV17` · `CV18` · `CV19` · `CV20` · `CV21` · `CV22` · `CV23` · `CV24` · `CV25` · `CV26` · `CV27` · `CV28` · `CV29` · `CV30` · `CV31` · `CV32` · `CV33` · `CV34` · `CV35` · `CV36` · `CV37` · `CV38` · `CV39` · `CV40` · `CV41` · `CV42` · `CV43` · `CV44` · `CV45` · `CV46` · `CV47` · `CV48` · `CV49` · `CV50` · `CV51` · `CV52` · `CV53` · `CV54` · `CV55` · `CV56` · `CV57` · `CV58` · `CV59` · `CV60` · `CV61` · `CV62` · `CV63` · `CV64` · `CV65` · `CV66` · `CV67` · `CV68` · `CV69` · `CV70` · `CV71` · `CV72` · `CV73` · `CV74` · `CV75` · `CV76` · `CV77` · `CV78` · `CV79` · `CV80` · `CV81` · `CV82` · `CV83` · `CV84` · `CV85` · `CV86` · `CV87` · `CV88` · `CV89` · `CV90` · `CV91` · `CV92` · `CV93` · `CV94` · `CV95` · `CV96` · `CV97` · `CV98` · `CV99`
+- **OverflowDirection** — `NONE` · `HORIZONTAL` · `VERTICAL` · `BOTH`
+- **OverlayBackgroundInteraction** — `NONE` · `CLOSE_ON_CLICK_OUTSIDE`
+- **OverlayPositionType** — `CENTER` · `TOP_LEFT` · `TOP_CENTER` · `TOP_RIGHT` · `BOTTOM_LEFT` · `BOTTOM_CENTER` · `BOTTOM_RIGHT` · `MANUAL`
+- **PublishStatus** — `UNPUBLISHED` · `CURRENT` · `CHANGED`
+- **StrokeCap** — `NONE` · `ROUND` · `SQUARE` · `ARROW_LINES` · `ARROW_EQUILATERAL` · `DIAMOND_FILLED` · `TRIANGLE_FILLED` · `CIRCLE_FILLED`
+- **StrokeJoin** — `MITER` · `BEVEL` · `ROUND`
+- **StyleChangeProperty** — `name` · `pluginData` · `type` · `description` · `remote` · `documentationLinks` · `fontSize` · `textDecoration` · `letterSpacing` · `lineHeight` · `leadingTrim` · `paragraphIndent` · `paragraphSpacing` · `textWrapStyle` · `listSpacing` · `hangingPunctuation` · `hangingList` · `textCase` · `paint` · `effects` · `layoutGrids`
+- **StyleType** — `PAINT` · `TEXT` · `EFFECT` · `GRID`
+- **TextCase** — `ORIGINAL` · `UPPER` · `LOWER` · `TITLE` · `SMALL_CAPS` · `SMALL_CAPS_FORCED`
+- **TextDecoration** — `NONE` · `UNDERLINE` · `STRIKETHROUGH`
+- **TextDecorationStyle** — `SOLID` · `WAVY` · `DOTTED`
+- **TextWrapStyle** — `AUTO` · `BALANCE` · `PRETTY`
+- **VariableBindableEffectField** — `color` · `radius` · `spread` · `offsetX` · `offsetY`
+- **VariableBindableLayoutGridField** — `sectionSize` · `count` · `offset` · `gutterSize`
+- **VariableBindableNodeField** — `height` · `width` · `characters` · `itemSpacing` · `paddingLeft` · `paddingRight` · `paddingTop` · `paddingBottom` · `visible` · `cornerRadius` · `topLeftRadius` · `topRightRadius` · `bottomLeftRadius` · `bottomRightRadius` · `minWidth` · `maxWidth` · `minHeight` · `maxHeight` · `counterAxisSpacing` · `strokeWeight` · `strokeTopWeight` · `strokeRightWeight` · `strokeBottomWeight` · `strokeLeftWeight` · `opacity` · `gridRowGap` · `gridColumnGap`
+- **VariableBindableTextField** — `fontFamily` · `fontSize` · `fontStyle` · `fontWeight` · `letterSpacing` · `lineHeight` · `paragraphSpacing` · `paragraphIndent`
+- **VariableDataType** — `BOOLEAN` · `COLOR` · `EASING` · `EXPRESSION` · `FLOAT` · `STRING` · `TIMING` · `VARIABLE_ALIAS`
+- **VariableResolvedDataType** — `BOOLEAN` · `COLOR` · `EASING` · `FLOAT` · `STRING` · `TIMING`
+- **VariableScope** — `ALL_SCOPES` · `TEXT_CONTENT` · `CORNER_RADIUS` · `WIDTH_HEIGHT` · `GAP` · `ALL_FILLS` · `FRAME_FILL` · `SHAPE_FILL` · `TEXT_FILL` · `STROKE_COLOR` · `STROKE_FLOAT` · `EFFECT_FLOAT` · `EFFECT_COLOR` · `OPACITY` · `FONT_FAMILY` · `FONT_STYLE` · `FONT_WEIGHT` · `FONT_SIZE` · `LINE_HEIGHT` · `LETTER_SPACING` · `PARAGRAPH_SPACING` · `PARAGRAPH_INDENT`
+- **WindingRule** — `NONZERO` · `EVENODD`
+
+## Properties
+
+Alphabetical. The node types listed are the only ones that have the property.
+
+- **absoluteBoundingBox** `ro` — Rect | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **absoluteRenderBounds** `ro` — Rect | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **absoluteTransform** `ro` — Transform — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **animationStyles** `ro` — AppliedAnimationStyle[] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **animations** `ro` — Animations — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **annotations** — ReadonlyArray<Annotation> — Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **arcData** — ArcData — Ellipse
+- **attachedConnectors** `ro` — ConnectorNode[] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **autoRename** — boolean — Text, TextPath
+- **backgroundStyleId** — string — Component, ComponentSet, Frame, Group, Instance, TransformGroup
+- **backgrounds** — ReadonlyArray<Paint> — Component, ComponentSet, Frame, Group, Instance, Page, TransformGroup
+- **blendMode** — BlendMode — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **booleanOperation** — 'UNION' | 'INTERSECT' | 'SUBTRACT' | 'EXCLUDE' — BooleanOperation
+- **bottomLeftRadius** — number — Component, ComponentSet, Frame, Instance, Rectangle, Section
+- **bottomRightRadius** — number — Component, ComponentSet, Frame, Instance, Rectangle, Section
+- **boundVariables** `ro` — { readonly [field in VariableBindableNodeField]?: VariableAlias } & { readonly [field i… — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **characters** — string — Text, TextPath, TextSublayer
+- **children** `ro` — ReadonlyArray<SceneNode> | varies — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- **clipsContent** — boolean — Component, ComponentSet, Frame, Instance
+- **complexStrokeProperties** — ComplexStrokeProperties — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **componentProperties** `ro` — ComponentProperties — Instance
+- **componentPropertyDefinitions** `ro` — ComponentPropertyDefinitions — Component, ComponentSet
+- **componentPropertyReferences** — | { [nodeProperty in 'visible' | 'characters' | 'mainComponent']?: string } | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **constrainProportions** — boolean — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **constraints** — Constraints — Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **cornerRadius** — number | PluginAPI['mixed'] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Polygon, Rectangle, Section, Star, Vector
+- **cornerSmoothing** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Polygon, Rectangle, Section, Star, Vector
+- **counterAxisAlignContent** — 'AUTO' | 'SPACE_BETWEEN' — Component, ComponentSet, Frame, Instance
+- **counterAxisAlignItems** — 'MIN' | 'MAX' | 'CENTER' | 'BASELINE' — Component, ComponentSet, Frame, Instance
+- **counterAxisSizingMode** — 'FIXED' | 'AUTO' — Component, ComponentSet, Frame, Instance
+- **counterAxisSpacing** — number | null — Component, ComponentSet, Frame, Instance
+- **dashPattern** — ReadonlyArray<number> — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **defaultVariant** `ro` — ComponentNode — ComponentSet
+- **description** — string — Component, ComponentSet
+- **descriptionMarkdown** — string — Component, ComponentSet
+- **detachedInfo** `ro` — DetachedInfo | null — Component, ComponentSet, Frame, Instance
+- **devStatus** — DevStatus — Component, ComponentSet, Frame, Instance, Section
+- **documentColorProfile** `ro` — 'LEGACY' | 'SRGB' | 'DISPLAY_P3' — Document
+- **documentationLinks** — ReadonlyArray<DocumentationLink> — Component, ComponentSet
+- **effectStyleId** — string — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **effects** — ReadonlyArray<Effect> — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **expanded** — boolean — BooleanOperation, Component, ComponentSet, Frame, Group, Instance, TransformGroup
+- **explicitVariableModes** — { [collectionId: string]: string } — _all except_ Document, LabelSublayer, Removed, TextSublayer
+- **exportSettings** — ReadonlyArray<ExportSettings> — _all except_ Document, LabelSublayer, Removed, TextSublayer
+- **exposedInstances** `ro` — InstanceNode[] — Instance
+- **fillGeometry** `ro` — VectorPaths — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **fillStyleId** — string | PluginAPI['mixed'] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, TextSublayer, Vector
+- **fills** — ReadonlyArray<Paint> | PluginAPI['mixed'] | varies — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, LabelSublayer, Line, Polygon, Rectangle, Section, Star, Text, TextPath, TextSublayer, Vector
+- **flowStartingPoints** — ReadonlyArray<{ nodeId: string name: string }> — Page
+- **focusedNode** — SceneNode | null — Page
+- **focusedSlide** — SlideNode | null — Page
+- **fontName** — FontName | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **fontSize** — number | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **fontWeight** `ro` — number | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **gridAutoTracks** — 'NONE' | 'ROWS' — Component, ComponentSet, Frame, Instance
+- **gridChildHorizontalAlign** — 'MIN' | 'CENTER' | 'MAX' | 'AUTO' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **gridChildVerticalAlign** — 'MIN' | 'CENTER' | 'MAX' | 'AUTO' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **gridColumnAnchorIndex** `ro` — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **gridColumnCount** — number — Component, ComponentSet, Frame, Instance
+- **gridColumnGap** — number — Component, ComponentSet, Frame, Instance
+- **gridColumnSizes** — Array<GridTrackSize> — Component, ComponentSet, Frame, Instance
+- **gridColumnSpan** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **gridItemsPositioning** — 'MANUAL' | 'ROW_AUTO_FLOW' — Component, ComponentSet, Frame, Instance
+- **gridRowAnchorIndex** `ro` — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **gridRowCount** — number — Component, ComponentSet, Frame, Instance
+- **gridRowGap** — number — Component, ComponentSet, Frame, Instance
+- **gridRowSizes** — Array<GridTrackSize> — Component, ComponentSet, Frame, Instance
+- **gridRowSpan** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **gridStyleId** — string — Component, ComponentSet, Frame, Instance
+- **guides** — ReadonlyArray<Guide> — Component, ComponentSet, Frame, Instance, Page
+- **handleMirroring** `ro` — HandleMirroring | PluginAPI['mixed'] — TextPath, Vector
+- **hangingList** — boolean — Text, TextSublayer
+- **hangingPunctuation** — boolean — Text, TextSublayer
+- **hasMissingFont** `ro` — boolean — Text, TextPath, TextSublayer
+- **height** `ro` — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **horizontalPadding** — number — Component, ComponentSet, Frame, Instance
+- **hyperlink** — HyperlinkTarget | null | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **id** `ro` — string — _all except_ LabelSublayer, TextSublayer
+- **inferredAutoLayout** — InferredAutoLayoutResult | null — Component, ComponentSet, Frame, Instance
+- **inferredVariables** `ro` — { readonly [field in VariableBindableNodeField]?: VariableAlias[] } & { readonly fills?… — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **innerRadius** — number — Star
+- **instances** `ro` — InstanceNode[] — Component
+- **isAsset** `ro` — boolean — _all except_ LabelSublayer, Removed, TextSublayer
+- **isExposedInstance** — boolean — Instance
+- **isMask** — boolean — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **isPageDivider** `ro` — boolean — Page
+- **itemReverseZIndex** — boolean — Component, ComponentSet, Frame, Instance
+- **itemSpacing** — number — Component, ComponentSet, Frame, Instance
+- **key** `ro` — string — Component, ComponentSet
+- **layoutAlign** — 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' | 'INHERIT' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **layoutGrids** — ReadonlyArray<LayoutGrid> — Component, ComponentSet, Frame, Instance
+- **layoutGrow** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **layoutMode** — 'NONE' | 'HORIZONTAL' | 'VERTICAL' | 'GRID' — Component, ComponentSet, Frame, Instance
+- **layoutPositioning** — 'AUTO' | 'ABSOLUTE' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **layoutSizingHorizontal** — 'FIXED' | 'HUG' | 'FILL' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **layoutSizingVertical** — 'FIXED' | 'HUG' | 'FILL' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **layoutWrap** — 'NO_WRAP' | 'WRAP' — Component, ComponentSet, Frame, Instance
+- **leadingTrim** — LeadingTrim | PluginAPI['mixed'] — Text, TextSublayer
+- **letterSpacing** — LetterSpacing | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **lineHeight** — LineHeight | PluginAPI['mixed'] — Text, TextSublayer
+- **listSpacing** — number | PluginAPI['mixed'] — Text, TextSublayer
+- **locked** — boolean — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **mainComponent** — ComponentNode | null — Instance
+- **manualKeyframeTracks** `ro` — ManualKeyframeTracks — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **maskType** — MaskType — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **maxHeight** — number | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **maxLines** — number | null — Text
+- **maxWidth** — number | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **minHeight** — number | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **minWidth** — number | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **name** — string — _all except_ LabelSublayer, Removed, TextSublayer
+- **numberOfFixedChildren** — number — Component, Frame, Instance
+- **opacity** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **openTypeFeatures** `ro` — | { readonly [feature in OpenTypeFeature]: boolean } | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **overflowDirection** — OverflowDirection — Component, Frame, Instance
+- **overlayBackground** `ro` — OverlayBackground — Component, Frame, Instance
+- **overlayBackgroundInteraction** `ro` — OverlayBackgroundInteraction — Component, Frame, Instance
+- **overlayPositionType** `ro` — OverlayPositionType — Component, Frame, Instance
+- **overrides** `ro` — { id: string overriddenFields: NodeChangeProperty[] }[] — Instance
+- **paddingBottom** — number — Component, ComponentSet, Frame, Instance
+- **paddingLeft** — number — Component, ComponentSet, Frame, Instance
+- **paddingRight** — number — Component, ComponentSet, Frame, Instance
+- **paddingTop** — number — Component, ComponentSet, Frame, Instance
+- **paragraphIndent** — number | PluginAPI['mixed'] — Text, TextSublayer
+- **paragraphSpacing** — number | PluginAPI['mixed'] — Text, TextSublayer
+- **parent** `ro` — (BaseNode & ChildrenMixin) | null — _all except_ LabelSublayer, Removed, TextSublayer
+- **pointCount** — number — Polygon, Star
+- **primaryAxisAlignItems** — 'MIN' | 'MAX' | 'CENTER' | 'SPACE_BETWEEN' | 'SPACE_EVENLY' | 'SPACE_AROUND' — Component, ComponentSet, Frame, Instance
+- **primaryAxisSizingMode** — 'FIXED' | 'AUTO' — Component, ComponentSet, Frame, Instance
+- **prototypeBackgrounds** — ReadonlyArray<Paint> — Page
+- **prototypeStartNode** `ro` — FrameNode | GroupNode | ComponentNode | InstanceNode | null — Page
+- **reactions** — ReadonlyArray<Reaction> — BooleanOperation, Component, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- **relativeTransform** — Transform — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **remote** `ro` — boolean — Component, ComponentSet
+- **removed** `ro` — boolean | varies — _all except_ LabelSublayer, TextSublayer
+- **resolvedVariableModes** — { [collectionId: string]: string } — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **rotation** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **scaleFactor** — number — Instance
+- **sectionContentsHidden** — boolean — Section
+- **selectedTextRange** — { node: TextNode start: number end: number } | null — Page
+- **selection** — ReadonlyArray<SceneNode> — Page
+- **strokeAlign** — 'CENTER' | 'INSIDE' | 'OUTSIDE' — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **strokeBottomWeight** — number — Component, ComponentSet, Frame, Instance, Rectangle
+- **strokeCap** — StrokeCap | PluginAPI['mixed'] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **strokeGeometry** `ro` — VectorPaths — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **strokeJoin** — StrokeJoin | PluginAPI['mixed'] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **strokeLeftWeight** — number — Component, ComponentSet, Frame, Instance, Rectangle
+- **strokeMiterLimit** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **strokeRightWeight** — number — Component, ComponentSet, Frame, Instance, Rectangle
+- **strokeStyleId** — string — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **strokeTopWeight** — number — Component, ComponentSet, Frame, Instance, Rectangle
+- **strokeWeight** — number | PluginAPI['mixed'] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **strokes** — ReadonlyArray<Paint> — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- **strokesIncludedInLayout** — boolean — Component, ComponentSet, Frame, Instance
+- **stuckNodes** `ro` — SceneNode[] — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **targetAspectRatio** `ro` — Vector | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Polygon, Rectangle, Section, Star, Text, TextPath, TransformGroup, Vector
+- **textAlignHorizontal** — 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED' — Text, TextPath
+- **textAlignVertical** — 'TOP' | 'CENTER' | 'BOTTOM' — Text, TextPath
+- **textAutoResize** — 'NONE' | 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' — Text
+- **textCase** — TextCase | PluginAPI['mixed'] — Text, TextPath, TextSublayer
+- **textDecoration** — TextDecoration | PluginAPI['mixed'] — Text, TextSublayer
+- **textDecorationColor** — TextDecorationColor | PluginAPI['mixed'] | null — Text, TextSublayer
+- **textDecorationOffset** — TextDecorationOffset | PluginAPI['mixed'] | null — Text, TextSublayer
+- **textDecorationSkipInk** — boolean | PluginAPI['mixed'] | null — Text, TextSublayer
+- **textDecorationStyle** — TextDecorationStyle | PluginAPI['mixed'] | null — Text, TextSublayer
+- **textDecorationThickness** — TextDecorationThickness | PluginAPI['mixed'] | null — Text, TextSublayer
+- **textPathStartData** — TextPathStartData — TextPath
+- **textStyleId** — string | PluginAPI['mixed'] — Text, TextPath
+- **textTruncation** — 'DISABLED' | 'ENDING' — Text
+- **textWrapStyle** — TextWrapStyle | PluginAPI['mixed'] — Text, TextSublayer
+- **timelines** `ro` — ReadonlyArray<Timeline> — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **topLeftRadius** — number — Component, ComponentSet, Frame, Instance, Rectangle, Section
+- **topRightRadius** — number — Component, ComponentSet, Frame, Instance, Rectangle, Section
+- **transformModifiers** — TransformModifier[] — TransformGroup
+- **type** `ro` — 'BOOLEAN_OPERATION' | varies — _all except_ LabelSublayer, TextSublayer
+- **variableWidthStrokeProperties** — VariableWidthStrokeProperties | null — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- **variantGroupProperties** `ro` — { [property: string]: { values: string[] } } — ComponentSet
+- **variantProperties** `ro` — { [property: string]: string } | null — Component, Instance
+- **vectorNetwork** `ro` — VectorNetwork — TextPath, Vector
+- **vectorPaths** `ro` — VectorPaths — TextPath, Vector
+- **verticalPadding** — number — Component, ComponentSet, Frame, Instance
+- **visible** — boolean — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **width** `ro` — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **x** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- **y** — number — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+
+## Methods
+
+- `addComponentProperty(propertyName: string, type: ComponentPropertyType, defaultValue: string | boolean | VariableAlias, options?:…` — Component, ComponentSet
+- `addDevResourceAsync(url: string, name?: string): Promise<void>` — _all except_ LabelSublayer, Removed, TextSublayer
+- `addMeasurement(start: { node: SceneNode side: MeasurementSide }, end: { node: SceneNode side: MeasurementSide }, options?: { /** …` — Page
+- `appendChild(child: SceneNode): void` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `appendChildAt(node: SceneNode, rowIndex: number, columnIndex: number): void` — Component, ComponentSet, Frame, Instance
+- `applyAnimationStyle(styleId: string, animationStyleData?: AnimationStyleConfiguration): string` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `applyManualKeyframeTrack(field: KeyframeField, track: ManualKeyframeTrackInput): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `clearExplicitVariableModeForCollection(collection: VariableCollection): void` — _all except_ Document, LabelSublayer, Removed, TextSublayer
+- `clone(): BooleanOperationNode` — _all except_ Document, LabelSublayer, Removed, TextSublayer
+- `createInstance(): InstanceNode` — Component
+- `createSlot(): SlotNode` — Component
+- `deleteCharacters(start: number, end: number): void` — Text, TextPath, TextSublayer
+- `deleteComponentProperty(propertyName: string): void` — Component, ComponentSet
+- `deleteDevResourceAsync(url: string): Promise<void>` — _all except_ LabelSublayer, Removed, TextSublayer
+- `deleteMeasurement(id: string): void` — Page
+- `detachInstance(): FrameNode` — Instance
+- `editComponentProperty(propertyName: string, newValue: { name?: string defaultValue?: string | boolean | VariableAlias preferredVa…` — Component, ComponentSet
+- `editDevResourceAsync(currentUrl: string, newValue: { name?: string url?: string }): Promise<void>` — _all except_ LabelSublayer, Removed, TextSublayer
+- `editMeasurement(id: string, newValue: { offset?: MeasurementOffset freeText?: string }): Measurement` — Page
+- `exportAsync(settings: ExportSettingsMP4 | ExportSettingsGIF | ExportSettingsWEBM): Promise<Uint8Array>` — _all except_ Document, LabelSublayer, Removed, TextSublayer
+- `findAll(callback?: (node: SceneNode) => boolean): SceneNode[]` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `findAllWithCriteria(criteria: FindAllCriteria<T>): Array< { type: T[number] } & SceneNode >` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `findChild(callback: (node: SceneNode) => boolean): SceneNode | null` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `findChildren(callback?: (node: SceneNode) => boolean): SceneNode[]` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `findOne(callback: (node: SceneNode) => boolean): SceneNode | null` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `findWidgetNodesByWidgetId(widgetId: string): Array<WidgetNode>` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `getCSSAsync(): Promise<{ [key: string]: string }>` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getDevResourcesAsync(options?: { includeChildren?: boolean }): Promise<DevResourceWithNodeId[]>` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getInstancesAsync(): Promise<InstanceNode[]>` — Component
+- `getMainComponentAsync(): Promise<ComponentNode | null>` — Instance
+- `getMeasurements(): Measurement[]` — Page
+- `getMeasurementsForNode(node: SceneNode): Measurement[]` — Page
+- `getPluginData(key: string): string` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getPluginDataKeys(): string[]` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getPublishStatusAsync(): Promise<PublishStatus>` — Component, ComponentSet
+- `getRangeAllFontNames(start: number, end: number): FontName[]` — Text, TextPath, TextSublayer
+- `getRangeBoundVariable(start: number, end: number, field: VariableBindableTextField): VariableAlias | null | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeFillStyleId(start: number, end: number): string | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeFills(start: number, end: number): Paint[] | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeFontName(start: number, end: number): FontName | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeFontSize(start: number, end: number): number | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeFontWeight(start: number, end: number): number | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeHyperlink(start: number, end: number): HyperlinkTarget | null | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeIndentation(start: number, end: number): number | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeLetterSpacing(start: number, end: number): LetterSpacing | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeLineHeight(start: number, end: number): LineHeight | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeListOptions(start: number, end: number): TextListOptions | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeListSpacing(start: number, end: number): number | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeOpenTypeFeatures(start: number, end: number): | { readonly [feature in OpenTypeFeature]: boolean } | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeParagraphIndent(start: number, end: number): number | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeParagraphSpacing(start: number, end: number): number | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeTextCase(start: number, end: number): TextCase | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeTextDecoration(start: number, end: number): TextDecoration | PluginAPI['mixed']` — Text, TextSublayer
+- `getRangeTextDecorationColor(start: number, end: number): TextDecorationColor | PluginAPI['mixed'] | null` — Text, TextSublayer
+- `getRangeTextDecorationOffset(start: number, end: number): TextDecorationOffset | PluginAPI['mixed'] | null` — Text, TextSublayer
+- `getRangeTextDecorationSkipInk(start: number, end: number): boolean | PluginAPI['mixed'] | null` — Text, TextSublayer
+- `getRangeTextDecorationStyle(start: number, end: number): TextDecorationStyle | PluginAPI['mixed'] | null` — Text, TextSublayer
+- `getRangeTextDecorationThickness(start: number, end: number): TextDecorationThickness | PluginAPI['mixed'] | null` — Text, TextSublayer
+- `getRangeTextStyleId(start: number, end: number): string | PluginAPI['mixed']` — Text, TextPath, TextSublayer
+- `getRangeTextWrapStyle(start: number, end: number): TextWrapStyle | PluginAPI['mixed']` — Text, TextSublayer
+- `getRelaunchData(): { [command: string]: string }` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getSharedPluginData(namespace: string, key: string): string` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getSharedPluginDataKeys(namespace: string): string[]` — _all except_ LabelSublayer, Removed, TextSublayer
+- `getStyledTextSegments(fields: StyledTextSegmentFields, start?: number, end?: number): Array< Pick<StyledTextSegment, StyledTextSe…` — Text, TextPath, TextSublayer
+- `getTopLevelFrame(): FrameNode | undefined` — _all except_ LabelSublayer, Removed, TextSublayer
+- `insertCharacters(start: number, characters: string, useStyle?: 'BEFORE' | 'AFTER'): void` — Text, TextPath, TextSublayer
+- `insertChild(index: number, child: SceneNode): void` — BooleanOperation, Component, ComponentSet, Document, Frame, Group, Instance, Page, Section, TransformGroup
+- `loadAsync(): Promise<void>` — Page
+- `lockAspectRatio(): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Polygon, Rectangle, Section, Star, Text, TextPath, TransformGroup, Vector
+- `off(type: 'nodechange', callback: (event: NodeChangeEvent) => void): void` — Page
+- `on(type: 'nodechange', callback: (event: NodeChangeEvent) => void): void` — Page
+- `once(type: 'nodechange', callback: (event: NodeChangeEvent) => void): void` — Page
+- `outlineStroke(): VectorNode | null` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, Vector
+- `remove(): void` — _all except_ LabelSublayer, Removed, TextSublayer
+- `removeAnimationStyle(id: string): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `removeManualKeyframeTrack(field: KeyframeField): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `removeOverrides(): void` — Instance
+- `reorderColumns(options: GridTrackReorderOptions): ReadonlyArray<GridTrackReorderEntry>` — Component, ComponentSet, Frame, Instance
+- `reorderRows(options: GridTrackReorderOptions): ReadonlyArray<GridTrackReorderEntry>` — Component, ComponentSet, Frame, Instance
+- `rescale(scale: number): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `resetOverrides(): void` — Instance
+- `resize(width: number, height: number): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `resizeWithoutConstraints(width: number, height: number): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `setBoundVariable(field: VariableBindableNodeField | VariableBindableTextField, variable: Variable | null): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `setDevResourcePreviewAsync(url: string, preview: PlainTextElement): Promise<void>` — _all except_ LabelSublayer, Removed, TextSublayer
+- `setEffectStyleIdAsync(styleId: string): Promise<void>` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- `setExplicitVariableModeForCollection(collection: VariableCollection, modeId: string): void` — _all except_ Document, LabelSublayer, Removed, TextSublayer
+- `setFillStyleIdAsync(styleId: string): Promise<void>` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, TextSublayer, Vector
+- `setFillsAsync(paints: ReadonlyArray<Paint>): Promise<void>` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, TextSublayer, Vector
+- `setGridChildPosition(rowIndex: number, columnIndex: number): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `setGridStyleIdAsync(styleId: string): Promise<void>` — Component, ComponentSet, Frame, Instance
+- `setPluginData(key: string, value: string): void` — _all except_ LabelSublayer, Removed, TextSublayer
+- `setProperties(properties: { [propertyName: string]: string | boolean | VariableAlias }): void` — Instance
+- `setRangeBoundVariable(start: number, end: number, field: VariableBindableTextField, variable: Variable | null): void` — Text, TextPath, TextSublayer
+- `setRangeFillStyleId(start: number, end: number, value: string): void` — Text, TextPath, TextSublayer
+- `setRangeFillStyleIdAsync(start: number, end: number, styleId: string): Promise<void>` — Text, TextPath, TextSublayer
+- `setRangeFills(start: number, end: number, value: Paint[]): void` — Text, TextPath, TextSublayer
+- `setRangeFontName(start: number, end: number, value: FontNameInput): void` — Text, TextPath, TextSublayer
+- `setRangeFontSize(start: number, end: number, value: number): void` — Text, TextPath, TextSublayer
+- `setRangeHyperlink(start: number, end: number, value: HyperlinkTarget | null): void` — Text, TextPath, TextSublayer
+- `setRangeIndentation(start: number, end: number, value: number): void` — Text, TextSublayer
+- `setRangeLetterSpacing(start: number, end: number, value: LetterSpacing): void` — Text, TextPath, TextSublayer
+- `setRangeLineHeight(start: number, end: number, value: LineHeight): void` — Text, TextSublayer
+- `setRangeListOptions(start: number, end: number, value: TextListOptions): void` — Text, TextSublayer
+- `setRangeListSpacing(start: number, end: number, value: number): void` — Text, TextSublayer
+- `setRangeParagraphIndent(start: number, end: number, value: number): void` — Text, TextSublayer
+- `setRangeParagraphSpacing(start: number, end: number, value: number): void` — Text, TextSublayer
+- `setRangeTextCase(start: number, end: number, value: TextCase): void` — Text, TextPath, TextSublayer
+- `setRangeTextDecoration(start: number, end: number, value: TextDecoration): void` — Text, TextSublayer
+- `setRangeTextDecorationColor(start: number, end: number, value: TextDecorationColor): void` — Text, TextSublayer
+- `setRangeTextDecorationOffset(start: number, end: number, value: TextDecorationOffset): void` — Text, TextSublayer
+- `setRangeTextDecorationSkipInk(start: number, end: number, value: boolean): void` — Text, TextSublayer
+- `setRangeTextDecorationStyle(start: number, end: number, value: TextDecorationStyle): void` — Text, TextSublayer
+- `setRangeTextDecorationThickness(start: number, end: number, value: TextDecorationThickness): void` — Text, TextSublayer
+- `setRangeTextStyleId(start: number, end: number, value: string): void` — Text, TextPath, TextSublayer
+- `setRangeTextStyleIdAsync(start: number, end: number, styleId: string): Promise<void>` — Text, TextPath, TextSublayer
+- `setRangeTextWrapStyle(start: number, end: number, value: TextWrapStyle): void` — Text, TextSublayer
+- `setReactionsAsync(reactions: Array<Reaction>): Promise<void>` — BooleanOperation, Component, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Star, Text, TextPath, TransformGroup, Vector
+- `setRelaunchData(data: { [command: string]: string }): void` — _all except_ LabelSublayer, Removed, TextSublayer
+- `setSharedPluginData(namespace: string, key: string, value: string): void` — _all except_ LabelSublayer, Removed, TextSublayer
+- `setStrokeStyleIdAsync(styleId: string): Promise<void>` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- `setStrokesAsync(strokes: ReadonlyArray<Paint>): Promise<void>` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Instance, Line, Polygon, Rectangle, Section, Star, Text, TextPath, Vector
+- `setTextStyleIdAsync(styleId: string): Promise<void>` — Text, TextPath
+- `setTimelineDuration(id: string, duration: number): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Line, Polygon, Rectangle, Section, Slice, Star, Text, TextPath, TransformGroup, Vector
+- `setVectorNetworkAsync(vectorNetwork: VectorNetwork): Promise<void>` — Vector
+- `swapComponent(componentNode: ComponentNode): void` — Instance
+- `toString(): string` — _all except_ LabelSublayer, Removed, TextSublayer
+- `unlockAspectRatio(): void` — BooleanOperation, Component, ComponentSet, Ellipse, Frame, Group, Instance, Polygon, Rectangle, Section, Star, Text, TextPath, TransformGroup, Vector
+
+## Node types
+
+What each type declares itself, on top of what it inherits.
+
+- **BooleanOperationNode** — extends DefaultShapeMixin, ChildrenMixin, CornerMixin, ComplexStrokesMixin, ContainerMixin, AspectRatioLockMixin · own: type, booleanOperation
+- **ComponentNode** — extends DefaultFrameMixin, PublishableMixin, VariantMixin, ComponentPropertiesMixin · own: type, instances
+- **ComponentSetNode** — extends BaseFrameMixin, PublishableMixin, ComponentPropertiesMixin · own: type, defaultVariant, variantGroupProperties
+- **DocumentNode** — extends BaseNodeMixin · own: type, children, documentColorProfile
+- **EllipseNode** — extends DefaultShapeMixin, ConstraintMixin, CornerMixin, ComplexStrokesMixin, AnnotationsMixin, AspectRatioLockMixin · own: type, arcData
+- **FrameNode** — extends DefaultFrameMixin · own: type
+- **GroupNode** — extends BaseNodeMixin, SceneNodeMixin, ReactionMixin, ChildrenMixin, ContainerMixin, DeprecatedBackgroundMixin, BlendMixin, LayoutMixin, ExportMixin, AspectRatioLockMixin · own: type
+- **InstanceNode** — extends DefaultFrameMixin, VariantMixin · own: type, mainComponent, componentProperties, scaleFactor, exposedInstances, isExposedInstance, overrides
+- **LabelSublayerNode** — own: fills
+- **LineNode** — extends DefaultShapeMixin, ConstraintMixin, AnnotationsMixin, ComplexStrokesMixin · own: type
+- **PageNode** — extends BaseNodeMixin, ChildrenMixin, ExportMixin, ExplicitVariableModesMixin, MeasurementsMixin · own: type, guides, selection, selectedTextRange, flowStartingPoints, backgrounds, prototypeBackgrounds, prototypeStartNode, isPageDivider, focusedSlide, focusedNode
+- **PolygonNode** — extends DefaultShapeMixin, ConstraintMixin, CornerMixin, ComplexStrokesMixin, AnnotationsMixin, AspectRatioLockMixin · own: type, pointCount
+- **RectangleNode** — extends DefaultShapeMixin, ConstraintMixin, CornerMixin, ComplexStrokesMixin, RectangleCornerMixin, IndividualStrokesMixin, AnnotationsMixin, AspectRatioLockMixin · own: type
+- **RemovedNode** — own: removed, type, id
+- **SectionNode** — extends ChildrenMixin, MinimalFillsMixin, OpaqueNodeMixin, DevStatusMixin, AspectRatioLockMixin, MinimalStrokesMixin, CornerMixin, RectangleCornerMixin · own: type, sectionContentsHidden
+- **SliceNode** — extends BaseNodeMixin, SceneNodeMixin, LayoutMixin, ExportMixin · own: type
+- **StarNode** — extends DefaultShapeMixin, ConstraintMixin, CornerMixin, ComplexStrokesMixin, AnnotationsMixin, AspectRatioLockMixin · own: type, pointCount, innerRadius
+- **TextNode** — extends DefaultShapeMixin, ConstraintMixin, NonResizableTextMixin, ComplexStrokesMixin, AnnotationsMixin, AspectRatioLockMixin · own: type, textAlignHorizontal, textAlignVertical, textAutoResize, textTruncation, maxLines, autoRename, textStyleId
+- **TextPathNode** — extends DefaultShapeMixin, ConstraintMixin, NonResizableTextPathMixin, ComplexStrokesMixin, AnnotationsMixin, AspectRatioLockMixin · own: type, textAlignHorizontal, textAlignVertical, autoRename, textStyleId, vectorPaths, vectorNetwork, handleMirroring, textPathStartData
+- **TextSublayerNode** — extends NonResizableTextMixin, MinimalFillsMixin
+- **TransformGroupNode** — extends BaseNodeMixin, SceneNodeMixin, ReactionMixin, ChildrenMixin, ContainerMixin, DeprecatedBackgroundMixin, BlendMixin, LayoutMixin, ExportMixin, AspectRatioLockMixin · own: type, transformModifiers
+- **VectorNode** — extends DefaultShapeMixin, ConstraintMixin, CornerMixin, ComplexStrokesMixin, VectorLikeMixin, AnnotationsMixin, AspectRatioLockMixin · own: type

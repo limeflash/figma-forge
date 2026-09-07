@@ -9,7 +9,8 @@
     "build": "node scripts/build.mjs",
     "build:watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit -p figma-plugin/tsconfig.json && tsc --noEmit -p mcp-server/tsconfig.json",
-    "bridge": "node bridge/server.mjs"
+    "bridge": "node bridge/server.mjs",
+    "gen:api": "node scripts/gen-api-reference.mjs"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.109.0",

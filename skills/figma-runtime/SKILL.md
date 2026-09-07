@@ -69,10 +69,18 @@ INSTANCE, COMPONENT        union
 `QueryResult` chains: `.first()` `.last()` `.toArray()` `.each()` `.map()`
 `.filter()` `.values(keys)` `.set(props)` `.query(selector)`.
 
+## References
+
+- `references/api-reference.md` — every node type's properties and methods, and
+  the legal values of every enum. Generated from `@figma/plugin-typings`, so it
+  is exact. Check it before assigning a property: `itemSpacing` exists on four
+  node types, `characters` on three, and assigning to the wrong one throws
+  `object is not extensible`.
+- `references/plugin-api-notes.md` — behaviours the types cannot express.
+
 ## Sandbox facts that bite
 
-Read `references/plugin-api-notes.md` for the full list. The ones that cause
-most failures:
+The full list is in `plugin-api-notes.md`. The ones that cause most failures:
 
 - **No `fetch`, no DOM, no reliable timers.** Anything network-shaped has to
   happen on the Claude Code side.
@@ -84,6 +92,10 @@ most failures:
 - **`resize()` resets sizing modes to FIXED.** Set `layoutSizing*` after.
 - **Mixed values are `figma.mixed`,** not `undefined` — compare against it
   explicitly.
+- **Colour channels are 0–1,** and `SolidPaint.color` has no alpha — opacity is
+  a property of the paint.
+- **`lineHeight` and `letterSpacing` are objects,** `{ value, unit }`, never
+  bare numbers.
 
 ## Persistent helpers
 

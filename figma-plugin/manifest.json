@@ -1,0 +1,19 @@
+{
+  "name": "Figma Forge",
+  "id": "figma-forge-local-dev",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["ws://localhost:3055", "ws://127.0.0.1:3055"],
+    "reasoning": "Connects to the Figma Forge bridge running locally on your own machine so Claude Code can read and edit this file. No data leaves your computer.",
+    "devAllowedDomains": [
+      "ws://localhost:3055",
+      "ws://127.0.0.1:3055",
+      "http://localhost:3055",
+      "http://127.0.0.1:3055"
+    ]
+  }
+}

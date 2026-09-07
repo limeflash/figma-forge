@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 14px;
+        font: 11px/1.45 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #1e1e1e;
+        background: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { color: #e6e6e6; background: #2c2c2c; }
+        input { background: #383838; border-color: #4a4a4a; color: inherit; }
+        .log { background: #232323; border-color: #3a3a3a; }
+      }
+      h1 { font-size: 12px; margin: 0 0 10px; letter-spacing: -0.01em; }
+      label { display: block; font-weight: 600; margin: 0 0 4px; opacity: 0.75; }
+      .row { display: flex; gap: 6px; margin-bottom: 10px; }
+      input {
+        flex: 1; min-width: 0; padding: 6px 8px; font: inherit;
+        border: 1px solid #d9d9d9; border-radius: 5px; background: #fff; color: inherit;
+      }
+      input:focus { outline: 2px solid #0d99ff; outline-offset: -1px; border-color: transparent; }
+      button {
+        padding: 6px 12px; font: inherit; font-weight: 600; cursor: pointer;
+        border: 0; border-radius: 5px; background: #0d99ff; color: #fff; white-space: nowrap;
+      }
+      button:disabled { opacity: 0.45; cursor: default; }
+      button.secondary { background: transparent; color: inherit; border: 1px solid #d9d9d9; }
+      .status { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-weight: 600; }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: #b3b3b3; flex: none; }
+      .dot.on { background: #14ae5c; }
+      .dot.pending { background: #ffcd29; }
+      .dot.err { background: #f24822; }
+      .log {
+        height: 150px; overflow-y: auto; padding: 8px; border: 1px solid #e6e6e6;
+        border-radius: 5px; background: #fafafa;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; line-height: 1.5;
+      }
+      .log div { white-space: pre-wrap; word-break: break-word; }
+      .log .t { opacity: 0.45; }
+      .log .e { color: #f24822; }
+      .log .k { color: #14ae5c; }
+      .hint { margin: 8px 0 0; opacity: 0.6; font-size: 10px; }
+    </style>
+  </head>
+  <body>
+    <h1>Figma Forge</h1>
+
+    <div class="status"><span class="dot" id="dot"></span><span id="state">Disconnected</span></div>
+
+    <label for="port">Bridge</label>
+    <div class="row">
+      <input id="port" value="3055" inputmode="numeric" aria-label="Bridge port" />
+      <input id="channel" placeholder="channel" aria-label="Channel" />
+    </div>
+    <div class="row">
+      <button id="connect">Connect</button>
+      <button id="disconnect" class="secondary" disabled>Disconnect</button>
+    </div>
+
+    <div class="log" id="log"></div>
+    <p class="hint">Run <code>/figma-forge:connect</code> in Claude Code to get the channel name.</p>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const els = {
+        port: $('port'), channel: $('channel'), connect: $('connect'),
+        disconnect: $('disconnect'), dot: $('dot'), state: $('state'), log: $('log'),
+      };
+
+      let socket = null;
+      let reconnectTimer = null;
+      let reconnectDelay = 500;
+      let intentionallyClosed = false;
+
+      function log(message, kind) {
+        const line = document.createElement('div');
+        const time = new Date().toLocaleTimeString([], { hour12: false });
+        line.innerHTML = `<span class="t">${time}</span> `;
+        const body = document.createElement('span');
+        if (kind) body.className = kind;
+        body.textContent = message;
+        line.appendChild(body);
+        els.log.appendChild(line);
+        els.log.scrollTop = els.log.scrollHeight;
+        while (els.log.childElementCount > 200) els.log.removeChild(els.log.firstChild);
+      }
+
+      function setState(text, kind) {
+        els.state.textContent = text;
+        els.dot.className = 'dot' + (kind ? ' ' + kind : '');
+        const live = kind === 'on';
+        els.connect.disabled = live || kind === 'pending';
+        els.disconnect.disabled = !live && kind !== 'pending';
+      }
+
+      function post(message) {
+        parent.postMessage({ pluginMessage: message }, '*');
+      }
+
+      function connect() {
+        const port = els.port.value.trim() || '3055';
+        const channel = els.channel.value.trim();
+        if (!channel) { log('Enter a channel name first.', 'e'); return; }
+
+        intentionallyClosed = false;
+        clearTimeout(reconnectTimer);
+        setState('Connecting…', 'pending');
+
+        try {
+          socket = new WebSocket(`ws://localhost:${port}`);
+        } catch (err) {
+          setState('Failed', 'err');
+          log(String(err && err.message ? err.message : err), 'e');
+          return;
+        }
+
+        socket.onopen = () => {
+          reconnectDelay = 500;
+          socket.send(JSON.stringify({ type: 'join', channel, role: 'figma' }));
+        };
+
+        socket.onmessage = (event) => {
+          let msg;
+          try { msg = JSON.parse(event.data); } catch { return; }
+
+          if (msg.type === 'system') {
+            if (msg.event === 'joined') {
+              setState(`Connected · ${msg.channel}`, 'on');
+              log(`Joined "${msg.channel}"`, 'k');
+              post({ type: 'connected', channel: msg.channel, port: port });
+            } else if (msg.event === 'error') {
+              log(msg.message, 'e');
+            } else if (msg.event === 'peer-joined') {
+              log('Claude Code attached.', 'k');
+            } else if (msg.event === 'peer-left') {
+              log('Claude Code detached.');
+            }
+            return;
+          }
+
+          if (msg.type === 'request') {
+            log(`→ ${msg.command}`);
+            // The socket lives here in the iframe; only the main thread can
+            // touch the document, so relay and wait for its reply.
+            post({ type: 'request', id: msg.id, command: msg.command, params: msg.params });
+          }
+        };
+
+        socket.onerror = () => log('Socket error — is the bridge running?', 'e');
+
+        socket.onclose = () => {
+          socket = null;
+          post({ type: 'disconnected' });
+          if (intentionallyClosed) { setState('Disconnected'); return; }
+          setState(`Reconnecting in ${Math.round(reconnectDelay / 100) / 10}s…`, 'pending');
+          reconnectTimer = setTimeout(connect, reconnectDelay);
+          reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+        };
+      }
+
+      function disconnect() {
+        intentionallyClosed = true;
+        clearTimeout(reconnectTimer);
+        if (socket) socket.close();
+        setState('Disconnected');
+      }
+
+      els.connect.onclick = connect;
+      els.disconnect.onclick = disconnect;
+      for (const el of [els.port, els.channel]) {
+        el.addEventListener('keydown', (e) => { if (e.key === 'Enter') connect(); });
+      }
+
+      // Replies coming back from the plugin's main thread.
+      window.onmessage = (event) => {
+        const msg = event.data.pluginMessage;
+        if (!msg) return;
+
+        if (msg.type === 'restore') {
+          if (msg.port) els.port.value = msg.port;
+          if (msg.channel) els.channel.value = msg.channel;
+          if (msg.autoConnect && msg.channel) connect();
+          return;
+        }
+
+        if (msg.type === 'response' || msg.type === 'progress') {
+          if (msg.type === 'response') {
+            log(msg.ok ? `← ok` : `← ${msg.error && msg.error.message}`, msg.ok ? 'k' : 'e');
+          }
+          if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
+        }
+      };
+
+      post({ type: 'ui-ready' });
+    </script>
+  </body>
+</html>

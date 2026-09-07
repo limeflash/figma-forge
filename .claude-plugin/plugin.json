@@ -1,0 +1,35 @@
+{
+  "name": "figma-forge",
+  "displayName": "Figma Forge",
+  "version": "0.1.0",
+  "description": "Build and modify Figma designs from Claude Code with first-class design-system awareness — library-first components, variant/property handling, token binding, and post-write QA. Talks to Figma through a bundled Figma plugin over a local WebSocket bridge, so no paid Figma seat is required.",
+  "author": {
+    "name": "ennanoff",
+    "email": "ennanoff@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "figma",
+    "design-system",
+    "design-tokens",
+    "components",
+    "variables",
+    "ui"
+  ],
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "bridge_port": {
+      "type": "string",
+      "title": "Bridge port",
+      "description": "Local WebSocket port the Figma plugin connects to. Change only if 3055 is taken.",
+      "default": "3055"
+    },
+    "channel": {
+      "type": "string",
+      "title": "Default channel",
+      "description": "Channel name pairing this project with a Figma plugin session. Leave blank to derive it from the project directory name.",
+      "default": ""
+    }
+  }
+}

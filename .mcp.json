@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "figma-forge": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
+      "env": {
+        "FIGMA_FORGE_BRIDGE_PORT": "${user_config.bridge_port}",
+        "FIGMA_FORGE_CHANNEL": "${user_config.channel}",
+        "FIGMA_FORGE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
+        "FIGMA_FORGE_DATA_DIR": "${CLAUDE_PLUGIN_DATA}",
+        "FIGMA_FORGE_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}"
+      }
+    }
+  }
+}

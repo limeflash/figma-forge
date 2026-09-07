@@ -1,0 +1,25 @@
+{
+  "name": "figma-forge",
+  "description": "Design-system-aware Figma authoring for Claude Code. Build and modify real Figma files with library-first components, bound tokens, and automated post-write QA.",
+  "owner": {
+    "name": "ennanoff",
+    "email": "ennanoff@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "figma-forge",
+      "source": "./",
+      "description": "Build and modify Figma designs from Claude Code, with first-class design-system awareness. Bundles its own Figma plugin and local WebSocket bridge — no paid Figma seat required.",
+      "license": "MIT",
+      "category": "design",
+      "tags": [
+        "figma",
+        "design-system",
+        "design-tokens",
+        "components",
+        "variables",
+        "ui"
+      ]
+    }
+  ]
+}

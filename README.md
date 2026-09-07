@@ -1,0 +1,130 @@
+# Figma Forge
+
+Build and modify real Figma files from Claude Code, with the design system as
+the source of truth.
+
+Figma Forge ships its own Figma plugin and a local WebSocket bridge, so it talks
+to Figma through the full Plugin API on your machine. Nothing goes to a remote
+service, and it does not require a paid Figma seat.
+
+## What makes it different
+
+- **Design-system first.** Components, styles and variables are indexed by
+  Figma *key*, not by name, and cached per file. Writes resolve against that
+  index — a plan that reaches for a raw rectangle where a component exists is
+  rejected unless it carries a written reason.
+- **Journalled writes.** Every mutation records its inverse before it runs, so a
+  failure rolls back instead of leaving half a screen behind. The journal lives
+  on disk and outlives both the MCP process and the Figma tab.
+- **Verification, not vibes.** After each write, invariants check for hardcoded
+  colours, unbound spacing, detached instances, missing auto layout, broken
+  references, overlap and off-canvas content.
+- **Two lanes.** A typed, validated write API for normal work, and a raw
+  Plugin API execution lane — read-only by default — for what the typed ops do
+  not cover.
+
+## Install
+
+```
+/plugin marketplace add ennanoff/figma-forge
+/plugin install figma-forge
+```
+
+Then load the Figma plugin once:
+
+1. In Figma: **Plugins → Development → Import plugin from manifest…**
+2. Choose `figma-plugin/manifest.json` from this repo.
+
+## Use
+
+In Claude Code:
+
+```
+/figma-forge:connect
+```
+
+It prints a port and a channel name. In Figma, open **Plugins → Development →
+Figma Forge**, enter those two values, press **Connect**.
+
+Then:
+
+```
+/figma-forge:index                     build the design-system index
+/figma-forge:search primary button     find components, styles, variables
+/figma-forge:build a settings page     plan and build
+/figma-forge:modify all buttons to secondary
+/figma-forge:verify page
+/figma-forge:recover                   roll back a failed write
+/figma-forge:status                    what is connected, what changed
+```
+
+The plugin reconnects on its own with backoff, and the bridge survives Claude
+Code restarts — you only reopen the Figma plugin if you closed it.
+
+## Tools
+
+| Tool | Purpose |
+|---|---|
+| `figma_forge_connect` | Start the bridge, pair a channel with an open Figma file |
+| `figma_forge_status` | Bridge, plugin, file, index freshness, recent writes |
+| `figma_forge_inspect` | Document, page, selection, node, or CSS-like selector query; screenshots |
+| `figma_forge_design_system` | Index, search, resolve recipes, import library assets |
+| `figma_forge_apply_plan` | The write lane: ordered ops under a journal, with dry run |
+| `figma_forge_verify` | Design-system and structural invariants |
+| `figma_forge_recover` | Roll back a journalled operation; manage quarantine |
+| `figma_forge_execute` | Raw Plugin API JavaScript, read-only by default |
+| `figma_forge_modules` | Persistent helper modules stored in the document |
+
+## Architecture
+
+```
+Claude Code
+   │ stdio
+   ▼
+MCP server ──────────────► design-system cache + write journals
+   │ WebSocket             (CLAUDE_PLUGIN_DATA, never the project dir)
+   ▼
+bridge (detached, 127.0.0.1:3055, channel-based)
+   │ WebSocket
+   ▼
+Figma plugin UI iframe
+   │ postMessage
+   ▼
+Figma plugin main thread ──► the document
+```
+
+The split is forced by Figma: only the main thread can touch the document, and
+only the UI iframe has a network stack. The bridge is a separate detached
+process so restarting Claude Code does not drop the Figma connection.
+
+Channels pair one project with one Figma plugin session; the default channel is
+the project directory name, so several projects can share one bridge.
+
+## Development
+
+```
+npm install
+npm run build          # figma-plugin/dist, mcp-server/dist
+npm run build:watch
+npm run typecheck
+npm run bridge         # run the bridge in the foreground
+```
+
+`dist/` is committed on purpose: Claude Code installs a plugin by cloning the
+repo, with no build step.
+
+## Known limits
+
+- The Figma plugin must stay open. Nothing can reopen it remotely.
+- Figma has no transaction primitive; rollback is simulated and cannot be
+  perfect. `figma_forge_execute` in `unsafe_in_place` mode is not journalled.
+- The Plugin API cannot enumerate a team library's components — the index covers
+  local components plus remote ones the file already uses.
+- Team library variable APIs are permission-gated and unavailable in some
+  workspaces; the index degrades rather than failing.
+- Large files need scoped scans. Whole-document indexing is capped and reports
+  truncation instead of running forever.
+
+## License
+
+MIT

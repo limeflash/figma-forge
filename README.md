@@ -90,8 +90,10 @@ figma_forge_graph { action: "build" }
 figma_forge_graph { action: "search", query: "экран оплаты картой" }
 ```
 
-Building is a one-time walk: about five minutes for a 65-page file with 1473
-screens, most of it Figma loading pages rather than our traversal.
+Building walks the file once. On a 65-page file with 1473 screens: roughly four
+minutes cold, when Figma still has to fetch each page, and about 45 seconds once
+those pages are loaded in the session — plus a minute to embed. The cold cost is
+`documentAccess: "dynamic-page"` fetching pages, not the traversal.
 
 The graph indexes each screen by what it actually contains: its text, the
 components it is built from, and its page and section names. Search fuses BM25

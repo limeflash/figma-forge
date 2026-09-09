@@ -23,9 +23,14 @@ figma_forge_graph { action: "build" }
 ```
 
 It walks the file page by page. Measured on a 65-page file with 1473 screens:
-about four minutes to walk, plus a minute to embed. Most of that is Figma
-loading each page, not our traversal, so it does not get much faster. Say so
-before starting rather than going quiet.
+
+- **~4 minutes** the first time, when Figma still has to fetch each page.
+  `documentAccess: "dynamic-page"` means pages are not in memory until asked
+  for, and that fetch is the bulk of the cost.
+- **~45 seconds** afterwards, once the pages are loaded in that Figma session.
+
+Embedding adds about a minute either way. Tell the user which case they are in
+before starting — a cold build going quiet for four minutes looks like a hang.
 
 Rebuild after significant changes; the graph does not update itself.
 

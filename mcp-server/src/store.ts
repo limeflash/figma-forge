@@ -213,3 +213,33 @@ export async function readSession(channel: string): Promise<StoredSession | null
 export function dataDirectory(): string {
   return dataRoot();
 }
+
+/* ------------------------------------------------------------------ *
+ * Scratch previews
+ * ------------------------------------------------------------------ */
+
+export interface StoredPreview {
+  fileId: string;
+  title: string;
+  operationId: string;
+  /** Roots built on the scratch page, with where they belong once approved. */
+  roots: { nodeId: string; targetParent: string }[];
+  createdAt: number;
+}
+
+function previewPath(fileId: string): string {
+  return join(dataRoot(), 'preview', `${slug(fileId)}.json`);
+}
+
+export async function writePreview(preview: StoredPreview): Promise<void> {
+  await ensureDir(join(dataRoot(), 'preview'));
+  await writeJson(previewPath(preview.fileId), preview);
+}
+
+export async function readPreview(fileId: string): Promise<StoredPreview | null> {
+  return await readJson<StoredPreview>(previewPath(fileId));
+}
+
+export async function clearPreview(fileId: string): Promise<void> {
+  await rm(previewPath(fileId), { force: true });
+}

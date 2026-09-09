@@ -30,7 +30,10 @@ import { join as joinPath } from 'node:path';
 import { dataDirectory as ffDataDirectory } from './store.js';
 import {
   clearIndex,
+  clearPreview,
   dataDirectory,
+  readPreview,
+  writePreview,
   latestRecoverable,
   listJournals,
   markDirty,
@@ -1014,87 +1017,156 @@ function variableRequests(ops: PlanOp[]): string[] {
   return [...out];
 }
 
+const CREATE_OPS = new Set(['create_frame', 'create_instance', 'create_text', 'create_from_svg', 'clone']);
+
+/**
+ * Retargets a plan's roots onto the scratch page, remembering where each one
+ * was headed. Approving a preview is then a `move` back, not a rebuild — so the
+ * nodes reviewed are the nodes delivered, with their ids intact.
+ */
+function retargetToScratch(ops: PlanOp[]): { ops: PlanOp[]; targets: Map<string, string> } {
+  const targets = new Map<string, string>();
+  const retargeted = ops.map((op, index) => {
+    if (!CREATE_OPS.has(op.op)) return op;
+    const parent = op.parent as string | undefined;
+    if (!parent || parent.startsWith('$')) return op;
+    const ref = (op.ref as string) ?? `root${index}`;
+    targets.set(ref, parent);
+    return { ...op, ref, parent: '@scratch' };
+  });
+  return { ops: retargeted, targets };
+}
+
 server.registerTool(
   'figma_forge_preview',
   {
-    title: 'Preview a plan as HTML',
+    title: 'Preview a plan on the Figma canvas',
     description:
-      'Renders a write plan to a local HTML file so it can be reviewed and iterated on without touching Figma. ' +
-      'The plan is the single source of truth: this renders it, and figma_forge_apply_plan applies the same plan ' +
-      'unchanged. The HTML is never converted back into Figma — that is what would produce detached rectangles ' +
-      'instead of component instances.\n\n' +
-      'Components and cloned nodes are drawn as their real exported pixels; only the containers the plan invents ' +
-      'are drawn as CSS boxes, marked with a dashed outline. Use this between drafting a plan and applying it.',
+      'Builds a plan on the Figma Forge scratch page and returns a screenshot, so it can be reviewed before it lands ' +
+      'on a real page. There is no approximation: the preview is made of the same component instances, auto layout ' +
+      'and bound variables the finished screen will have, because it *is* the finished screen — approving moves ' +
+      'those exact nodes to the target page, keeping their ids.\n\n' +
+      'Actions: "build" (default) puts the plan on the scratch page and screenshots it, rolling back any previous ' +
+      'preview first; "commit" moves it to where the plan originally aimed; "discard" rolls it back.\n\n' +
+      'Iterate by editing the ops and calling "build" again — nothing reaches a real page until "commit".',
     inputSchema: {
-      title: z.string().describe('What is being designed; shown as the preview heading.'),
-      ops: z.array(z.object({ op: z.string() }).passthrough()).describe('The same ops array figma_forge_apply_plan takes.'),
-      refreshThumbnails: z.boolean().optional().describe('Re-export component images instead of reusing cached ones.'),
-      notes: z.array(z.string()).optional().describe('Extra notes to show under the preview.'),
+      action: z.enum(['build', 'commit', 'discard']).default('build'),
+      title: z.string().optional().describe('What is being designed; stored with the preview.'),
+      ops: z.array(z.object({ op: z.string() }).passthrough()).optional().describe('For "build": the same ops figma_forge_apply_plan takes.'),
+      scale: z.number().min(0.1).max(2).optional().describe('Screenshot scale.'),
     },
   },
   async (params): Promise<ToolResult> => {
     try {
       const info = await sessionInfo();
       const fileId = fileIdentity(info);
-      const outDir = joinPath(ffDataDirectory(), 'preview', fileId.replace(/[^a-zA-Z0-9._-]/g, '_'));
-      const thumbDir = joinPath(outDir, 'thumbs');
-      await mkdir(thumbDir, { recursive: true });
+      const previous = await readPreview(fileId);
 
-      const ops = params.ops as unknown as PlanOp[];
-
-      const thumbnails: Record<string, ThumbnailAsset> = {};
-      const requests = thumbnailRequests(ops);
-      const failures: { requested: string; error: string }[] = [];
-
-      if (requests.length) {
-        const result = await call<{
-          thumbnails: { id: string; requested: string; name: string; naturalWidth: number; naturalHeight: number; bytes: string }[];
-          failed: { requested: string; error: string }[];
-        }>('thumbnails', { ids: requests, maxEdge: 900 }, 180_000);
-
-        for (const thumb of result.thumbnails) {
-          const name = `${thumb.requested.replace(/[^a-zA-Z0-9._-]/g, '_')}.png`;
-          await writeFile(joinPath(thumbDir, name), Buffer.from(thumb.bytes, 'base64'));
-          thumbnails[thumb.requested] = {
-            file: `thumbs/${name}`,
-            name: thumb.name,
-            naturalWidth: thumb.naturalWidth,
-            naturalHeight: thumb.naturalHeight,
-          };
-        }
-        failures.push(...result.failed);
+      if (params.action === 'discard') {
+        if (!previous) return text({ discarded: false, message: 'No preview to discard.' });
+        const journal = await readJournal(previous.operationId);
+        const result = journal
+          ? await call('recover', { action: 'rollback', journal: journal.entries }, 120_000)
+          : { skipped: 'journal missing' };
+        await clearPreview(fileId);
+        return text({ discarded: true, title: previous.title, rollback: result });
       }
 
-      const variables: Record<string, VariableValue> = {};
-      const variableIds = variableRequests(ops);
-      if (variableIds.length) {
-        const resolved = await call<Record<string, VariableValue>>('resolve_variables', { ids: variableIds }, 60_000);
-        Object.assign(variables, resolved);
+      if (params.action === 'commit') {
+        if (!previous) return failure(new Error('No preview to commit. Run action "build" first.'));
+        const moves = previous.roots.map((root) => ({ op: 'move', node: root.nodeId, parent: root.targetParent }));
+        const result = await call('apply_plan', { ops: moves, description: `Commit preview: ${previous.title}` }, 120_000);
+        await clearPreview(fileId);
+        return text({
+          committed: true,
+          title: previous.title,
+          nodes: previous.roots.map((root) => root.nodeId),
+          result,
+          note: 'The reviewed nodes moved to the target page — same ids, nothing rebuilt.',
+        });
       }
 
-      const notes = [...(params.notes ?? [])];
-      for (const failure of failures) notes.push(`Could not export ${failure.requested}: ${failure.error}`);
+      if (!params.ops || !params.ops.length) return failure(new Error('action "build" needs an `ops` array.'));
 
-      const rendered = await renderPlan({
-        title: params.title,
-        ops,
-        thumbnails,
-        variables,
-        outDir,
-        notes,
+      // A previous preview would otherwise pile up on the scratch page.
+      if (previous) {
+        const journal = await readJournal(previous.operationId);
+        if (journal) await call('recover', { action: 'rollback', journal: journal.entries }, 120_000).catch(() => null);
+        await clearPreview(fileId);
+      }
+
+      const { ops, targets } = retargetToScratch(params.ops as unknown as PlanOp[]);
+
+      const built = await call<{
+        operationId: string;
+        ok: boolean;
+        error?: string;
+        results: { ref?: string; nodeId?: string; status: string }[];
+        created: string[];
+        scratchPageId?: string;
+        journal: unknown[];
+      }>('apply_plan', { ops, scratch: true, description: `Preview: ${params.title ?? 'untitled'}` }, 180_000);
+
+      const journalInfo = await sessionInfo().catch(() => null);
+      await writeJournal({
+        operationId: built.operationId,
+        channel: bridge.channel,
+        fileKey: journalInfo?.fileKey ?? null,
+        description: `Preview: ${params.title ?? 'untitled'}`,
+        createdAt: Date.now(),
+        status: built.ok ? 'applied' : 'failed',
+        error: built.error,
+        created: built.created,
+        modified: [],
+        quarantined: [],
+        entries: built.journal,
       });
 
-      return text({
-        preview: rendered.file,
-        open: `file://${rendered.file}`,
-        rootFrames: rendered.roots,
-        thumbnails: Object.keys(thumbnails).length,
-        missingThumbnails: rendered.missing,
-        variablesResolved: Object.keys(variables).length,
-        next:
-          'Open the file to review. Iterate by editing the ops and re-rendering — nothing has touched Figma yet. ' +
-          'When it is right, pass the same ops to figma_forge_apply_plan.',
+      if (!built.ok) return text({ built: false, error: built.error, results: built.results });
+
+      const roots = built.results
+        .filter((row) => row.ref && row.nodeId && targets.has(row.ref))
+        .map((row) => ({ nodeId: row.nodeId!, targetParent: targets.get(row.ref!)! }));
+
+      await writePreview({
+        fileId,
+        title: params.title ?? 'untitled',
+        operationId: built.operationId,
+        roots,
+        createdAt: Date.now(),
       });
+
+      const content: ToolResult['content'] = [];
+      for (const root of roots) {
+        const shot = await call<{ bytes: string; name: string; width: number; height: number }>(
+          'inspect',
+          { scope: 'screenshot', nodeId: root.nodeId, scale: params.scale },
+          120_000
+        );
+        content.push({ type: 'text', text: `${shot.name} — узел ${root.nodeId}` });
+        content.push({ type: 'image', data: shot.bytes, mimeType: 'image/png' });
+      }
+
+      const verification = await call('verify', { scope: 'operation', operationId: built.operationId }, 120_000).catch(
+        () => null
+      );
+
+      content.push({
+        type: 'text',
+        text: JSON.stringify(
+          {
+            preview: 'built on the Figma Forge scratch page',
+            operationId: built.operationId,
+            roots,
+            verification,
+            next: 'Iterate with another "build", accept with "commit", or drop it with "discard".',
+          },
+          null,
+          2
+        ),
+      });
+
+      return { content };
     } catch (error) {
       return failure(error);
     }

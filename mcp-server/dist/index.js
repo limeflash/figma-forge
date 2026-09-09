@@ -25108,7 +25108,7 @@ var StdioServerTransport = class {
 };
 
 // mcp-server/src/index.ts
-import { basename as basename3, dirname, join as join4 } from "node:path";
+import { basename as basename3, dirname, join as join3 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // mcp-server/src/bridge.ts
@@ -26383,234 +26383,22 @@ function fuse(lexical, vector, limit, k = 60) {
   return [...rows.values()].sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-// mcp-server/src/preview/render.ts
-import { writeFile as writeFile2, mkdir as mkdir2 } from "node:fs/promises";
-import { join as join2 } from "node:path";
-var escapeHtml = (value) => value.replace(
-  /[&<>"']/g,
-  (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]
-);
-function rgbaToCss(value) {
-  if (!value || typeof value !== "object") return null;
-  const color = value;
-  if (typeof color.r !== "number") return null;
-  const channel = (n) => Math.round(Math.max(0, Math.min(1, n)) * 255);
-  const alpha = color.a === void 0 ? 1 : color.a;
-  return `rgba(${channel(color.r)}, ${channel(color.g)}, ${channel(color.b)}, ${Math.round(alpha * 100) / 100})`;
-}
-var ALIGN = {
-  MIN: "flex-start",
-  CENTER: "center",
-  MAX: "flex-end",
-  SPACE_BETWEEN: "space-between",
-  BASELINE: "baseline"
-};
-function cssFor(set, autoLayout) {
-  const rules = [];
-  const mode = set.layoutMode ?? autoLayout;
-  if (mode === "VERTICAL" || mode === "HORIZONTAL") {
-    rules.push("display: flex", `flex-direction: ${mode === "VERTICAL" ? "column" : "row"}`);
-    if (set.layoutWrap === "WRAP") rules.push("flex-wrap: wrap");
-    if (typeof set.itemSpacing === "number") rules.push(`gap: ${set.itemSpacing}px`);
-    if (typeof set.counterAxisSpacing === "number" && set.layoutWrap === "WRAP") {
-      rules.push(`row-gap: ${set.counterAxisSpacing}px`);
-    }
-    if (typeof set.primaryAxisAlignItems === "string") {
-      rules.push(`justify-content: ${ALIGN[set.primaryAxisAlignItems] ?? "flex-start"}`);
-    }
-    if (typeof set.counterAxisAlignItems === "string") {
-      rules.push(`align-items: ${ALIGN[set.counterAxisAlignItems] ?? "stretch"}`);
-    }
-  }
-  for (const [key, side] of [
-    ["paddingTop", "top"],
-    ["paddingRight", "right"],
-    ["paddingBottom", "bottom"],
-    ["paddingLeft", "left"]
-  ]) {
-    if (typeof set[key] === "number") rules.push(`padding-${side}: ${set[key]}px`);
-  }
-  if (typeof set.width === "number") rules.push(`width: ${set.width}px`);
-  if (typeof set.height === "number") rules.push(`height: ${set.height}px`);
-  if (typeof set.cornerRadius === "number") rules.push(`border-radius: ${set.cornerRadius}px`);
-  if (set.clipsContent === true) rules.push("overflow: hidden");
-  if (set.layoutSizingHorizontal === "FILL") rules.push("align-self: stretch", "width: auto");
-  const fills = set.fills;
-  if (Array.isArray(fills) && fills.length) {
-    const solid = fills.find((paint) => paint.type === "SOLID");
-    const css = solid ? rgbaToCss(solid.color) : null;
-    if (css) rules.push(`background: ${css}`);
-  } else if (Array.isArray(fills)) {
-    rules.push("background: transparent");
-  }
-  return rules;
-}
-function buildTree(ops) {
-  const byRef = /* @__PURE__ */ new Map();
-  const roots = [];
-  const unattached = [];
-  const CREATES = /* @__PURE__ */ new Set(["create_frame", "create_instance", "create_text", "create_from_svg", "clone"]);
-  for (const op of ops) {
-    if (CREATES.has(op.op)) {
-      const ref = op.ref ?? `anon${byRef.size}`;
-      const node2 = { ref, op, children: [], style: op.set ?? {} };
-      byRef.set(ref, node2);
-      const parent = op.parent;
-      const parentNode = parent && parent.startsWith("$") ? byRef.get(parent.slice(1)) : void 0;
-      if (parentNode) parentNode.children.push(node2);
-      else roots.push(node2);
-      continue;
-    }
-    const target = op.node;
-    const node = target && target.startsWith("$") ? byRef.get(target.slice(1)) : void 0;
-    if (!node) {
-      unattached.push(op);
-      continue;
-    }
-    if (op.op === "set" && op.props) Object.assign(node.style, op.props);
-    else if (op.op === "bind_paint_variable") node.style.__variableFill = op.variableId;
-    else if (op.op === "set_text") node.style.__pendingText = op.characters;
-    else unattached.push(op);
-  }
-  return { roots, unattached };
-}
-function renderNode(node, input, depth) {
-  const pad = "  ".repeat(depth + 3);
-  const op = node.op;
-  const style = { ...node.style };
-  const variableId = style.__variableFill;
-  if (variableId) {
-    const variable = input.variables[variableId];
-    const css = variable ? rgbaToCss(variable.value) : null;
-    if (css) style.fills = [{ type: "SOLID", color: variable.value }];
-    delete style.__variableFill;
-    if (css) style.__resolved = css;
-  }
-  const rules = cssFor(style, op.autoLayout);
-  if (style.__resolved) rules.push(`background: ${style.__resolved}`);
-  const label = op.name ?? node.ref;
-  if (op.op === "create_instance" || op.op === "clone") {
-    const requested = op.componentKey ?? op.componentId ?? op.node;
-    const asset = input.thumbnails[requested];
-    if (asset) {
-      const width = style.layoutSizingHorizontal === "FILL" ? "width:100%;align-self:stretch" : `width:${asset.naturalWidth}px`;
-      const image = `<img class="asset" src="${escapeHtml(asset.file)}" alt="${escapeHtml(asset.name)}" title="${escapeHtml(`${op.op}: ${asset.name}`)}" style="${width};height:auto" />`;
-      const pending = style.__pendingText;
-      if (pending) {
-        return `${pad}<div class="pending" style="${width}">${image}<span>\u2192 \xAB${escapeHtml(pending)}\xBB</span></div>`;
-      }
-      return `${pad}${image}`;
-    }
-    return `${pad}<div class="missing" title="no thumbnail for ${escapeHtml(String(requested))}">${escapeHtml(label)}<small>${escapeHtml(String(requested))}</small></div>`;
-  }
-  if (op.op === "create_text") {
-    return `${pad}<div class="text" style="${rules.join(";")}">${escapeHtml(String(op.characters ?? ""))}</div>`;
-  }
-  const children = node.children.map((child) => renderNode(child, input, depth + 1)).join("\n");
-  const invented = op.op === "create_frame" ? " invented" : "";
-  const reason = op.reason ? ` data-reason="${escapeHtml(String(op.reason))}"` : "";
-  return `${pad}<div class="frame${invented}" style="${rules.join(";")}" data-name="${escapeHtml(label)}"${reason}>
-${children}
-${pad}</div>`;
-}
-async function renderPlan(input) {
-  await mkdir2(input.outDir, { recursive: true });
-  const { roots, unattached } = buildTree(input.ops);
-  const missing = [];
-  for (const op of input.ops) {
-    if (op.op !== "create_instance" && op.op !== "clone") continue;
-    const requested = op.componentKey ?? op.componentId ?? op.node;
-    if (requested && !input.thumbnails[requested]) missing.push(requested);
-  }
-  const body = roots.map((root) => renderNode(root, input, 0)).join("\n");
-  const notes = [...input.notes ?? []];
-  if (unattached.length) {
-    notes.push(
-      `${unattached.length} operation(s) are not shown: ${unattached.map((op) => op.op).join(", ")}. They target existing Figma nodes rather than anything this plan creates.`
-    );
-  }
-  if (missing.length) notes.push(`No thumbnail for: ${[...new Set(missing)].join(", ")}.`);
-  const html = `<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8" />
-<title>${escapeHtml(input.title)}</title>
-<style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 32px; background: #8b8b9e;
-    font: 13px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #1e1e1e;
-  }
-  header { max-width: 900px; margin: 0 auto 24px; color: #fff; }
-  header h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
-  header p { margin: 0; opacity: 0.75; font-size: 12px; }
-  .stage { display: flex; gap: 40px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
-  .frame { position: relative; }
-  /* Dashed = invented by this plan; everything solid is a real exported node. */
-  .frame.invented { outline: 1px dashed rgba(255,255,255,0.35); outline-offset: -1px; }
-  .frame.invented:hover { outline-color: #0d99ff; }
-  .asset { display: block; }
-  .text { white-space: pre-wrap; }
-  .missing {
-    display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 8px;
-    background: repeating-linear-gradient(45deg, #ffd9d9, #ffd9d9 6px, #ffc9c9 6px, #ffc9c9 12px);
-    color: #8a1f1f; font-weight: 600;
-  }
-  .missing small { font-weight: 400; opacity: 0.7; font-size: 10px; }
-  .pending { position: relative; display: block; }
-  .pending span {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    background: #0d99ff; color: #fff; font-size: 11px; font-weight: 600;
-    padding: 3px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  }
-  .notes {
-    max-width: 900px; margin: 28px auto 0; padding: 14px 18px; border-radius: 10px;
-    background: rgba(0,0,0,0.25); color: #fff; font-size: 12px;
-  }
-  .notes li { margin: 4px 0; }
-  .legend { max-width: 900px; margin: 16px auto 0; color: #fff; opacity: 0.7; font-size: 11px; }
-</style>
-</head>
-<body>
-  <header>
-    <h1>${escapeHtml(input.title)}</h1>
-    <p>\u041F\u0440\u0435\u0432\u044C\u044E \u043F\u043B\u0430\u043D\u0430. \u0421\u043F\u043B\u043E\u0448\u043D\u044B\u0435 \u0431\u043B\u043E\u043A\u0438 \u2014 \u0440\u0435\u0430\u043B\u044C\u043D\u044B\u0435 \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442\u044B \u0438 \u043A\u043B\u043E\u043D\u044B \u0438\u0437 \u0444\u0430\u0439\u043B\u0430; \u043F\u0443\u043D\u043A\u0442\u0438\u0440 \u2014 \u043A\u043E\u043D\u0442\u0435\u0439\u043D\u0435\u0440\u044B, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u043F\u043B\u0430\u043D \u0441\u043E\u0437\u0434\u0430\u0451\u0442.</p>
-  </header>
-  <div class="stage">
-${body}
-  </div>
-  ${notes.length ? `<div class="notes"><ul>${notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul></div>` : ""}
-  <div class="legend">\u041D\u0430\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u0430 \u043F\u0443\u043D\u043A\u0442\u0438\u0440\u043D\u044B\u0439 \u0431\u043B\u043E\u043A \u2014 \u0432\u043E \u0432\u0441\u043F\u043B\u044B\u0432\u0430\u044E\u0449\u0435\u0439 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0435 \u043F\u0440\u0438\u0447\u0438\u043D\u0430, \u043F\u043E \u043A\u043E\u0442\u043E\u0440\u043E\u0439 \u043F\u043B\u0430\u043D \u0441\u043E\u0437\u0434\u0430\u0451\u0442 \u043F\u0440\u0438\u043C\u0438\u0442\u0438\u0432.</div>
-</body>
-</html>`;
-  const file = join2(input.outDir, "preview.html");
-  await writeFile2(file, html, "utf8");
-  return { file, roots: roots.length, missing: [...new Set(missing)] };
-}
-
-// mcp-server/src/index.ts
-import { mkdir as mkdir4, writeFile as writeFile4 } from "node:fs/promises";
-import { join as joinPath } from "node:path";
-
 // mcp-server/src/store.ts
-import { mkdir as mkdir3, readdir, readFile as readFile5, rm as rm2, writeFile as writeFile3 } from "node:fs/promises";
+import { mkdir as mkdir2, readdir, readFile as readFile5, rm as rm2, writeFile as writeFile2 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { join as join3, resolve as resolve3 } from "node:path";
+import { join as join2, resolve as resolve3 } from "node:path";
 var INDEX_SCHEMA_VERSION = 1;
 var LIBRARY_TTL_MS = 15 * 60 * 1e3;
 function dataRoot2() {
   const configured = process.env.FIGMA_FORGE_DATA_DIR;
   if (configured && configured.trim() && !configured.includes("${")) return resolve3(configured);
-  return join3(homedir2(), ".figma-forge");
+  return join2(homedir2(), ".figma-forge");
 }
 function slug2(value) {
   return (value || "unknown").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
 }
 async function ensureDir(path) {
-  await mkdir3(path, { recursive: true });
+  await mkdir2(path, { recursive: true });
   return path;
 }
 async function readJson(path) {
@@ -26621,10 +26409,10 @@ async function readJson(path) {
   }
 }
 async function writeJson(path, value) {
-  await writeFile3(path, JSON.stringify(value, null, 2), "utf8");
+  await writeFile2(path, JSON.stringify(value, null, 2), "utf8");
 }
 function indexPath(fileKey, scope) {
-  return join3(dataRoot2(), "index", `${slug2(fileKey)}--${slug2(scope)}.json`);
+  return join2(dataRoot2(), "index", `${slug2(fileKey)}--${slug2(scope)}.json`);
 }
 async function readIndex(fileKey, scope, pluginVersion) {
   const cached2 = await readJson(indexPath(fileKey, scope));
@@ -26633,7 +26421,7 @@ async function readIndex(fileKey, scope, pluginVersion) {
   return cached2;
 }
 async function writeIndex(fileKey, scope, pluginVersion, index) {
-  await ensureDir(join3(dataRoot2(), "index"));
+  await ensureDir(join2(dataRoot2(), "index"));
   const record2 = {
     schemaVersion: INDEX_SCHEMA_VERSION,
     pluginVersion,
@@ -26655,10 +26443,10 @@ async function markDirty(fileKey, scope, nodeIds) {
   await writeJson(path, cached2);
 }
 function journalPath(operationId) {
-  return join3(dataRoot2(), "journals", `${slug2(operationId)}.json`);
+  return join2(dataRoot2(), "journals", `${slug2(operationId)}.json`);
 }
 async function writeJournal(journal) {
-  await ensureDir(join3(dataRoot2(), "journals"));
+  await ensureDir(join2(dataRoot2(), "journals"));
   const path = journalPath(journal.operationId);
   await writeJson(path, journal);
   return path;
@@ -26667,12 +26455,12 @@ async function readJournal(operationId) {
   return await readJson(journalPath(operationId));
 }
 async function listJournals(limit = 20) {
-  const dir = join3(dataRoot2(), "journals");
+  const dir = join2(dataRoot2(), "journals");
   const out = [];
   try {
     for (const name of await readdir(dir)) {
       if (!name.endsWith(".json")) continue;
-      const journal = await readJson(join3(dir, name));
+      const journal = await readJson(join2(dir, name));
       if (journal) out.push(journal);
     }
   } catch {
@@ -26692,10 +26480,10 @@ async function updateJournalStatus(operationId, status2, error2) {
   await writeJournal(journal);
 }
 function sessionPath(channel) {
-  return join3(dataRoot2(), "sessions", `${slug2(channel)}.json`);
+  return join2(dataRoot2(), "sessions", `${slug2(channel)}.json`);
 }
 async function writeSession(session) {
-  await ensureDir(join3(dataRoot2(), "sessions"));
+  await ensureDir(join2(dataRoot2(), "sessions"));
   await writeJson(sessionPath(session.channel), session);
 }
 async function readSession(channel) {
@@ -26703,6 +26491,19 @@ async function readSession(channel) {
 }
 function dataDirectory() {
   return dataRoot2();
+}
+function previewPath(fileId) {
+  return join2(dataRoot2(), "preview", `${slug2(fileId)}.json`);
+}
+async function writePreview(preview) {
+  await ensureDir(join2(dataRoot2(), "preview"));
+  await writeJson(previewPath(preview.fileId), preview);
+}
+async function readPreview(fileId) {
+  return await readJson(previewPath(fileId));
+}
+async function clearPreview(fileId) {
+  await rm2(previewPath(fileId), { force: true });
 }
 
 // mcp-server/src/index.ts
@@ -26724,7 +26525,7 @@ var port = Number(envValue("FIGMA_FORGE_BRIDGE_PORT") ?? 3055) || 3055;
 var bridge = new Bridge({
   port,
   channel: defaultChannel(),
-  bridgeScript: join4(here, "bridge.js")
+  bridgeScript: join3(here, "bridge.js")
 });
 function text(value) {
   return { content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] };
@@ -27444,91 +27245,115 @@ ${error2.remedy}` }] };
     }
   }
 );
-function thumbnailRequests(ops) {
-  const out = /* @__PURE__ */ new Set();
-  for (const op of ops) {
-    if (op.op === "create_instance") {
-      const key = op.componentKey ?? op.componentId;
-      if (key) out.add(key);
-    } else if (op.op === "clone") {
-      const source = op.node;
-      if (source && !source.startsWith("$") && !source.startsWith("@")) out.add(source);
-    }
-  }
-  return [...out];
-}
-function variableRequests(ops) {
-  const out = /* @__PURE__ */ new Set();
-  for (const op of ops) {
-    if (op.op === "bind_paint_variable" || op.op === "bind_variable") {
-      const id = op.variableId;
-      if (id) out.add(id);
-    }
-  }
-  return [...out];
+var CREATE_OPS = /* @__PURE__ */ new Set(["create_frame", "create_instance", "create_text", "create_from_svg", "clone"]);
+function retargetToScratch(ops) {
+  const targets = /* @__PURE__ */ new Map();
+  const retargeted = ops.map((op, index) => {
+    if (!CREATE_OPS.has(op.op)) return op;
+    const parent = op.parent;
+    if (!parent || parent.startsWith("$")) return op;
+    const ref = op.ref ?? `root${index}`;
+    targets.set(ref, parent);
+    return { ...op, ref, parent: "@scratch" };
+  });
+  return { ops: retargeted, targets };
 }
 server.registerTool(
   "figma_forge_preview",
   {
-    title: "Preview a plan as HTML",
-    description: "Renders a write plan to a local HTML file so it can be reviewed and iterated on without touching Figma. The plan is the single source of truth: this renders it, and figma_forge_apply_plan applies the same plan unchanged. The HTML is never converted back into Figma \u2014 that is what would produce detached rectangles instead of component instances.\n\nComponents and cloned nodes are drawn as their real exported pixels; only the containers the plan invents are drawn as CSS boxes, marked with a dashed outline. Use this between drafting a plan and applying it.",
+    title: "Preview a plan on the Figma canvas",
+    description: 'Builds a plan on the Figma Forge scratch page and returns a screenshot, so it can be reviewed before it lands on a real page. There is no approximation: the preview is made of the same component instances, auto layout and bound variables the finished screen will have, because it *is* the finished screen \u2014 approving moves those exact nodes to the target page, keeping their ids.\n\nActions: "build" (default) puts the plan on the scratch page and screenshots it, rolling back any previous preview first; "commit" moves it to where the plan originally aimed; "discard" rolls it back.\n\nIterate by editing the ops and calling "build" again \u2014 nothing reaches a real page until "commit".',
     inputSchema: {
-      title: external_exports.string().describe("What is being designed; shown as the preview heading."),
-      ops: external_exports.array(external_exports.object({ op: external_exports.string() }).passthrough()).describe("The same ops array figma_forge_apply_plan takes."),
-      refreshThumbnails: external_exports.boolean().optional().describe("Re-export component images instead of reusing cached ones."),
-      notes: external_exports.array(external_exports.string()).optional().describe("Extra notes to show under the preview.")
+      action: external_exports.enum(["build", "commit", "discard"]).default("build"),
+      title: external_exports.string().optional().describe("What is being designed; stored with the preview."),
+      ops: external_exports.array(external_exports.object({ op: external_exports.string() }).passthrough()).optional().describe('For "build": the same ops figma_forge_apply_plan takes.'),
+      scale: external_exports.number().min(0.1).max(2).optional().describe("Screenshot scale.")
     }
   },
   async (params) => {
     try {
       const info = await sessionInfo();
       const fileId = fileIdentity(info);
-      const outDir = joinPath(dataDirectory(), "preview", fileId.replace(/[^a-zA-Z0-9._-]/g, "_"));
-      const thumbDir = joinPath(outDir, "thumbs");
-      await mkdir4(thumbDir, { recursive: true });
-      const ops = params.ops;
-      const thumbnails = {};
-      const requests = thumbnailRequests(ops);
-      const failures = [];
-      if (requests.length) {
-        const result = await call("thumbnails", { ids: requests, maxEdge: 900 }, 18e4);
-        for (const thumb of result.thumbnails) {
-          const name = `${thumb.requested.replace(/[^a-zA-Z0-9._-]/g, "_")}.png`;
-          await writeFile4(joinPath(thumbDir, name), Buffer.from(thumb.bytes, "base64"));
-          thumbnails[thumb.requested] = {
-            file: `thumbs/${name}`,
-            name: thumb.name,
-            naturalWidth: thumb.naturalWidth,
-            naturalHeight: thumb.naturalHeight
-          };
-        }
-        failures.push(...result.failed);
+      const previous = await readPreview(fileId);
+      if (params.action === "discard") {
+        if (!previous) return text({ discarded: false, message: "No preview to discard." });
+        const journal = await readJournal(previous.operationId);
+        const result = journal ? await call("recover", { action: "rollback", journal: journal.entries }, 12e4) : { skipped: "journal missing" };
+        await clearPreview(fileId);
+        return text({ discarded: true, title: previous.title, rollback: result });
       }
-      const variables = {};
-      const variableIds = variableRequests(ops);
-      if (variableIds.length) {
-        const resolved = await call("resolve_variables", { ids: variableIds }, 6e4);
-        Object.assign(variables, resolved);
+      if (params.action === "commit") {
+        if (!previous) return failure(new Error('No preview to commit. Run action "build" first.'));
+        const moves = previous.roots.map((root) => ({ op: "move", node: root.nodeId, parent: root.targetParent }));
+        const result = await call("apply_plan", { ops: moves, description: `Commit preview: ${previous.title}` }, 12e4);
+        await clearPreview(fileId);
+        return text({
+          committed: true,
+          title: previous.title,
+          nodes: previous.roots.map((root) => root.nodeId),
+          result,
+          note: "The reviewed nodes moved to the target page \u2014 same ids, nothing rebuilt."
+        });
       }
-      const notes = [...params.notes ?? []];
-      for (const failure2 of failures) notes.push(`Could not export ${failure2.requested}: ${failure2.error}`);
-      const rendered = await renderPlan({
-        title: params.title,
-        ops,
-        thumbnails,
-        variables,
-        outDir,
-        notes
+      if (!params.ops || !params.ops.length) return failure(new Error('action "build" needs an `ops` array.'));
+      if (previous) {
+        const journal = await readJournal(previous.operationId);
+        if (journal) await call("recover", { action: "rollback", journal: journal.entries }, 12e4).catch(() => null);
+        await clearPreview(fileId);
+      }
+      const { ops, targets } = retargetToScratch(params.ops);
+      const built = await call("apply_plan", { ops, scratch: true, description: `Preview: ${params.title ?? "untitled"}` }, 18e4);
+      const journalInfo = await sessionInfo().catch(() => null);
+      await writeJournal({
+        operationId: built.operationId,
+        channel: bridge.channel,
+        fileKey: journalInfo?.fileKey ?? null,
+        description: `Preview: ${params.title ?? "untitled"}`,
+        createdAt: Date.now(),
+        status: built.ok ? "applied" : "failed",
+        error: built.error,
+        created: built.created,
+        modified: [],
+        quarantined: [],
+        entries: built.journal
       });
-      return text({
-        preview: rendered.file,
-        open: `file://${rendered.file}`,
-        rootFrames: rendered.roots,
-        thumbnails: Object.keys(thumbnails).length,
-        missingThumbnails: rendered.missing,
-        variablesResolved: Object.keys(variables).length,
-        next: "Open the file to review. Iterate by editing the ops and re-rendering \u2014 nothing has touched Figma yet. When it is right, pass the same ops to figma_forge_apply_plan."
+      if (!built.ok) return text({ built: false, error: built.error, results: built.results });
+      const roots = built.results.filter((row) => row.ref && row.nodeId && targets.has(row.ref)).map((row) => ({ nodeId: row.nodeId, targetParent: targets.get(row.ref) }));
+      await writePreview({
+        fileId,
+        title: params.title ?? "untitled",
+        operationId: built.operationId,
+        roots,
+        createdAt: Date.now()
       });
+      const content = [];
+      for (const root of roots) {
+        const shot = await call(
+          "inspect",
+          { scope: "screenshot", nodeId: root.nodeId, scale: params.scale },
+          12e4
+        );
+        content.push({ type: "text", text: `${shot.name} \u2014 \u0443\u0437\u0435\u043B ${root.nodeId}` });
+        content.push({ type: "image", data: shot.bytes, mimeType: "image/png" });
+      }
+      const verification = await call("verify", { scope: "operation", operationId: built.operationId }, 12e4).catch(
+        () => null
+      );
+      content.push({
+        type: "text",
+        text: JSON.stringify(
+          {
+            preview: "built on the Figma Forge scratch page",
+            operationId: built.operationId,
+            roots,
+            verification,
+            next: 'Iterate with another "build", accept with "commit", or drop it with "discard".'
+          },
+          null,
+          2
+        )
+      });
+      return { content };
     } catch (error2) {
       return failure(error2);
     }

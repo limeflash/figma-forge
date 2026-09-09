@@ -42,25 +42,39 @@ Prefer, in order:
    bindings and typography exactly, which recreating by hand does not.
 3. `create_frame` for structure only, with a `reason`.
 
-## 4. Preview
+## 4. Write the copy
 
-`figma_forge_preview { title, ops }` writes an HTML file and returns its path.
-Give the user the `file://` link.
+Every text on the screen. This is the step that decides whether the result is a
+design or an arrangement of borrowed parts.
 
-Solid blocks are real exported pixels; dashed outlines are containers the plan
-invents. Read the notes it returns — a missing thumbnail means a component did
-not resolve, and that will fail on apply too.
+Cloning gives you correct typography and variable bindings — it does not give
+you correct words. A cloned title still says what the screen you copied it from
+said, and a component instance still says "Button". Left alone, the result looks
+finished and means nothing, and no verification rule will tell you.
 
-Iterate here. Editing ops and re-rendering costs nothing and touches nothing.
+Check every borrowed element for whether it *belongs* here, not just whether it
+renders: an illustration lifted from another screen usually depicts that screen's
+subject.
 
-## 5. Transfer
+## 5. Preview on the canvas
 
-Only after the user agrees:
+`figma_forge_preview { title, ops }` builds the plan on the Figma Forge scratch
+page and returns a screenshot.
 
-1. `figma_forge_apply_plan` with `dryRun: true`.
-2. Then for real. Verification runs automatically; report violations honestly
-   rather than declaring success.
-3. Finish with the node ids and offer to focus the canvas.
+There is no approximation to allow for: it is made of the same instances, auto
+layout and bound variables the final screen will have. The user can zoom and
+inspect it in Figma directly.
+
+Iterate with another `build` — the previous preview is rolled back first, so
+nothing accumulates.
+
+## 6. Transfer
+
+Only after the user agrees, `figma_forge_preview { action: "commit" }` moves the
+reviewed nodes to where the plan aimed. Nothing is rebuilt and the ids are the
+ones already reviewed.
+
+`{ action: "discard" }` rolls the preview back instead.
 
 ## Finishing the job
 

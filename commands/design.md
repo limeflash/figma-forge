@@ -59,7 +59,8 @@ subject.
 ## 5. Preview on the canvas
 
 `figma_forge_preview { title, ops }` builds the plan on the Figma Forge scratch
-page and returns a screenshot.
+page and returns a screenshot **and a link**. Always give the user the link —
+a screenshot they cannot open is something to squint at, not to review.
 
 There is no approximation to allow for: it is made of the same instances, auto
 layout and bound variables the final screen will have. The user can zoom and

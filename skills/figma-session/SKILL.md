@@ -57,6 +57,14 @@ with that channel — it is a name, not a secret.
 - Two Figma tabs on the same file: two separate sessions. Commands go to
   whichever one joined the channel.
 
+## Clickable links
+
+`figma.fileKey` is only exposed to private organization plugins, so Figma Forge
+cannot derive the file key on its own. Pass any figma.com link to the file as
+`figma_forge_connect { fileUrl }` once; it is stored with the session, and from
+then on search results, previews and writes come back with links the user can
+open instead of node ids they have to hunt for.
+
 ## Before doing real work
 
 A connected session is not a ready session. Check that a design-system index

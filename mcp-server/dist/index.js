@@ -26570,7 +26570,21 @@ async function call(command, params, timeoutMs) {
   return await bridge.request(command, params, timeoutMs);
 }
 async function sessionInfo() {
-  return await call("session_info", {});
+  const info = await call("session_info", {});
+  if (!urlFileKey) {
+    const stored = await readSession(bridge.channel);
+    if (stored?.urlFileKey) urlFileKey = stored.urlFileKey;
+  }
+  return info;
+}
+var urlFileKey = null;
+function parseFileKey(input) {
+  const match = /figma\.com\/(?:design|file)\/([A-Za-z0-9]{10,})/.exec(input);
+  return match ? match[1] : null;
+}
+function figmaLink(nodeId) {
+  if (!urlFileKey || !nodeId) return void 0;
+  return `https://www.figma.com/design/${urlFileKey}/?node-id=${nodeId.replace(/:/g, "-")}`;
 }
 function fileIdentity(info) {
   return info?.fileKey ?? info?.fileId ?? "local";
@@ -26582,12 +26596,17 @@ server.registerTool(
     title: "Connect to Figma",
     description: "Starts the local bridge if needed and pairs this project with an open Figma Forge plugin session. Run this once per session before any other Figma tool; it reports the channel name to type into the plugin.",
     inputSchema: {
-      channel: external_exports.string().optional().describe("Channel name to pair on. Defaults to the project directory name.")
+      channel: external_exports.string().optional().describe("Channel name to pair on. Defaults to the project directory name."),
+      fileUrl: external_exports.string().optional().describe("A figma.com link to this file. Stored so results can return clickable node links.")
     }
   },
-  async ({ channel }) => {
+  async ({ channel, fileUrl }) => {
     try {
       if (channel) bridge.setChannel(channel);
+      if (fileUrl) {
+        const parsed = parseFileKey(fileUrl);
+        if (parsed) urlFileKey = parsed;
+      }
       await bridge.ready();
       const status2 = await bridge.status();
       if (!status2.figmaAttached) {
@@ -26608,6 +26627,7 @@ server.registerTool(
         channel: status2.channel,
         fileKey: info.fileKey,
         fileId: info.fileId,
+        urlFileKey: urlFileKey ?? void 0,
         documentName: info.documentName,
         sessionId: info.sessionId,
         port: status2.port,
@@ -26686,9 +26706,14 @@ server.registerTool(
     try {
       const result = await call("inspect", params);
       if (params.scope === "screenshot" && result && result.type === "image") {
+        const shotLink = figmaLink(String(result.nodeId));
         return {
           content: [
-            { type: "text", text: `${result.name} \u2014 ${result.width}\xD7${result.height} @${result.scale}x (node ${result.nodeId})` },
+            {
+              type: "text",
+              text: `${result.name} \u2014 ${result.width}\xD7${result.height} @${result.scale}x` + (shotLink ? `
+${shotLink}` : ` (node ${result.nodeId})`)
+            },
             { type: "image", data: String(result.bytes), mimeType: "image/png" }
           ]
         };
@@ -26838,6 +26863,7 @@ server.registerTool(
       }
       return text({
         ...result,
+        links: result.created.slice(0, 10).map(figmaLink).filter(Boolean),
         // The full journal is on disk; echoing it back just burns context.
         journal: `${result.journal.length} entries stored (operationId ${result.operationId})`,
         verification
@@ -27222,6 +27248,7 @@ Word search always works. Semantic search additionally needs Ollama with an embe
           const screen = graph.screens[hit.index];
           return {
             id: screen.id,
+            link: figmaLink(screen.id),
             name: screen.name,
             path: screen.path,
             size: `${screen.width}\xD7${screen.height}`,
@@ -27333,7 +27360,8 @@ server.registerTool(
           { scope: "screenshot", nodeId: root.nodeId, scale: params.scale },
           12e4
         );
-        content.push({ type: "text", text: `${shot.name} \u2014 \u0443\u0437\u0435\u043B ${root.nodeId}` });
+        const url = figmaLink(root.nodeId);
+        content.push({ type: "text", text: `${shot.name} \u2014 ${url ?? `\u0443\u0437\u0435\u043B ${root.nodeId}`}` });
         content.push({ type: "image", data: shot.bytes, mimeType: "image/png" });
       }
       const verification = await call("verify", { scope: "operation", operationId: built.operationId }, 12e4).catch(
@@ -27345,7 +27373,7 @@ server.registerTool(
           {
             preview: "built on the Figma Forge scratch page",
             operationId: built.operationId,
-            roots,
+            roots: roots.map((root) => ({ ...root, link: figmaLink(root.nodeId) })),
             verification,
             next: 'Iterate with another "build", accept with "commit", or drop it with "discard".'
           },
@@ -27387,3 +27415,6 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 await server.connect(new StdioServerTransport());
+export {
+  parseFileKey
+};

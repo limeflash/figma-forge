@@ -139,7 +139,30 @@ interface SessionInfo {
 }
 
 async function sessionInfo(): Promise<SessionInfo> {
-  return await call<SessionInfo>('session_info', {});
+  const info = await call<SessionInfo>('session_info', {});
+  if (!urlFileKey) {
+    const stored = await readSession(bridge.channel);
+    if (stored?.urlFileKey) urlFileKey = stored.urlFileKey;
+  }
+  return info;
+}
+
+/**
+ * Node links, when we know the file key.
+ *
+ * Figma node ids use a colon on the wire and a dash in URLs, which is the kind
+ * of detail that turns a helpful link into a broken one.
+ */
+let urlFileKey: string | null = null;
+
+export function parseFileKey(input: string): string | null {
+  const match = /figma\.com\/(?:design|file)\/([A-Za-z0-9]{10,})/.exec(input);
+  return match ? match[1] : null;
+}
+
+function figmaLink(nodeId: string | undefined | null): string | undefined {
+  if (!urlFileKey || !nodeId) return undefined;
+  return `https://www.figma.com/design/${urlFileKey}/?node-id=${nodeId.replace(/:/g, '-')}`;
 }
 
 /** Every cache and journal lookup goes through here, so they cannot disagree. */
@@ -162,11 +185,19 @@ server.registerTool(
       'Run this once per session before any other Figma tool; it reports the channel name to type into the plugin.',
     inputSchema: {
       channel: z.string().optional().describe('Channel name to pair on. Defaults to the project directory name.'),
+      fileUrl: z
+        .string()
+        .optional()
+        .describe('A figma.com link to this file. Stored so results can return clickable node links.'),
     },
   },
-  async ({ channel }): Promise<ToolResult> => {
+  async ({ channel, fileUrl }): Promise<ToolResult> => {
     try {
       if (channel) bridge.setChannel(channel);
+      if (fileUrl) {
+        const parsed = parseFileKey(fileUrl);
+        if (parsed) urlFileKey = parsed;
+      }
       await bridge.ready();
       const status = await bridge.status();
 
@@ -189,6 +220,7 @@ server.registerTool(
         channel: status.channel,
         fileKey: info.fileKey,
         fileId: info.fileId,
+        urlFileKey: urlFileKey ?? undefined,
         documentName: info.documentName,
         sessionId: info.sessionId,
         port: status.port,
@@ -281,9 +313,15 @@ server.registerTool(
     try {
       const result = await call<Record<string, unknown>>('inspect', params as Record<string, unknown>);
       if (params.scope === 'screenshot' && result && result.type === 'image') {
+        const shotLink = figmaLink(String(result.nodeId));
         return {
           content: [
-            { type: 'text', text: `${result.name} — ${result.width}×${result.height} @${result.scale}x (node ${result.nodeId})` },
+            {
+              type: 'text',
+              text:
+                `${result.name} — ${result.width}×${result.height} @${result.scale}x` +
+                (shotLink ? `\n${shotLink}` : ` (node ${result.nodeId})`),
+            },
             { type: 'image', data: String(result.bytes), mimeType: 'image/png' },
           ],
         };
@@ -475,6 +513,7 @@ server.registerTool(
 
       return text({
         ...result,
+        links: result.created.slice(0, 10).map(figmaLink).filter(Boolean),
         // The full journal is on disk; echoing it back just burns context.
         journal: `${result.journal.length} entries stored (operationId ${result.operationId})`,
         verification,
@@ -969,6 +1008,7 @@ server.registerTool(
           const screen = graph.screens[hit.index];
           return {
             id: screen.id,
+            link: figmaLink(screen.id),
             name: screen.name,
             path: screen.path,
             size: `${screen.width}×${screen.height}`,
@@ -1143,7 +1183,8 @@ server.registerTool(
           { scope: 'screenshot', nodeId: root.nodeId, scale: params.scale },
           120_000
         );
-        content.push({ type: 'text', text: `${shot.name} — узел ${root.nodeId}` });
+        const url = figmaLink(root.nodeId);
+        content.push({ type: 'text', text: `${shot.name} — ${url ?? `узел ${root.nodeId}`}` });
         content.push({ type: 'image', data: shot.bytes, mimeType: 'image/png' });
       }
 
@@ -1157,7 +1198,7 @@ server.registerTool(
           {
             preview: 'built on the Figma Forge scratch page',
             operationId: built.operationId,
-            roots,
+            roots: roots.map((root) => ({ ...root, link: figmaLink(root.nodeId) })),
             verification,
             next: 'Iterate with another "build", accept with "commit", or drop it with "discard".',
           },

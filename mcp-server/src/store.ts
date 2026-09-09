@@ -191,6 +191,12 @@ export interface StoredSession {
   channel: string;
   fileKey: string | null;
   fileId?: string;
+  /**
+   * The key from a figma.com URL. `figma.fileKey` is only exposed to private
+   * organization plugins, so for everyone else the user's own link is the only
+   * way to build clickable node URLs.
+   */
+  urlFileKey?: string;
   documentName?: string;
   sessionId?: string;
   port: number;

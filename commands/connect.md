@@ -6,7 +6,10 @@ allowed-tools: mcp__figma-forge__figma_forge_connect, mcp__figma-forge__figma_fo
 
 Pair this project with Figma.
 
-1. Call `figma_forge_connect`$ARGUMENTS.
+1. Call `figma_forge_connect`$ARGUMENTS. If the user has ever pasted a
+   figma.com link to this file, pass it as `fileUrl` — the plugin cannot read
+   the file key itself (`figma.fileKey` is restricted to private organization
+   plugins), and without it no result can carry a clickable node link.
 2. If no Figma plugin is attached, show the user the exact port and channel to
    type into the plugin, then stop and wait — do not retry in a loop.
 3. Once connected, report the file name and whether a design-system index is

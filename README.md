@@ -74,10 +74,27 @@ Code restarts — you only reopen the Figma plugin if you closed it.
 | `figma_forge_apply_plan` | The write lane: ordered ops under a journal, with dry run |
 | `figma_forge_verify` | Design-system and structural invariants |
 | `figma_forge_recover` | Roll back a journalled operation; manage quarantine |
+| `figma_forge_preview` | Render a plan to HTML for review before it touches Figma |
 | `figma_forge_graph` | Index every screen; find them by meaning or by word |
 | `figma_forge_import_code` | Import CSS/Tailwind tokens as variables; map Storybook components |
 | `figma_forge_execute` | Raw Plugin API JavaScript, read-only by default |
 | `figma_forge_modules` | Persistent helper modules stored in the document |
+
+## Designing before writing
+
+Iterating inside Figma is slow and blind: every change costs a write and a
+screenshot, and a wrong result lands in the real document.
+
+```
+/figma-forge:design экран отмены подписки
+```
+
+Claude drafts a plan from your components, `figma_forge_preview` renders it to a
+local HTML file with the real exported component images, and you iterate there
+for free. When it is right, the same plan applies to Figma unchanged.
+
+The plan is the single source of truth and the HTML is never parsed back — that
+conversion is what produces detached rectangles where instances belong.
 
 ## Finding things in a large file
 

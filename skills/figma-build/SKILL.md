@@ -11,19 +11,32 @@ screen behind.
 
 ## The order that works
 
-1. **Resolve everything first.** Every UI role in the brief → a concrete
-   component key and legal property values. See `figma-design-system`.
-2. **Write the plan.** All ops, with `$ref` names threading created nodes into
+1. **Find the precedent.** Search the screen graph for how this product already
+   solves the adjacent problem, and inspect the closest screen at
+   `detail: "full"`. Its spacing rhythm, radii and variable bindings are the
+   specification.
+2. **Resolve everything.** Every UI role in the brief → a concrete component key
+   and legal property values. See `figma-design-system`.
+3. **Write the plan.** All ops, with `$ref` names threading created nodes into
    later ops.
-3. **Dry run.** `dryRun: true` validates references, imports components, and
-   checks property legality without mutating anything. Fix what it rejects.
-4. **Build on scratch.** `scratch: true` for new content, so a wrong result
-   never lands on the user's page.
-5. **Verify, then place.** Verification runs automatically after a real write.
-   Move the finished root into the target page once it passes.
+4. **Preview it.** `figma_forge_preview { title, ops }` renders the plan to HTML
+   with real component images. Iterating there costs nothing and touches
+   nothing; iterating in Figma costs a write and a screenshot each time.
+5. **Dry run.** `dryRun: true` validates references, resolves components, and
+   checks property legality without mutating. Fix what it rejects.
+6. **Build.** `scratch: true` for new content when it should not land on the
+   user's page until reviewed.
+7. **Verify.** Verification runs automatically after a real write. Report what
+   it found.
 
 Skipping the dry run on anything with more than a few ops wastes more time than
 it saves.
+
+**Prefer cloning over recreating.** A `clone` of an existing, correctly built
+node inherits its variable bindings, text styles and font settings exactly.
+Rebuilding the same thing from `create_frame` and `create_text` reproduces it by
+eye, and the difference shows up later as a colour that does not follow the
+theme.
 
 ## Plan shape
 
@@ -113,3 +126,10 @@ directly: a text style keeps the type scale intact and survives theme changes.
 Report node ids, and offer to focus the canvas on the result. If verification
 returned violations, lead with them — a screen with eight hardcoded colours is
 not a finished screen, and the user would rather hear it now.
+
+## Finishing
+
+Set the text on every instance you create. A component ships with a placeholder
+label — "Button", "Label", "Title" — and leaving it is the most visible way to
+deliver something unfinished. Verification will not catch it: an unset label is
+not a design-system violation, just work that was not done.

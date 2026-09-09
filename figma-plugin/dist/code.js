@@ -3098,6 +3098,97 @@ ${body}
     };
   }
 
+  // figma-plugin/src/runtime/commands/thumbnails.ts
+  var keyIndex = null;
+  async function resolveOne(requested) {
+    if (requested.indexOf(":") >= 0 || /^\d+$/.test(requested)) {
+      const node = await figma.getNodeByIdAsync(requested).catch(() => null);
+      if (node) return node;
+    }
+    try {
+      return await figma.importComponentByKeyAsync(requested);
+    } catch {
+    }
+    try {
+      const set = await figma.importComponentSetByKeyAsync(requested);
+      return set.defaultVariant ?? set.children[0] ?? null;
+    } catch {
+    }
+    if (!keyIndex) {
+      keyIndex = /* @__PURE__ */ new Map();
+      await figma.loadAllPagesAsync();
+      for (const node of figma.root.findAllWithCriteria({ types: ["COMPONENT", "COMPONENT_SET"] })) {
+        try {
+          const key = node.key;
+          if (key && !keyIndex.has(key)) keyIndex.set(key, node.id);
+        } catch {
+        }
+      }
+    }
+    const id = keyIndex.get(requested);
+    return id ? await figma.getNodeByIdAsync(id) : null;
+  }
+  async function exportThumbnails(params) {
+    const thumbnails = [];
+    const failed = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const requested of params.ids ?? []) {
+      if (seen.has(requested)) continue;
+      seen.add(requested);
+      try {
+        let node = await resolveOne(requested);
+        if (!node) throw new Error("not found in this file");
+        if (node.type === "COMPONENT_SET") {
+          const set = node;
+          node = set.defaultVariant ?? set.children[0];
+          if (!node) throw new Error("component set has no variants");
+        }
+        const sized = node;
+        const longest = Math.max(sized.width ?? 0, sized.height ?? 0);
+        const maxEdge = params.maxEdge ?? 900;
+        const scale = params.scale ?? (longest > maxEdge ? maxEdge / longest : 1);
+        const shot = await screenshot(node, { scale, contentsOnly: false });
+        thumbnails.push({
+          id: node.id,
+          requested,
+          name: node.name,
+          type: node.type,
+          width: shot.width,
+          height: shot.height,
+          naturalWidth: Math.round(sized.width ?? shot.width),
+          naturalHeight: Math.round(sized.height ?? shot.height),
+          bytes: shot.bytes
+        });
+      } catch (error) {
+        failed.push({ requested, error: errorMessage(error) });
+      }
+    }
+    return { thumbnails, failed };
+  }
+  async function resolveVariables(params) {
+    const out = {};
+    for (const id of params.ids ?? []) {
+      try {
+        const variable = await figma.variables.getVariableByIdAsync(id);
+        if (!variable) continue;
+        const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+        const modeId = params.modeId && variable.valuesByMode[params.modeId] !== void 0 ? params.modeId : collection?.defaultModeId ?? Object.keys(variable.valuesByMode)[0];
+        const raw = modeId ? variable.valuesByMode[modeId] : void 0;
+        const mode = collection?.modes.filter((entry) => entry.modeId === modeId)[0];
+        out[id] = {
+          name: variable.name,
+          type: variable.resolvedType,
+          // An alias would need chasing; the preview treats it as unknown rather
+          // than inventing a colour.
+          value: raw && typeof raw === "object" && "type" in raw ? null : raw,
+          modeName: mode?.name
+        };
+      } catch {
+      }
+    }
+    return out;
+  }
+
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
   var STORAGE_KEYS = {
@@ -3140,6 +3231,8 @@ ${body}
     recover: (params) => recover(params),
     import_tokens: (params) => importTokens(params),
     build_graph: (params) => buildGraph(params),
+    thumbnails: (params) => exportThumbnails(params),
+    resolve_variables: (params) => resolveVariables(params),
     execute: (params) => execute(params),
     modules: (params) => {
       const action = params.action ?? "list";

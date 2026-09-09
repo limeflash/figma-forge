@@ -24,6 +24,10 @@ import * as ollama from './graph/ollama.js';
 import { clearGraph, loadGraph, loadVectors, saveGraph, saveVectors, StoredGraph } from './graph/store.js';
 import { buildLexicalIndex, fuse, lexicalSearch, screenDocument, vectorSearch } from './graph/search.js';
 import { GraphChunk } from './graph/types.js';
+import { renderPlan, PlanOp, ThumbnailAsset, VariableValue } from './preview/render.js';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join as joinPath } from 'node:path';
+import { dataDirectory as ffDataDirectory } from './store.js';
 import {
   clearIndex,
   dataDirectory,
@@ -979,6 +983,119 @@ server.registerTool(
       if (error instanceof ollama.OllamaUnavailable) {
         return { isError: true, content: [{ type: 'text', text: `${error.message}\n\n${error.remedy}` }] };
       }
+      return failure(error);
+    }
+  }
+);
+
+/** Everything a plan reuses and therefore needs a real picture of. */
+function thumbnailRequests(ops: PlanOp[]): string[] {
+  const out = new Set<string>();
+  for (const op of ops) {
+    if (op.op === 'create_instance') {
+      const key = (op.componentKey ?? op.componentId) as string | undefined;
+      if (key) out.add(key);
+    } else if (op.op === 'clone') {
+      const source = op.node as string | undefined;
+      if (source && !source.startsWith('$') && !source.startsWith('@')) out.add(source);
+    }
+  }
+  return [...out];
+}
+
+function variableRequests(ops: PlanOp[]): string[] {
+  const out = new Set<string>();
+  for (const op of ops) {
+    if (op.op === 'bind_paint_variable' || op.op === 'bind_variable') {
+      const id = op.variableId as string | undefined;
+      if (id) out.add(id);
+    }
+  }
+  return [...out];
+}
+
+server.registerTool(
+  'figma_forge_preview',
+  {
+    title: 'Preview a plan as HTML',
+    description:
+      'Renders a write plan to a local HTML file so it can be reviewed and iterated on without touching Figma. ' +
+      'The plan is the single source of truth: this renders it, and figma_forge_apply_plan applies the same plan ' +
+      'unchanged. The HTML is never converted back into Figma — that is what would produce detached rectangles ' +
+      'instead of component instances.\n\n' +
+      'Components and cloned nodes are drawn as their real exported pixels; only the containers the plan invents ' +
+      'are drawn as CSS boxes, marked with a dashed outline. Use this between drafting a plan and applying it.',
+    inputSchema: {
+      title: z.string().describe('What is being designed; shown as the preview heading.'),
+      ops: z.array(z.object({ op: z.string() }).passthrough()).describe('The same ops array figma_forge_apply_plan takes.'),
+      refreshThumbnails: z.boolean().optional().describe('Re-export component images instead of reusing cached ones.'),
+      notes: z.array(z.string()).optional().describe('Extra notes to show under the preview.'),
+    },
+  },
+  async (params): Promise<ToolResult> => {
+    try {
+      const info = await sessionInfo();
+      const fileId = fileIdentity(info);
+      const outDir = joinPath(ffDataDirectory(), 'preview', fileId.replace(/[^a-zA-Z0-9._-]/g, '_'));
+      const thumbDir = joinPath(outDir, 'thumbs');
+      await mkdir(thumbDir, { recursive: true });
+
+      const ops = params.ops as unknown as PlanOp[];
+
+      const thumbnails: Record<string, ThumbnailAsset> = {};
+      const requests = thumbnailRequests(ops);
+      const failures: { requested: string; error: string }[] = [];
+
+      if (requests.length) {
+        const result = await call<{
+          thumbnails: { id: string; requested: string; name: string; naturalWidth: number; naturalHeight: number; bytes: string }[];
+          failed: { requested: string; error: string }[];
+        }>('thumbnails', { ids: requests, maxEdge: 900 }, 180_000);
+
+        for (const thumb of result.thumbnails) {
+          const name = `${thumb.requested.replace(/[^a-zA-Z0-9._-]/g, '_')}.png`;
+          await writeFile(joinPath(thumbDir, name), Buffer.from(thumb.bytes, 'base64'));
+          thumbnails[thumb.requested] = {
+            file: `thumbs/${name}`,
+            name: thumb.name,
+            naturalWidth: thumb.naturalWidth,
+            naturalHeight: thumb.naturalHeight,
+          };
+        }
+        failures.push(...result.failed);
+      }
+
+      const variables: Record<string, VariableValue> = {};
+      const variableIds = variableRequests(ops);
+      if (variableIds.length) {
+        const resolved = await call<Record<string, VariableValue>>('resolve_variables', { ids: variableIds }, 60_000);
+        Object.assign(variables, resolved);
+      }
+
+      const notes = [...(params.notes ?? [])];
+      for (const failure of failures) notes.push(`Could not export ${failure.requested}: ${failure.error}`);
+
+      const rendered = await renderPlan({
+        title: params.title,
+        ops,
+        thumbnails,
+        variables,
+        outDir,
+        notes,
+      });
+
+      return text({
+        preview: rendered.file,
+        open: `file://${rendered.file}`,
+        rootFrames: rendered.roots,
+        thumbnails: Object.keys(thumbnails).length,
+        missingThumbnails: rendered.missing,
+        variablesResolved: Object.keys(variables).length,
+        next:
+          'Open the file to review. Iterate by editing the ops and re-rendering — nothing has touched Figma yet. ' +
+          'When it is right, pass the same ops to figma_forge_apply_plan.',
+      });
+    } catch (error) {
       return failure(error);
     }
   }

@@ -401,7 +401,15 @@ async function resolveComponent(params: DesignSystemParams): Promise<unknown> {
       try {
         node = await figma.importComponentSetByKeyAsync(params.key);
       } catch (error) {
-        throw new Error(`Could not import component key "${params.key}": ${errorMessage(error)}`);
+        // Import only reaches published library components; a component defined
+        // in this file has a key but is not importable. Look locally before
+        // reporting failure.
+        await figma.loadAllPagesAsync();
+        node =
+          figma.root
+            .findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] })
+            .filter((candidate) => safe(() => (candidate as ComponentNode).key) === params.key)[0] ?? null;
+        if (!node) throw new Error(`Could not resolve component key "${params.key}": ${errorMessage(error)}`);
       }
     }
   } else if (params.nodeId) {

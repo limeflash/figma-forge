@@ -1697,7 +1697,9 @@ ${body}
         try {
           node = await figma.importComponentSetByKeyAsync(params.key);
         } catch (error) {
-          throw new Error(`Could not import component key "${params.key}": ${errorMessage(error)}`);
+          await figma.loadAllPagesAsync();
+          node = figma.root.findAllWithCriteria({ types: ["COMPONENT", "COMPONENT_SET"] }).filter((candidate) => safe(() => candidate.key) === params.key)[0] ?? null;
+          if (!node) throw new Error(`Could not resolve component key "${params.key}": ${errorMessage(error)}`);
         }
       }
     } else if (params.nodeId) {
@@ -1793,6 +1795,28 @@ ${body}
 
   // figma-plugin/src/runtime/commands/apply-plan.ts
   var RAW_PRIMITIVE_OPS = /* @__PURE__ */ new Set(["create_frame", "create_text", "create_rectangle", "create_ellipse", "create_from_svg"]);
+  var DRY_RUN_NODE = "__ffDryRun";
+  function isDryNode(node) {
+    return !!node && node[DRY_RUN_NODE] === true;
+  }
+  function dryPlaceholder(ref) {
+    return {
+      [DRY_RUN_NODE]: true,
+      id: `$${ref}`,
+      name: ref,
+      type: "FRAME",
+      children: [],
+      appendChild() {
+      },
+      insertChild() {
+      },
+      setPluginData() {
+      },
+      getPluginData() {
+        return "";
+      }
+    };
+  }
   var PlanScope = class {
     constructor(scratch) {
       this.refs = /* @__PURE__ */ new Map();
@@ -1800,6 +1824,10 @@ ${body}
     }
     bind(ref, node) {
       if (ref) this.refs.set(ref.replace(/^\$/, ""), node);
+    }
+    /** Registers the node a create op *would* have made. */
+    bindDry(ref) {
+      if (ref) this.refs.set(ref.replace(/^\$/, ""), dryPlaceholder(ref));
     }
     /**
      * `$ref` names an earlier op's output; `@selection` and `@page` name live
@@ -1832,10 +1860,24 @@ ${body}
     }
     async resolveParent(reference, what) {
       const node = await this.resolve(reference, what);
+      if (isDryNode(node)) return node;
       if (!("appendChild" in node)) throw new Error(`${what} (${node.id}) is a ${node.type} and cannot hold children.`);
       return node;
     }
   };
+  var localKeyIndex = null;
+  async function findLocalByKey(key) {
+    if (!localKeyIndex) {
+      localKeyIndex = /* @__PURE__ */ new Map();
+      await figma.loadAllPagesAsync();
+      for (const node of figma.root.findAllWithCriteria({ types: ["COMPONENT", "COMPONENT_SET"] })) {
+        const nodeKey = safe(() => node.key);
+        if (nodeKey && !localKeyIndex.has(nodeKey)) localKeyIndex.set(nodeKey, node.id);
+      }
+    }
+    const id = localKeyIndex.get(key);
+    return id ? await figma.getNodeByIdAsync(id) : null;
+  }
   async function importComponent(op) {
     const key = op.componentKey;
     const id = op.componentId;
@@ -1844,8 +1886,17 @@ ${body}
       try {
         node = await figma.importComponentByKeyAsync(key);
       } catch {
-        const set = await figma.importComponentSetByKeyAsync(key);
-        node = set.defaultVariant ?? set.children[0] ?? null;
+        try {
+          const set = await figma.importComponentSetByKeyAsync(key);
+          node = set.defaultVariant ?? set.children[0] ?? null;
+        } catch {
+          node = await findLocalByKey(key);
+          if (!node) {
+            throw new Error(
+              `Component key "${key}" is neither a published library component nor present in this file. Pass \`componentId\` if it is local and unpublished.`
+            );
+          }
+        }
       }
     } else if (id) {
       node = await figma.getNodeByIdAsync(id);
@@ -1949,6 +2000,7 @@ ${body}
             const component = await importComponent(op);
             if (dryRun) {
               row.detail = { component: component.name, componentId: component.id, parent: parent.id };
+              scope.bindDry(op.ref);
               break;
             }
             const instance = component.createInstance();
@@ -1972,6 +2024,7 @@ ${body}
             const parent = await scope.resolveParent(op.parent, `op #${index} \`parent\``);
             if (dryRun) {
               row.detail = { parent: parent.id };
+              scope.bindDry(op.ref);
               break;
             }
             const frame = figma.createFrame();
@@ -1993,6 +2046,7 @@ ${body}
             const parent = await scope.resolveParent(op.parent, `op #${index} \`parent\``);
             if (dryRun) {
               row.detail = { parent: parent.id, characters: String(op.characters ?? "") };
+              scope.bindDry(op.ref);
               break;
             }
             const text = figma.createText();
@@ -2017,6 +2071,7 @@ ${body}
             if (typeof op.svg !== "string") throw new Error("create_from_svg needs an `svg` string.");
             if (dryRun) {
               row.detail = { parent: parent.id, bytes: op.svg.length };
+              scope.bindDry(op.ref);
               break;
             }
             const node = figma.createNodeFromSvg(op.svg);
@@ -2032,7 +2087,8 @@ ${body}
           case "clone": {
             const source = await scope.resolve(op.node, `op #${index} \`node\``);
             if (dryRun) {
-              row.detail = { source: source.id };
+              row.detail = { source: source.id, clonable: !isDryNode(source) };
+              scope.bindDry(op.ref);
               break;
             }
             const clone = source.clone();
@@ -2063,7 +2119,9 @@ ${body}
           }
           case "set_text": {
             const node = await scope.resolve(op.node, `op #${index} \`node\``);
-            if (node.type !== "TEXT") throw new Error(`set_text needs a TEXT node; ${node.id} is a ${node.type}.`);
+            if (!isDryNode(node) && node.type !== "TEXT") {
+              throw new Error(`set_text needs a TEXT node; ${node.id} is a ${node.type}.`);
+            }
             row.nodeId = node.id;
             if (dryRun) break;
             const text = node;
@@ -2076,12 +2134,12 @@ ${body}
           }
           case "set_component_properties": {
             const node = await scope.resolve(op.node, `op #${index} \`node\``);
-            if (node.type !== "INSTANCE") {
+            if (!isDryNode(node) && node.type !== "INSTANCE") {
               throw new Error(`set_component_properties needs an INSTANCE; ${node.id} is a ${node.type}.`);
             }
             const instance = node;
             const properties = op.properties ?? {};
-            const problems = checkProperties(instance, properties);
+            const problems = isDryNode(node) ? [] : checkProperties(instance, properties);
             if (problems.length) throw new Error(problems.join("; "));
             row.nodeId = node.id;
             if (dryRun) {
@@ -2105,7 +2163,9 @@ ${body}
           }
           case "swap_instance": {
             const node = await scope.resolve(op.node, `op #${index} \`node\``);
-            if (node.type !== "INSTANCE") throw new Error(`swap_instance needs an INSTANCE; ${node.id} is a ${node.type}.`);
+            if (!isDryNode(node) && node.type !== "INSTANCE") {
+              throw new Error(`swap_instance needs an INSTANCE; ${node.id} is a ${node.type}.`);
+            }
             const component = await importComponent(op);
             row.nodeId = node.id;
             if (dryRun) {
@@ -2201,10 +2261,10 @@ ${body}
           }
           case "reorder": {
             const node = await scope.resolve(op.node, `op #${index} \`node\``);
-            const parent = node.parent;
-            if (!parent) throw new Error(`${node.id} has no parent to reorder within.`);
             row.nodeId = node.id;
             if (dryRun) break;
+            const parent = node.parent;
+            if (!parent) throw new Error(`${node.id} has no parent to reorder within.`);
             journal.recordPosition(op.op, node);
             parent.insertChild(clampIndex(parent, op.index), node);
             modified.push(node.id);

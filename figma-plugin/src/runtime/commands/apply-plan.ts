@@ -80,6 +80,38 @@ export interface PlanResult {
 /** Ops that make a primitive where a component might have done the job. */
 const RAW_PRIMITIVE_OPS = new Set(['create_frame', 'create_text', 'create_rectangle', 'create_ellipse', 'create_from_svg']);
 
+/**
+ * A dry run creates nothing, so there is no node to bind a `$ref` to — and
+ * without that, every op after the first reference fails and the run validates
+ * almost nothing. Since dry runs exist precisely to check plans that build
+ * trees, references resolve to a placeholder instead.
+ *
+ * Ops that inspect real node state skip that inspection for a placeholder; what
+ * still gets validated is reference integrity, component resolution, style and
+ * variable lookups, and op structure.
+ */
+const DRY_RUN_NODE = '__ffDryRun';
+
+export function isDryNode(node: unknown): boolean {
+  return !!node && (node as Record<string, unknown>)[DRY_RUN_NODE] === true;
+}
+
+function dryPlaceholder(ref: string): AnyNode {
+  return {
+    [DRY_RUN_NODE]: true,
+    id: `$${ref}`,
+    name: ref,
+    type: 'FRAME',
+    children: [],
+    appendChild() {},
+    insertChild() {},
+    setPluginData() {},
+    getPluginData() {
+      return '';
+    },
+  } as unknown as AnyNode;
+}
+
 class PlanScope {
   private readonly refs = new Map<string, AnyNode>();
   private readonly scratch: PageNode | null;
@@ -90,6 +122,11 @@ class PlanScope {
 
   bind(ref: string | undefined, node: AnyNode): void {
     if (ref) this.refs.set(ref.replace(/^\$/, ''), node);
+  }
+
+  /** Registers the node a create op *would* have made. */
+  bindDry(ref: string | undefined): void {
+    if (ref) this.refs.set(ref.replace(/^\$/, ''), dryPlaceholder(ref));
   }
 
   /**
@@ -124,9 +161,32 @@ class PlanScope {
 
   async resolveParent(reference: unknown, what: string): Promise<BaseNode & ChildrenMixin> {
     const node = await this.resolve(reference, what);
+    if (isDryNode(node)) return node as unknown as BaseNode & ChildrenMixin;
     if (!('appendChild' in node)) throw new Error(`${what} (${node.id}) is a ${node.type} and cannot hold children.`);
     return node as BaseNode & ChildrenMixin;
   }
+}
+
+/**
+ * `importComponentByKeyAsync` only resolves *published library* components. A
+ * component living in this file has a key too, and every one of those imports
+ * fails — which silently rules out a file's own design system, the common case.
+ * So fall back to finding it locally, cached because the scan needs every page
+ * loaded.
+ */
+let localKeyIndex: Map<string, string> | null = null;
+
+async function findLocalByKey(key: string): Promise<BaseNode | null> {
+  if (!localKeyIndex) {
+    localKeyIndex = new Map();
+    await figma.loadAllPagesAsync();
+    for (const node of figma.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] })) {
+      const nodeKey = safe(() => (node as ComponentNode).key);
+      if (nodeKey && !localKeyIndex.has(nodeKey)) localKeyIndex.set(nodeKey, node.id);
+    }
+  }
+  const id = localKeyIndex.get(key);
+  return id ? await figma.getNodeByIdAsync(id) : null;
 }
 
 async function importComponent(op: PlanOp): Promise<ComponentNode> {
@@ -138,8 +198,18 @@ async function importComponent(op: PlanOp): Promise<ComponentNode> {
     try {
       node = await figma.importComponentByKeyAsync(key);
     } catch {
-      const set = await figma.importComponentSetByKeyAsync(key);
-      node = set.defaultVariant ?? set.children[0] ?? null;
+      try {
+        const set = await figma.importComponentSetByKeyAsync(key);
+        node = set.defaultVariant ?? set.children[0] ?? null;
+      } catch {
+        node = await findLocalByKey(key);
+        if (!node) {
+          throw new Error(
+            `Component key "${key}" is neither a published library component nor present in this file. ` +
+              'Pass `componentId` if it is local and unpublished.'
+          );
+        }
+      }
     }
   } else if (id) {
     node = await figma.getNodeByIdAsync(id);
@@ -266,6 +336,7 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
           const component = await importComponent(op);
           if (dryRun) {
             row.detail = { component: component.name, componentId: component.id, parent: parent.id };
+            scope.bindDry(op.ref as string);
             break;
           }
           const instance = component.createInstance();
@@ -292,6 +363,7 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
           const parent = await scope.resolveParent(op.parent, `op #${index} \`parent\``);
           if (dryRun) {
             row.detail = { parent: parent.id };
+            scope.bindDry(op.ref as string);
             break;
           }
           const frame = figma.createFrame();
@@ -314,6 +386,7 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
           const parent = await scope.resolveParent(op.parent, `op #${index} \`parent\``);
           if (dryRun) {
             row.detail = { parent: parent.id, characters: String(op.characters ?? '') };
+            scope.bindDry(op.ref as string);
             break;
           }
           const text = figma.createText();
@@ -339,6 +412,7 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
           if (typeof op.svg !== 'string') throw new Error('create_from_svg needs an `svg` string.');
           if (dryRun) {
             row.detail = { parent: parent.id, bytes: (op.svg as string).length };
+            scope.bindDry(op.ref as string);
             break;
           }
           const node = figma.createNodeFromSvg(op.svg as string);
@@ -355,7 +429,8 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
         case 'clone': {
           const source = await scope.resolve(op.node, `op #${index} \`node\``);
           if (dryRun) {
-            row.detail = { source: source.id };
+            row.detail = { source: source.id, clonable: !isDryNode(source) };
+            scope.bindDry(op.ref as string);
             break;
           }
           const clone = (source as unknown as SceneNode & { clone: () => SceneNode }).clone();
@@ -390,7 +465,9 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
 
         case 'set_text': {
           const node = await scope.resolve(op.node, `op #${index} \`node\``);
-          if (node.type !== 'TEXT') throw new Error(`set_text needs a TEXT node; ${node.id} is a ${node.type}.`);
+          if (!isDryNode(node) && node.type !== 'TEXT') {
+            throw new Error(`set_text needs a TEXT node; ${node.id} is a ${node.type}.`);
+          }
           row.nodeId = node.id;
           if (dryRun) break;
           const text = node as unknown as TextNode;
@@ -404,12 +481,14 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
 
         case 'set_component_properties': {
           const node = await scope.resolve(op.node, `op #${index} \`node\``);
-          if (node.type !== 'INSTANCE') {
+          if (!isDryNode(node) && node.type !== 'INSTANCE') {
             throw new Error(`set_component_properties needs an INSTANCE; ${node.id} is a ${node.type}.`);
           }
           const instance = node as unknown as InstanceNode;
           const properties = (op.properties ?? {}) as Record<string, unknown>;
-          const problems = checkProperties(instance, properties);
+          // A placeholder has no property definitions to check against; the
+          // component behind it was still resolved when it was created.
+          const problems = isDryNode(node) ? [] : checkProperties(instance, properties);
           if (problems.length) throw new Error(problems.join('; '));
           row.nodeId = node.id;
           if (dryRun) {
@@ -434,7 +513,9 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
 
         case 'swap_instance': {
           const node = await scope.resolve(op.node, `op #${index} \`node\``);
-          if (node.type !== 'INSTANCE') throw new Error(`swap_instance needs an INSTANCE; ${node.id} is a ${node.type}.`);
+          if (!isDryNode(node) && node.type !== 'INSTANCE') {
+            throw new Error(`swap_instance needs an INSTANCE; ${node.id} is a ${node.type}.`);
+          }
           const component = await importComponent(op);
           row.nodeId = node.id;
           if (dryRun) {
@@ -539,10 +620,10 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
 
         case 'reorder': {
           const node = await scope.resolve(op.node, `op #${index} \`node\``);
-          const parent = (node as SceneNode).parent as (BaseNode & ChildrenMixin) | null;
-          if (!parent) throw new Error(`${node.id} has no parent to reorder within.`);
           row.nodeId = node.id;
           if (dryRun) break;
+          const parent = (node as SceneNode).parent as (BaseNode & ChildrenMixin) | null;
+          if (!parent) throw new Error(`${node.id} has no parent to reorder within.`);
           journal.recordPosition(op.op, node);
           parent.insertChild(clampIndex(parent, op.index as number), node as unknown as SceneNode);
           modified.push(node.id);
@@ -565,6 +646,7 @@ export async function applyPlan(plan: Plan): Promise<PlanResult> {
           if (dryRun) break;
           const target = node as unknown as { resize: (w: number, h: number) => void; width: number; height: number };
           if (typeof target.resize !== 'function') throw new Error(`${node.id} (${node.type}) cannot be resized.`);
+
           journal.recordSet(op.op, node, ['width', 'height']);
           target.resize(
             typeof op.width === 'number' ? op.width : target.width,

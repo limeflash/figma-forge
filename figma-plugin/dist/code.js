@@ -2895,7 +2895,8 @@ ${body}
   async function buildGraph(params) {
     const maxScreens = params.maxScreensPerPage ?? 400;
     const maxTextChars = params.maxTextChars ?? 1200;
-    const maxLookups = params.maxInstanceLookups ?? 1500;
+    const maxLookups = params.maxInstanceLookups ?? 25e3;
+    const lookupBatch = params.lookupBatch ?? 500;
     let pages;
     let startIndex = 0;
     let totalPages;
@@ -2965,11 +2966,17 @@ ${body}
       }
       const budgeted = flatInstances.slice(0, maxLookups);
       stats.lookupsSkipped += flatInstances.length - budgeted.length;
-      const resolved = await Promise.all(
-        budgeted.map(
-          ({ screenId, node }) => node.getMainComponentAsync().then((main) => ({ screenId, main })).catch(() => ({ screenId, main: null }))
-        )
-      );
+      const resolved = [];
+      for (let offset2 = 0; offset2 < budgeted.length; offset2 += lookupBatch) {
+        const slice = budgeted.slice(offset2, offset2 + lookupBatch);
+        resolved.push(
+          ...await Promise.all(
+            slice.map(
+              ({ screenId, node }) => node.getMainComponentAsync().then((main) => ({ screenId, main })).catch(() => ({ screenId, main: null }))
+            )
+          )
+        );
+      }
       const keysByScreen = /* @__PURE__ */ new Map();
       for (const { screenId, main } of resolved) {
         if (!main) continue;

@@ -90,6 +90,9 @@ figma_forge_graph { action: "build" }
 figma_forge_graph { action: "search", query: "экран оплаты картой" }
 ```
 
+Building is a one-time walk: about five minutes for a 65-page file with 1473
+screens, most of it Figma loading pages rather than our traversal.
+
 The graph indexes each screen by what it actually contains: its text, the
 components it is built from, and its page and section names. Search fuses BM25
 over words with cosine over embeddings by reciprocal rank, and every result says

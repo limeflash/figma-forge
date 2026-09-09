@@ -22,8 +22,12 @@ by three things that actually carry meaning:
 figma_forge_graph { action: "build" }
 ```
 
-It walks the file page by page. On a 65-page file expect tens of seconds. Rebuild
-after significant changes; the graph does not update itself.
+It walks the file page by page. Measured on a 65-page file with 1473 screens:
+about four minutes to walk, plus a minute to embed. Most of that is Figma
+loading each page, not our traversal, so it does not get much faster. Say so
+before starting rather than going quiet.
+
+Rebuild after significant changes; the graph does not update itself.
 
 If Ollama is available, build also embeds every screen, which is what makes
 searching by meaning work. If it is not, the build still succeeds and search

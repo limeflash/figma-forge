@@ -29,6 +29,8 @@ export interface GraphParams {
   maxTextChars?: number;
   /** Cap on main-component lookups per page. */
   maxInstanceLookups?: number;
+  /** Concurrent lookups per batch. */
+  lookupBatch?: number;
 }
 
 export interface ScreenRecord {
@@ -85,7 +87,12 @@ function sectionOf(node: SceneNode): SectionNode | null {
 export async function buildGraph(params: GraphParams): Promise<GraphChunk> {
   const maxScreens = params.maxScreensPerPage ?? 400;
   const maxTextChars = params.maxTextChars ?? 1200;
-  const maxLookups = params.maxInstanceLookups ?? 1500;
+  // Measured at ~0.2ms per lookup, so the whole 47k-instance test file costs
+  // about nine seconds — against a four-minute page walk. The first cap of 1500
+  // per page silently dropped a fifth of the instances and undercounted every
+  // component's usage; the guard is now high enough to only catch true outliers.
+  const maxLookups = params.maxInstanceLookups ?? 25000;
+  const lookupBatch = params.lookupBatch ?? 500;
 
   let pages: PageNode[];
   let startIndex = 0;
@@ -172,14 +179,22 @@ export async function buildGraph(params: GraphParams): Promise<GraphChunk> {
     const budgeted = flatInstances.slice(0, maxLookups);
     stats.lookupsSkipped += flatInstances.length - budgeted.length;
 
-    const resolved = await Promise.all(
-      budgeted.map(({ screenId, node }) =>
-        (node as InstanceNode)
-          .getMainComponentAsync()
-          .then((main) => ({ screenId, main }))
-          .catch(() => ({ screenId, main: null as ComponentNode | null }))
-      )
-    );
+    // Batched rather than one giant Promise.all: a page with thousands of
+    // instances would otherwise open every lookup at once.
+    const resolved: { screenId: string; main: ComponentNode | null }[] = [];
+    for (let offset = 0; offset < budgeted.length; offset += lookupBatch) {
+      const slice = budgeted.slice(offset, offset + lookupBatch);
+      resolved.push(
+        ...(await Promise.all(
+          slice.map(({ screenId, node }) =>
+            (node as InstanceNode)
+              .getMainComponentAsync()
+              .then((main) => ({ screenId, main }))
+              .catch(() => ({ screenId, main: null as ComponentNode | null }))
+          )
+        ))
+      );
+    }
 
     const keysByScreen = new Map<string, Map<string, string>>();
     for (const { screenId, main } of resolved) {

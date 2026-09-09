@@ -2856,6 +2856,10 @@ ${body}
   var shimReport = installShims();
   figma.showUI(__html__, { width: 320, height: 440, themeColors: true });
   var sessionNonce = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+  function fileIdentity() {
+    const firstPage = figma.root.children[0];
+    return `doc-${hashSource(`${figma.root.name}|${firstPage ? firstPage.id : ""}`)}`;
+  }
   function sessionInfo() {
     return {
       plugin: "figma-forge",
@@ -2863,6 +2867,7 @@ ${body}
       indexSchemaVersion: INDEX_SCHEMA_VERSION,
       sessionId: `${figma.fileKey ?? "local"}:${sessionNonce}`,
       fileKey: figma.fileKey ?? null,
+      fileId: fileIdentity(),
       documentName: figma.root.name,
       editorType: figma.editorType,
       currentPage: { id: figma.currentPage.id, name: figma.currentPage.name },

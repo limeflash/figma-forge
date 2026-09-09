@@ -47,6 +47,13 @@ interface Pending {
 
 export class Bridge {
   private readonly options: Required<BridgeOptions>;
+  /**
+   * Whether the caller pinned a host. We connect and health-check over IPv4, but
+   * forwarding that as the bridge's bind address would collapse it to a single
+   * stack — and the plugin UI has to reach it as `localhost`, which may resolve
+   * to ::1 first. So the default stays unset and the bridge binds both.
+   */
+  private readonly hostWasSpecified: boolean;
   private socket: WebSocket | null = null;
   private connecting: Promise<void> | null = null;
   private readonly pending = new Map<string, Pending>();
@@ -57,6 +64,7 @@ export class Bridge {
   private closedIntentionally = false;
 
   constructor(options: BridgeOptions) {
+    this.hostWasSpecified = options.host !== undefined;
     this.options = {
       host: '127.0.0.1',
       requestTimeoutMs: 60_000,
@@ -103,7 +111,7 @@ export class Bridge {
       env: {
         ...process.env,
         FIGMA_FORGE_BRIDGE_PORT: String(this.options.port),
-        FIGMA_FORGE_BRIDGE_HOST: this.options.host,
+        ...(this.hostWasSpecified ? { FIGMA_FORGE_BRIDGE_HOST: this.options.host } : {}),
       },
     });
     child.unref();

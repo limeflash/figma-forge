@@ -190,6 +190,7 @@ export async function updateJournalStatus(
 export interface StoredSession {
   channel: string;
   fileKey: string | null;
+  fileId?: string;
   documentName?: string;
   sessionId?: string;
   port: number;

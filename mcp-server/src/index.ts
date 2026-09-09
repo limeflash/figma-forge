@@ -120,6 +120,8 @@ async function call<T = unknown>(command: string, params: Record<string, unknown
 
 interface SessionInfo {
   fileKey: string | null;
+  /** Derived per-file identity, present when fileKey is not available. */
+  fileId?: string;
   documentName: string;
   sessionId?: string;
   currentPage?: { id: string; name: string };
@@ -127,6 +129,11 @@ interface SessionInfo {
 
 async function sessionInfo(): Promise<SessionInfo> {
   return await call<SessionInfo>('session_info', {});
+}
+
+/** Every cache and journal lookup goes through here, so they cannot disagree. */
+function fileIdentity(info: Pick<SessionInfo, 'fileKey' | 'fileId'> | null | undefined): string {
+  return info?.fileKey ?? info?.fileId ?? 'local';
 }
 
 /* ------------------------------------------------------------------ *
@@ -170,13 +177,14 @@ server.registerTool(
       await writeSession({
         channel: status.channel,
         fileKey: info.fileKey,
+        fileId: info.fileId,
         documentName: info.documentName,
         sessionId: info.sessionId,
         port: status.port,
         updatedAt: Date.now(),
       });
 
-      const cached = info.fileKey ? await readIndex<RawIndex>(info.fileKey, 'file', PLUGIN_VERSION) : null;
+      const cached = await readIndex<RawIndex>(fileIdentity(info), 'file', PLUGIN_VERSION);
 
       return text({
         connected: true,
@@ -214,8 +222,7 @@ server.registerTool(
       }
     }
 
-    const fileKey = info?.fileKey ?? session?.fileKey ?? null;
-    const cached = fileKey ? await readIndex<RawIndex>(fileKey, 'file', PLUGIN_VERSION) : null;
+    const cached = info || session ? await readIndex<RawIndex>(fileIdentity(info ?? session), 'file', PLUGIN_VERSION) : null;
 
     return text({
       bridge: { running: status.bridgeRunning, port: status.port, channels: status.channels, lastError: status.lastError },
@@ -322,7 +329,7 @@ server.registerTool(
       }
 
       const info = await sessionInfo();
-      const fileKey = info.fileKey ?? 'local';
+      const fileKey = fileIdentity(info);
       const scope = params.scope ?? 'file';
 
       let cached = action === 'refresh' ? null : await readIndex<RawIndex>(fileKey, scope, PLUGIN_VERSION);
@@ -442,8 +449,8 @@ server.registerTool(
         entries: result.journal,
       });
 
-      if (info?.fileKey) {
-        await markDirty(info.fileKey, 'file', [...result.created, ...result.modified]);
+      if (info) {
+        await markDirty(fileIdentity(info), 'file', [...result.created, ...result.modified]);
       }
 
       let verification: unknown;
@@ -621,7 +628,7 @@ server.registerTool(
 
         // "map": score every Storybook component against the cached DS index.
         const info = await sessionInfo();
-        const cached = await readIndex<RawIndex>(info.fileKey ?? 'local', 'file', PLUGIN_VERSION);
+        const cached = await readIndex<RawIndex>(fileIdentity(info), 'file', PLUGIN_VERSION);
         if (!cached) {
           return failure(
             new Error('No design-system index is cached yet. Run figma_forge_design_system { action: "refresh" } first.')

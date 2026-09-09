@@ -25136,6 +25136,13 @@ var BridgeError = class extends Error {
 };
 var Bridge = class {
   options;
+  /**
+   * Whether the caller pinned a host. We connect and health-check over IPv4, but
+   * forwarding that as the bridge's bind address would collapse it to a single
+   * stack — and the plugin UI has to reach it as `localhost`, which may resolve
+   * to ::1 first. So the default stays unset and the bridge binds both.
+   */
+  hostWasSpecified;
   socket = null;
   connecting = null;
   pending = /* @__PURE__ */ new Map();
@@ -25145,6 +25152,7 @@ var Bridge = class {
   lastError = null;
   closedIntentionally = false;
   constructor(options) {
+    this.hostWasSpecified = options.host !== void 0;
     this.options = {
       host: "127.0.0.1",
       requestTimeoutMs: 6e4,
@@ -25184,7 +25192,7 @@ var Bridge = class {
       env: {
         ...process.env,
         FIGMA_FORGE_BRIDGE_PORT: String(this.options.port),
-        FIGMA_FORGE_BRIDGE_HOST: this.options.host
+        ...this.hostWasSpecified ? { FIGMA_FORGE_BRIDGE_HOST: this.options.host } : {}
       }
     });
     child.unref();
@@ -26305,6 +26313,9 @@ async function call(command, params, timeoutMs) {
 async function sessionInfo() {
   return await call("session_info", {});
 }
+function fileIdentity(info) {
+  return info?.fileKey ?? info?.fileId ?? "local";
+}
 var server = new McpServer({ name: "figma-forge", version: PLUGIN_VERSION });
 server.registerTool(
   "figma_forge_connect",
@@ -26337,12 +26348,13 @@ server.registerTool(
       await writeSession({
         channel: status.channel,
         fileKey: info.fileKey,
+        fileId: info.fileId,
         documentName: info.documentName,
         sessionId: info.sessionId,
         port: status.port,
         updatedAt: Date.now()
       });
-      const cached2 = info.fileKey ? await readIndex(info.fileKey, "file", PLUGIN_VERSION) : null;
+      const cached2 = await readIndex(fileIdentity(info), "file", PLUGIN_VERSION);
       return text({
         connected: true,
         channel: status.channel,
@@ -26374,8 +26386,7 @@ server.registerTool(
         info = null;
       }
     }
-    const fileKey = info?.fileKey ?? session?.fileKey ?? null;
-    const cached2 = fileKey ? await readIndex(fileKey, "file", PLUGIN_VERSION) : null;
+    const cached2 = info || session ? await readIndex(fileIdentity(info ?? session), "file", PLUGIN_VERSION) : null;
     return text({
       bridge: { running: status.bridgeRunning, port: status.port, channels: status.channels, lastError: status.lastError },
       agentConnected: status.agentConnected,
@@ -26468,7 +26479,7 @@ server.registerTool(
         return text(await call("design_system", { action: "variables", scope: params.scope, pageId: params.pageId }, 12e4));
       }
       const info = await sessionInfo();
-      const fileKey = info.fileKey ?? "local";
+      const fileKey = fileIdentity(info);
       const scope = params.scope ?? "file";
       let cached2 = action === "refresh" ? null : await readIndex(fileKey, scope, PLUGIN_VERSION);
       if (!cached2) {
@@ -26555,8 +26566,8 @@ server.registerTool(
         quarantined: result.quarantined,
         entries: result.journal
       });
-      if (info?.fileKey) {
-        await markDirty(info.fileKey, "file", [...result.created, ...result.modified]);
+      if (info) {
+        await markDirty(fileIdentity(info), "file", [...result.created, ...result.modified]);
       }
       let verification;
       if (result.ok && params.verify !== false && (result.created.length || result.modified.length)) {
@@ -26702,7 +26713,7 @@ server.registerTool(
           });
         }
         const info = await sessionInfo();
-        const cached2 = await readIndex(info.fileKey ?? "local", "file", PLUGIN_VERSION);
+        const cached2 = await readIndex(fileIdentity(info), "file", PLUGIN_VERSION);
         if (!cached2) {
           return failure(
             new Error('No design-system index is cached yet. Run figma_forge_design_system { action: "refresh" } first.')

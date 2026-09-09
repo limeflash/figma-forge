@@ -9,7 +9,7 @@
  */
 
 import { installShims } from './runtime/shims';
-import { execute, ExecParams, listModules, defineModule, removeModule } from './runtime/exec';
+import { execute, ExecParams, listModules, defineModule, removeModule, hashSource } from './runtime/exec';
 import { inspect, InspectParams } from './runtime/commands/inspect';
 import { designSystem, DesignSystemParams, INDEX_SCHEMA_VERSION } from './runtime/commands/design-system';
 import { applyPlan, Plan } from './runtime/commands/apply-plan';
@@ -53,6 +53,26 @@ figma.showUI(__html__, { width: 320, height: 440, themeColors: true });
  */
 const sessionNonce = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
 
+/**
+ * A stable identity for this file, used to key the design-system cache.
+ *
+ * `figma.fileKey` would be the obvious answer, but it is only exposed to private
+ * organization plugins that set `enablePrivatePluginApi` — for a locally
+ * imported plugin it is always undefined, which would collapse every file onto
+ * one cache entry and serve file A's component keys while editing file B.
+ *
+ * So: hash the document name together with the first page's id. Node ids are
+ * per-file sequences, so the pair is effectively unique. It is derived, not
+ * stored, because writing plugin data just to identify a file would dirty a
+ * document the user only opened to read. Renaming the file invalidates the
+ * cache, which costs a rebuild — far cheaper than confidently returning the
+ * wrong index.
+ */
+function fileIdentity(): string {
+  const firstPage = figma.root.children[0];
+  return `doc-${hashSource(`${figma.root.name}|${firstPage ? firstPage.id : ''}`)}`;
+}
+
 function sessionInfo() {
   return {
     plugin: 'figma-forge',
@@ -60,6 +80,7 @@ function sessionInfo() {
     indexSchemaVersion: INDEX_SCHEMA_VERSION,
     sessionId: `${figma.fileKey ?? 'local'}:${sessionNonce}`,
     fileKey: figma.fileKey ?? null,
+    fileId: fileIdentity(),
     documentName: figma.root.name,
     editorType: figma.editorType,
     currentPage: { id: figma.currentPage.id, name: figma.currentPage.name },

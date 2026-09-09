@@ -26,7 +26,7 @@ service, and it does not require a paid Figma seat.
 ## Install
 
 ```
-/plugin marketplace add ennanoff/figma-forge
+/plugin marketplace add limeflash/figma-forge
 /plugin install figma-forge
 ```
 

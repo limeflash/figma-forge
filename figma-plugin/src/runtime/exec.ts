@@ -23,7 +23,7 @@
  */
 
 import { select, matches } from './selector';
-import { applyProps, createAutoLayout, screenshot, QueryResult } from './shims';
+import { applyProps, createAutoLayout, ensureShims, screenshot, QueryResult } from './shims';
 import { summarizeNode, toJson, rgbToHex, safe } from './serialize';
 import { DATA_KEYS, SCRATCH_PAGE, ensurePage, errorMessage, loadFontsFor } from './journal';
 
@@ -218,42 +218,80 @@ const BLOCKED_IN_READ = [
   'saveVersionHistoryAsync', 'commitUndo', 'triggerUndo',
 ];
 
+/**
+ * A read-mode stand-in for `figma`.
+ *
+ * The obvious implementation — a Proxy whose `get` trap swaps blocked methods —
+ * does not work. `figma` exposes non-configurable, non-writable own properties,
+ * and returning anything other than the original value for one violates a Proxy
+ * invariant: real files fail with `proxy: inconsistent get` instead of the
+ * helpful message the trap was written to produce.
+ *
+ * So this builds a plain object that forwards every property through a getter.
+ * A plain object has no invariants to break, live getters like `currentPage`
+ * still reflect the real editor state, and blocked methods can say why.
+ */
+function guardedNamespace(
+  target: object,
+  isBlocked: (key: string) => string | null
+): Record<string, unknown> {
+  const facade: Record<string, unknown> = {};
+  const keys = new Set<string>();
+
+  let current: object | null = target;
+  while (current && current !== Object.prototype) {
+    for (const key of Object.getOwnPropertyNames(current)) keys.add(key);
+    current = Object.getPrototypeOf(current);
+  }
+
+  for (const key of keys) {
+    if (key === 'constructor') continue;
+    const reason = isBlocked(key);
+    if (reason) {
+      Object.defineProperty(facade, key, {
+        enumerable: true,
+        get: () => () => {
+          throw new Error(reason);
+        },
+      });
+      continue;
+    }
+    Object.defineProperty(facade, key, {
+      enumerable: true,
+      get() {
+        const value = (target as Record<string, unknown>)[key];
+        // Host methods need their real receiver, not the facade.
+        return typeof value === 'function' ? (value as Function).bind(target) : value;
+      },
+    });
+  }
+
+  return facade;
+}
+
 function readOnlyFigma(): typeof figma {
   const blocked = new Set(BLOCKED_IN_READ);
-  return new Proxy(figma, {
-    get(target, prop, receiver) {
-      const key = String(prop);
-      if (blocked.has(key)) {
-        return () => {
-          throw new Error(
-            `${key}() is blocked in read mode. Re-run with mode "scratch" to build, ` +
-              'or "unsafe_in_place" if this must mutate the live document.'
-          );
-        };
-      }
-      if (key === 'variables') {
-        const variables = Reflect.get(target, prop, receiver) as typeof figma.variables;
-        return new Proxy(variables, {
-          get(vTarget, vProp) {
-            const vKey = String(vProp);
-            if (vKey.indexOf('create') === 0 || vKey === 'setBoundVariableForPaint') {
-              return () => {
-                throw new Error(`figma.variables.${vKey}() is blocked in read mode.`);
-              };
-            }
-            const value = Reflect.get(vTarget, vProp) as unknown;
-            return typeof value === 'function' ? (value as Function).bind(vTarget) : value;
-          },
-        });
-      }
-      const value = Reflect.get(target, prop, receiver) as unknown;
-      // Host methods need the real `figma` as their receiver, not the proxy.
-      return typeof value === 'function' ? (value as Function).bind(target) : value;
-    },
-    set() {
-      throw new Error('Assigning to figma.* is blocked in read mode.');
-    },
-  }) as typeof figma;
+
+  const facade = guardedNamespace(figma, (key) =>
+    blocked.has(key)
+      ? `${key}() is blocked in read mode. Re-run with mode "scratch" to build, ` +
+        'or "unsafe_in_place" if this must mutate the live document.'
+      : null
+  );
+
+  // `figma.variables` is where the other half of the mutation surface lives.
+  try {
+    const variables = guardedNamespace(figma.variables, (key) =>
+      key.indexOf('create') === 0 || key === 'setBoundVariableForPaint'
+        ? `figma.variables.${key}() is blocked in read mode.`
+        : null
+    );
+    Object.defineProperty(facade, 'variables', { enumerable: true, get: () => variables });
+  } catch {
+    /* leave the forwarded property in place */
+  }
+
+  return facade as unknown as typeof figma;
 }
 
 /* ------------------------------------------------------------------ *
@@ -289,6 +327,7 @@ export async function execute(params: ExecParams): Promise<ExecResult> {
   if (params.targetId) {
     target = (await figma.getNodeByIdAsync(params.targetId)) as AnyNode | null;
     if (!target) throw new Error(`Target node ${params.targetId} was not found.`);
+    ensureShims(target);
   }
 
   const modules: Record<string, unknown> = {};

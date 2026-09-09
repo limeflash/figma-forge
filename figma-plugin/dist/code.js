@@ -215,6 +215,7 @@
   var QueryResult = class _QueryResult {
     constructor(nodes) {
       this.nodes = nodes;
+      ensureShims(nodes);
     }
     get length() {
       return this.nodes.length;
@@ -308,6 +309,8 @@
     for (const [key, value] of deferred) target[key] = value;
     return node;
   }
+  var shimmedPrototypes = /* @__PURE__ */ new WeakSet();
+  var installedNames = /* @__PURE__ */ new Set();
   function definePrototypeMember(proto, name, descriptor) {
     try {
       if (Object.getOwnPropertyDescriptor(proto, name)) return true;
@@ -317,18 +320,69 @@
       return false;
     }
   }
-  function findNodePrototype() {
-    let probe = null;
-    try {
-      probe = figma.createFrame();
-      const proto = Object.getPrototypeOf(probe);
-      return proto && proto !== Object.prototype ? proto : null;
-    } catch {
-      return null;
-    } finally {
+  function installOnPrototype(proto) {
+    const ok = [];
+    ok.push(
+      definePrototypeMember(proto, "query", {
+        value: function(selector) {
+          return new QueryResult(select(this, selector));
+        },
+        writable: true
+      })
+    );
+    ok.push(
+      definePrototypeMember(proto, "set", {
+        value: function(props) {
+          return applyProps(this, props);
+        },
+        writable: true
+      })
+    );
+    ok.push(
+      definePrototypeMember(proto, "matches", {
+        value: function(selector) {
+          return matches(this, selector);
+        },
+        writable: true
+      })
+    );
+    ok.push(
+      definePrototypeMember(proto, "screenshot", {
+        value: function(opts) {
+          return screenshot(this, opts);
+        },
+        writable: true
+      })
+    );
+    ok.push(
+      definePrototypeMember(proto, "placeholder", {
+        get() {
+          return placeholderState.get(this.id) ?? false;
+        },
+        set(value) {
+          if (value) placeholderState.set(this.id, true);
+          else placeholderState.delete(this.id);
+        }
+      })
+    );
+    return ok.every(Boolean);
+  }
+  function ensureShims(nodes) {
+    if (!nodes) return;
+    const list = Array.isArray(nodes) ? nodes : [nodes];
+    for (const node of list) {
+      if (!node) continue;
+      let proto;
       try {
-        probe?.remove();
+        proto = Object.getPrototypeOf(node);
       } catch {
+        continue;
+      }
+      if (!proto || proto === Object.prototype || shimmedPrototypes.has(proto)) continue;
+      shimmedPrototypes.add(proto);
+      if (installOnPrototype(proto)) {
+        const name = proto.constructor?.name;
+        if (name) installedNames.add(name);
       }
     }
   }
@@ -336,56 +390,14 @@
   function installShims() {
     if (report) return report;
     const installed = [];
-    const proto = findNodePrototype();
-    let prototypeShimmed = false;
-    if (proto) {
-      const ok = [];
-      ok.push(
-        definePrototypeMember(proto, "query", {
-          value: function(selector) {
-            return new QueryResult(select(this, selector));
-          },
-          writable: true
-        })
-      );
-      ok.push(
-        definePrototypeMember(proto, "set", {
-          value: function(props) {
-            return applyProps(this, props);
-          },
-          writable: true
-        })
-      );
-      ok.push(
-        definePrototypeMember(proto, "matches", {
-          value: function(selector) {
-            return matches(this, selector);
-          },
-          writable: true
-        })
-      );
-      ok.push(
-        definePrototypeMember(proto, "screenshot", {
-          value: function(opts) {
-            return screenshot(this, opts);
-          },
-          writable: true
-        })
-      );
-      ok.push(
-        definePrototypeMember(proto, "placeholder", {
-          get() {
-            return placeholderState.get(this.id) ?? false;
-          },
-          set(value) {
-            if (value) placeholderState.set(this.id, true);
-            else placeholderState.delete(this.id);
-          }
-        })
-      );
-      prototypeShimmed = ok.every(Boolean);
-      if (prototypeShimmed) installed.push("query", "set", "matches", "screenshot", "placeholder");
+    const reachable = [];
+    try {
+      reachable.push(figma.root, figma.currentPage);
+      for (const child of figma.currentPage.children.slice(0, 50)) reachable.push(child);
+    } catch {
     }
+    ensureShims(reachable);
+    if (installedNames.size) installed.push("query", "set", "matches", "screenshot", "placeholder");
     try {
       const host = figma;
       if (typeof host.createAutoLayout !== "function") {
@@ -394,8 +406,12 @@
       }
     } catch {
     }
-    report = { prototypeShimmed, installed };
+    report = { prototypeShimmed: installedNames.size > 0, installed, shimmedTypes: [...installedNames] };
     return report;
+  }
+  function shimReport() {
+    const base = installShims();
+    return { ...base, shimmedTypes: [...installedNames] };
   }
   var placeholderState = /* @__PURE__ */ new Map();
   function createAutoLayout(directionOrProps, maybeProps) {
@@ -1149,40 +1165,51 @@
     "commitUndo",
     "triggerUndo"
   ];
+  function guardedNamespace(target, isBlocked) {
+    const facade = {};
+    const keys = /* @__PURE__ */ new Set();
+    let current = target;
+    while (current && current !== Object.prototype) {
+      for (const key of Object.getOwnPropertyNames(current)) keys.add(key);
+      current = Object.getPrototypeOf(current);
+    }
+    for (const key of keys) {
+      if (key === "constructor") continue;
+      const reason = isBlocked(key);
+      if (reason) {
+        Object.defineProperty(facade, key, {
+          enumerable: true,
+          get: () => () => {
+            throw new Error(reason);
+          }
+        });
+        continue;
+      }
+      Object.defineProperty(facade, key, {
+        enumerable: true,
+        get() {
+          const value = target[key];
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+      });
+    }
+    return facade;
+  }
   function readOnlyFigma() {
     const blocked = new Set(BLOCKED_IN_READ);
-    return new Proxy(figma, {
-      get(target, prop, receiver) {
-        const key = String(prop);
-        if (blocked.has(key)) {
-          return () => {
-            throw new Error(
-              `${key}() is blocked in read mode. Re-run with mode "scratch" to build, or "unsafe_in_place" if this must mutate the live document.`
-            );
-          };
-        }
-        if (key === "variables") {
-          const variables = Reflect.get(target, prop, receiver);
-          return new Proxy(variables, {
-            get(vTarget, vProp) {
-              const vKey = String(vProp);
-              if (vKey.indexOf("create") === 0 || vKey === "setBoundVariableForPaint") {
-                return () => {
-                  throw new Error(`figma.variables.${vKey}() is blocked in read mode.`);
-                };
-              }
-              const value2 = Reflect.get(vTarget, vProp);
-              return typeof value2 === "function" ? value2.bind(vTarget) : value2;
-            }
-          });
-        }
-        const value = Reflect.get(target, prop, receiver);
-        return typeof value === "function" ? value.bind(target) : value;
-      },
-      set() {
-        throw new Error("Assigning to figma.* is blocked in read mode.");
-      }
-    });
+    const facade = guardedNamespace(
+      figma,
+      (key) => blocked.has(key) ? `${key}() is blocked in read mode. Re-run with mode "scratch" to build, or "unsafe_in_place" if this must mutate the live document.` : null
+    );
+    try {
+      const variables = guardedNamespace(
+        figma.variables,
+        (key) => key.indexOf("create") === 0 || key === "setBoundVariableForPaint" ? `figma.variables.${key}() is blocked in read mode.` : null
+      );
+      Object.defineProperty(facade, "variables", { enumerable: true, get: () => variables });
+    } catch {
+    }
+    return facade;
   }
   var AsyncFunction = Object.getPrototypeOf(async function() {
   }).constructor;
@@ -1207,6 +1234,7 @@
     if (params.targetId) {
       target = await figma.getNodeByIdAsync(params.targetId);
       if (!target) throw new Error(`Target node ${params.targetId} was not found.`);
+      ensureShims(target);
     }
     const modules = {};
     for (const name of params.use ?? []) modules[name] = requireModule(name);
@@ -2853,7 +2881,7 @@ ${body}
     autoConnect: "figma-forge.autoConnect"
   };
   var connectedChannel = null;
-  var shimReport = installShims();
+  installShims();
   figma.showUI(__html__, { width: 320, height: 440, themeColors: true });
   var sessionNonce = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
   function fileIdentity() {
@@ -2873,7 +2901,7 @@ ${body}
       currentPage: { id: figma.currentPage.id, name: figma.currentPage.name },
       pageCount: figma.root.children.length,
       selection: figma.currentPage.selection.map((node) => ({ id: node.id, name: node.name, type: node.type })),
-      shims: shimReport,
+      shims: shimReport(),
       channel: connectedChannel
     };
   }

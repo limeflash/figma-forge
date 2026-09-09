@@ -82,8 +82,11 @@ INSTANCE, COMPONENT        union
 
 The full list is in `plugin-api-notes.md`. The ones that cause most failures:
 
-- **No `fetch`, no DOM, no reliable timers.** Anything network-shaped has to
-  happen on the Claude Code side.
+- **No DOM.** `setTimeout` and `fetch` do exist on the main thread, but `fetch`
+  is limited to the manifest's declared domains — anything genuinely
+  network-shaped belongs on the Claude Code side.
+- **`select()` returns a `QueryResult`, not an array.** `results[0]` is
+  `undefined`; use `.first()`, `.toArray()` or spread it.
 - **Fonts must be loaded before any text write.** `await loadFonts(node)`, or
   `await figma.loadFontAsync(node.fontName)` on a fresh text node.
 - **This file uses `documentAccess: "dynamic-page"`.** Use `getNodeByIdAsync`,

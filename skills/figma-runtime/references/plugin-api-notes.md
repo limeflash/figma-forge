@@ -13,14 +13,20 @@ there — it is exact and regenerated from the types, not remembered.
 
 ## The sandbox
 
-The plugin main thread is a minimal JavaScript environment. It has **no**
-`fetch`, `XMLHttpRequest`, DOM, `localStorage`, or `btoa`, and timers are not
-something to build on. Anything network-shaped belongs on the Claude Code side
-of the bridge.
+The plugin main thread is a restricted JavaScript environment with no DOM, no
+`localStorage` and no `btoa`.
 
-`eval` is a *bound* function here, so every call is an indirect eval that cannot
-see the calling scope — code shipped that way silently does nothing useful.
-`new Function` works normally, which is what `figma_forge_execute` uses.
+Measured on Figma desktop, September 2026: `setTimeout` and `fetch` *do* exist
+as functions on the main thread — older guidance saying otherwise is out of date.
+`fetch` is still governed by the manifest's `networkAccess`, so it can only reach
+domains the plugin declared, and anything genuinely network-shaped still belongs
+on the Claude Code side of the bridge where it is inspectable.
+
+Use `new Function` rather than `eval` for dynamic code. `eval` in this sandbox has
+a history of behaving as an indirect eval — unable to see the calling scope, so
+shipped code silently does nothing — while `new Function` bodies are ordinary
+function scopes. `figma_forge_execute` uses the async `Function` constructor for
+exactly this reason.
 
 ## Dynamic page loading
 
@@ -282,6 +288,23 @@ Figma Forge uses `ff.operation`, `ff.createdBy`, `ff.quarantinedFrom` and
 thrown script can leave partial mutations, and later user edits make the undo
 stack ambiguous. The Figma Forge journal is the authoritative record of what a
 write did.
+
+## Node objects
+
+Every node type has its **own prototype** — there is no shared base. Measured on
+a real file: `FrameNode` has 189 own prototype keys, `TextNode` 205,
+`InstanceNode` 198, `SectionNode` 98, and no two are the same object. Code that
+extends "the node prototype" reaches exactly one type.
+
+Individual nodes are **not extensible**: `Object.defineProperty(node, …)` throws
+`object is not extensible`. Prototypes *are* writable, so the only way to add a
+method across types is to install it on each type's prototype as you encounter
+one. Figma Forge does this lazily, keyed by prototype identity.
+
+`figma` itself is a plain host object and can be extended directly — but it has
+non-configurable, non-writable own properties, so wrapping it in a `Proxy` that
+substitutes a method breaks a Proxy invariant and fails with
+`proxy: inconsistent get`. Forward through a plain object with getters instead.
 
 ## Reading the error message
 

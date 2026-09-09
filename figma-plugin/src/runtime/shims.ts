@@ -8,9 +8,15 @@
  * equivalents here. That parity is what lets us ship their documentation as-is
  * instead of maintaining a rival dialect.
  *
- * Nodes are host objects behind getters, so we install onto the shared
- * prototype when one is reachable and fall back to per-node definition when it
- * is not.
+ * Measured against a real file: Figma gives every node type its own prototype
+ * (FrameNode 189 own keys, TextNode 205, InstanceNode 198, SectionNode 98) with
+ * no shared base, and individual nodes are not extensible — defining a property
+ * on one throws `object is not extensible`. So there is no single place to
+ * install, and no per-node fallback either.
+ *
+ * Instead we install lazily, once per prototype, the first time a node of that
+ * type is seen. That costs a WeakSet lookup and covers exactly the types a
+ * session actually touches, without creating a throwaway node of every type.
  */
 
 import { select, matches } from './selector';
@@ -28,6 +34,9 @@ export class QueryResult {
 
   constructor(nodes: AnyNode[]) {
     this.nodes = nodes;
+    // Anything that came out of a query is about to be used as a node, so this
+    // is the natural place to make sure its type has been shimmed.
+    ensureShims(nodes);
   }
 
   get length(): number {
@@ -144,15 +153,11 @@ export function applyProps(node: AnyNode, props: Record<string, unknown>): AnyNo
   return node;
 }
 
-/**
- * Installs a method on the node prototype when reachable, otherwise leaves a
- * marker so callers know to use the standalone helpers instead.
- */
-function definePrototypeMember(
-  proto: object,
-  name: string,
-  descriptor: PropertyDescriptor
-): boolean {
+/** Prototypes we have already extended. Keyed by identity, never by node type. */
+const shimmedPrototypes = new WeakSet<object>();
+const installedNames = new Set<string>();
+
+function definePrototypeMember(proto: object, name: string, descriptor: PropertyDescriptor): boolean {
   try {
     if (Object.getOwnPropertyDescriptor(proto, name)) return true;
     Object.defineProperty(proto, name, { configurable: true, ...descriptor });
@@ -162,20 +167,83 @@ function definePrototypeMember(
   }
 }
 
-/** Best-effort discovery of the prototype shared by scene nodes. */
-function findNodePrototype(): object | null {
-  let probe: FrameNode | null = null;
-  try {
-    probe = figma.createFrame();
-    const proto = Object.getPrototypeOf(probe);
-    return proto && proto !== Object.prototype ? proto : null;
-  } catch {
-    return null;
-  } finally {
+function installOnPrototype(proto: object): boolean {
+  const ok: boolean[] = [];
+
+  ok.push(
+    definePrototypeMember(proto, 'query', {
+      value: function (this: AnyNode, selector: string) {
+        return new QueryResult(select(this, selector));
+      },
+      writable: true,
+    })
+  );
+
+  ok.push(
+    definePrototypeMember(proto, 'set', {
+      value: function (this: AnyNode, props: Record<string, unknown>) {
+        return applyProps(this, props);
+      },
+      writable: true,
+    })
+  );
+
+  ok.push(
+    definePrototypeMember(proto, 'matches', {
+      value: function (this: AnyNode, selector: string) {
+        return matches(this, selector);
+      },
+      writable: true,
+    })
+  );
+
+  ok.push(
+    definePrototypeMember(proto, 'screenshot', {
+      value: function (this: AnyNode, opts?: { scale?: number; contentsOnly?: boolean }) {
+        return screenshot(this, opts);
+      },
+      writable: true,
+    })
+  );
+
+  // `placeholder` is a hosted-sandbox affordance with no Plugin API analogue.
+  // Accept and remember it so corpus code that toggles it does not throw, and
+  // surface it through node metadata rather than silently dropping it.
+  ok.push(
+    definePrototypeMember(proto, 'placeholder', {
+      get(this: AnyNode) {
+        return placeholderState.get(this.id) ?? false;
+      },
+      set(this: AnyNode, value: boolean) {
+        if (value) placeholderState.set(this.id, true);
+        else placeholderState.delete(this.id);
+      },
+    })
+  );
+
+  return ok.every(Boolean);
+}
+
+/**
+ * Installs the shims for whatever node types these nodes are, once each.
+ * Safe and cheap to call on every query result.
+ */
+export function ensureShims(nodes: AnyNode | readonly AnyNode[] | null | undefined): void {
+  if (!nodes) return;
+  const list = Array.isArray(nodes) ? nodes : [nodes as AnyNode];
+  for (const node of list) {
+    if (!node) continue;
+    let proto: object | null;
     try {
-      probe?.remove();
+      proto = Object.getPrototypeOf(node);
     } catch {
-      /* the probe may already be gone; nothing to clean up */
+      continue;
+    }
+    if (!proto || proto === Object.prototype || shimmedPrototypes.has(proto)) continue;
+    shimmedPrototypes.add(proto);
+    if (installOnPrototype(proto)) {
+      const name = (proto as { constructor?: { name?: string } }).constructor?.name;
+      if (name) installedNames.add(name);
     }
   }
 }
@@ -183,74 +251,29 @@ function findNodePrototype(): object | null {
 export interface ShimReport {
   prototypeShimmed: boolean;
   installed: string[];
+  shimmedTypes: string[];
 }
 
 let report: ShimReport | null = null;
 
+/**
+ * Startup pass: extend `figma` itself, and shim the node types reachable
+ * without creating anything. Everything else is picked up lazily.
+ */
 export function installShims(): ShimReport {
   if (report) return report;
 
   const installed: string[] = [];
-  const proto = findNodePrototype();
-  let prototypeShimmed = false;
 
-  if (proto) {
-    const ok: boolean[] = [];
-
-    ok.push(
-      definePrototypeMember(proto, 'query', {
-        value: function (this: AnyNode, selector: string) {
-          return new QueryResult(select(this, selector));
-        },
-        writable: true,
-      })
-    );
-
-    ok.push(
-      definePrototypeMember(proto, 'set', {
-        value: function (this: AnyNode, props: Record<string, unknown>) {
-          return applyProps(this, props);
-        },
-        writable: true,
-      })
-    );
-
-    ok.push(
-      definePrototypeMember(proto, 'matches', {
-        value: function (this: AnyNode, selector: string) {
-          return matches(this, selector);
-        },
-        writable: true,
-      })
-    );
-
-    ok.push(
-      definePrototypeMember(proto, 'screenshot', {
-        value: function (this: AnyNode, opts?: { scale?: number; contentsOnly?: boolean }) {
-          return screenshot(this, opts);
-        },
-        writable: true,
-      })
-    );
-
-    // `placeholder` is a hosted-sandbox affordance with no Plugin API analogue.
-    // Accept and remember it so corpus code that toggles it does not throw, and
-    // surface it through node metadata rather than silently dropping it.
-    ok.push(
-      definePrototypeMember(proto, 'placeholder', {
-        get(this: AnyNode) {
-          return placeholderState.get(this.id) ?? false;
-        },
-        set(this: AnyNode, value: boolean) {
-          if (value) placeholderState.set(this.id, true);
-          else placeholderState.delete(this.id);
-        },
-      })
-    );
-
-    prototypeShimmed = ok.every(Boolean);
-    if (prototypeShimmed) installed.push('query', 'set', 'matches', 'screenshot', 'placeholder');
+  const reachable: AnyNode[] = [];
+  try {
+    reachable.push(figma.root as unknown as AnyNode, figma.currentPage as unknown as AnyNode);
+    for (const child of figma.currentPage.children.slice(0, 50)) reachable.push(child as unknown as AnyNode);
+  } catch {
+    /* an empty or unloaded page is fine; lazy installation covers it */
   }
+  ensureShims(reachable);
+  if (installedNames.size) installed.push('query', 'set', 'matches', 'screenshot', 'placeholder');
 
   // `figma` itself is a plain host object; extending it is reliable.
   try {
@@ -263,8 +286,14 @@ export function installShims(): ShimReport {
     /* leave it out; exec still exposes createAutoLayout as a free function */
   }
 
-  report = { prototypeShimmed, installed };
+  report = { prototypeShimmed: installedNames.size > 0, installed, shimmedTypes: [...installedNames] };
   return report;
+}
+
+/** Reflects lazily shimmed types too, so status is accurate mid-session. */
+export function shimReport(): ShimReport {
+  const base = installShims();
+  return { ...base, shimmedTypes: [...installedNames] };
 }
 
 const placeholderState = new Map<string, boolean>();

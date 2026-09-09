@@ -8,7 +8,7 @@
  * actual work lives in `runtime/`.
  */
 
-import { installShims } from './runtime/shims';
+import { installShims, shimReport } from './runtime/shims';
 import { execute, ExecParams, listModules, defineModule, removeModule, hashSource } from './runtime/exec';
 import { inspect, InspectParams } from './runtime/commands/inspect';
 import { designSystem, DesignSystemParams, INDEX_SCHEMA_VERSION } from './runtime/commands/design-system';
@@ -42,7 +42,7 @@ type UiMessage =
 
 let connectedChannel: string | null = null;
 
-const shimReport = installShims();
+installShims();
 
 figma.showUI(__html__, { width: 320, height: 440, themeColors: true });
 
@@ -86,7 +86,7 @@ function sessionInfo() {
     currentPage: { id: figma.currentPage.id, name: figma.currentPage.name },
     pageCount: figma.root.children.length,
     selection: figma.currentPage.selection.map((node) => ({ id: node.id, name: node.name, type: node.type })),
-    shims: shimReport,
+    shims: shimReport(),
     channel: connectedChannel,
   };
 }

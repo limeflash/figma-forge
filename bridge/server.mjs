@@ -21,7 +21,19 @@ import { WebSocketServer } from 'ws';
 import { createServer } from 'node:http';
 
 const PORT = Number(process.env.FIGMA_FORGE_BRIDGE_PORT || 3055);
-const HOST = process.env.FIGMA_FORGE_BRIDGE_HOST || '127.0.0.1';
+
+/**
+ * Both loopback addresses, because the two ends disagree about what "local"
+ * spells. Figma's manifest rejects raw IP addresses in `allowedDomains`, so the
+ * plugin UI must connect to `ws://localhost` — and on macOS that resolves to
+ * `::1` before `127.0.0.1`. Binding only IPv4 leaves the connection to Happy
+ * Eyeballs fallback, which is a silent, confusing failure when it does not
+ * happen. Binding only `::` would expose an arbitrary-code-execution bridge to
+ * the whole network, which is worse. So: one listener per loopback address.
+ */
+const HOSTS = process.env.FIGMA_FORGE_BRIDGE_HOST
+  ? [process.env.FIGMA_FORGE_BRIDGE_HOST]
+  : ['127.0.0.1', '::1'];
 
 /** @type {Map<string, { agents: Set<import('ws').WebSocket>, figma: Set<import('ws').WebSocket> }>} */
 const channels = new Map();
@@ -49,7 +61,7 @@ function describe(channel) {
   return { agents: channel.agents.size, figma: channel.figma.size };
 }
 
-const http = createServer((req, res) => {
+function handleRequest(req, res) {
   // A plain GET is how the MCP server checks whether a bridge is already up,
   // and how it learns which channels currently have Figma attached.
   if (req.url === '/health') {
@@ -66,9 +78,11 @@ const http = createServer((req, res) => {
   }
   res.writeHead(404, { 'content-type': 'text/plain' });
   res.end('figma-forge bridge');
-});
+}
 
-const wss = new WebSocketServer({ server: http });
+// One WebSocket server shared by every listener, so channel membership does not
+// depend on which address a client happened to arrive on.
+const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (socket) => {
   /** @type {{ channel: string, role: 'agent' | 'figma' } | null} */
@@ -178,25 +192,53 @@ wss.on('connection', (socket) => {
   });
 });
 
-http.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    // Another bridge already owns the port — that is the healthy case when a
-    // second Claude Code session starts. Exit quietly so the caller falls back
-    // to the running instance.
-    process.stderr.write(`figma-forge bridge: port ${PORT} already in use, deferring to the running instance\n`);
-    process.exit(3);
-  }
-  process.stderr.write(`figma-forge bridge: ${err.stack || err.message}\n`);
-  process.exit(1);
-});
+const servers = [];
 
-http.listen(PORT, HOST, () => {
-  process.stdout.write(`figma-forge bridge listening on ws://${HOST}:${PORT}\n`);
-});
+function listenOn(host, required) {
+  return new Promise((resolve) => {
+    const server = createServer(handleRequest);
+    server.on('upgrade', (req, socket, head) => {
+      wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE' && required) {
+        // Another bridge already owns the port — the healthy case when a second
+        // Claude Code session starts. Exit quietly so the caller falls back to
+        // the running instance.
+        process.stderr.write(`figma-forge bridge: port ${PORT} already in use, deferring to the running instance\n`);
+        process.exit(3);
+      }
+      if (required) {
+        process.stderr.write(`figma-forge bridge: ${err.stack || err.message}\n`);
+        process.exit(1);
+      }
+      // A machine with IPv6 disabled is fine; the IPv4 listener carries it.
+      process.stderr.write(`figma-forge bridge: could not bind ${host}: ${err.message}\n`);
+      resolve(null);
+    });
+
+    server.listen(PORT, host, () => {
+      servers.push(server);
+      process.stdout.write(`figma-forge bridge listening on ws://${formatHost(host)}:${PORT}\n`);
+      resolve(server);
+    });
+  });
+}
+
+function formatHost(host) {
+  return host.includes(':') ? `[${host}]` : host;
+}
+
+// The first address is the one the MCP server health-checks, so it must succeed.
+for (const [index, host] of HOSTS.entries()) {
+  await listenOn(host, index === 0);
+}
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     wss.close();
-    http.close(() => process.exit(0));
+    for (const server of servers) server.close();
+    process.exit(0);
   });
 }

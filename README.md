@@ -156,6 +156,9 @@ repo, with no build step.
 - A Tailwind v3 config is executed to read its theme, so it must import cleanly
   on its own. A config that only sets `content` inherits the default palette from
   Tailwind itself, and there is nothing in the file to import.
+- Figma's manifest rejects raw IP addresses in `allowedDomains`, so the plugin
+  connects to `ws://localhost`. Changing the bridge port away from 3055 means
+  adding that port to `figma-plugin/manifest.json` and re-importing the plugin.
 
 ## License
 

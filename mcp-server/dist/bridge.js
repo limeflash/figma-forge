@@ -2269,7 +2269,7 @@ var require_websocket = __commonJS({
     "use strict";
     var EventEmitter = __require("events");
     var https = __require("https");
-    var http2 = __require("http");
+    var http = __require("http");
     var net = __require("net");
     var tls = __require("tls");
     var { randomBytes, createHash } = __require("crypto");
@@ -2811,7 +2811,7 @@ var require_websocket = __commonJS({
       }
       const defaultPort = isSecure ? 443 : 80;
       const key = randomBytes(16).toString("base64");
-      const request = isSecure ? https.request : http2.request;
+      const request = isSecure ? https.request : http.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
       opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
@@ -3307,7 +3307,7 @@ var require_websocket_server = __commonJS({
   "node_modules/ws/lib/websocket-server.js"(exports, module) {
     "use strict";
     var EventEmitter = __require("events");
-    var http2 = __require("http");
+    var http = __require("http");
     var { Duplex } = __require("stream");
     var { createHash } = __require("crypto");
     var extension2 = require_extension();
@@ -3388,8 +3388,8 @@ var require_websocket_server = __commonJS({
           );
         }
         if (options.port != null) {
-          this._server = http2.createServer((req, res) => {
-            const body = http2.STATUS_CODES[426];
+          this._server = http.createServer((req, res) => {
+            const body = http.STATUS_CODES[426];
             res.writeHead(426, {
               "Content-Length": body.length,
               "Content-Type": "text/plain"
@@ -3678,7 +3678,7 @@ var require_websocket_server = __commonJS({
       this.destroy();
     }
     function abortHandshake(socket, code, message, headers) {
-      message = message || http2.STATUS_CODES[code];
+      message = message || http.STATUS_CODES[code];
       headers = {
         Connection: "close",
         "Content-Type": "text/html",
@@ -3687,7 +3687,7 @@ var require_websocket_server = __commonJS({
       };
       socket.once("finish", socket.destroy);
       socket.end(
-        `HTTP/1.1 ${code} ${http2.STATUS_CODES[code]}\r
+        `HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r
 ` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join("\r\n") + "\r\n\r\n" + message
       );
     }
@@ -3716,7 +3716,7 @@ var import_websocket_server = __toESM(require_websocket_server(), 1);
 // bridge/server.mjs
 import { createServer } from "node:http";
 var PORT = Number(process.env.FIGMA_FORGE_BRIDGE_PORT || 3055);
-var HOST = process.env.FIGMA_FORGE_BRIDGE_HOST || "127.0.0.1";
+var HOSTS = process.env.FIGMA_FORGE_BRIDGE_HOST ? [process.env.FIGMA_FORGE_BRIDGE_HOST] : ["127.0.0.1", "::1"];
 var channels = /* @__PURE__ */ new Map();
 function getChannel(name) {
   let channel = channels.get(name);
@@ -3737,7 +3737,7 @@ function broadcast(sockets, payload, except) {
 function describe(channel) {
   return { agents: channel.agents.size, figma: channel.figma.size };
 }
-var http = createServer((req, res) => {
+function handleRequest(req, res) {
   if (req.url === "/health") {
     const body = JSON.stringify({
       ok: true,
@@ -3752,8 +3752,8 @@ var http = createServer((req, res) => {
   }
   res.writeHead(404, { "content-type": "text/plain" });
   res.end("figma-forge bridge");
-});
-var wss = new import_websocket_server.default({ server: http });
+}
+var wss = new import_websocket_server.default({ noServer: true });
 wss.on("connection", (socket) => {
   let membership = null;
   send(socket, { type: "system", event: "hello", port: PORT });
@@ -3839,23 +3839,46 @@ wss.on("connection", (socket) => {
     }
   });
 });
-http.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    process.stderr.write(`figma-forge bridge: port ${PORT} already in use, deferring to the running instance
+var servers = [];
+function listenOn(host, required) {
+  return new Promise((resolve) => {
+    const server = createServer(handleRequest);
+    server.on("upgrade", (req, socket, head) => {
+      wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+    });
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE" && required) {
+        process.stderr.write(`figma-forge bridge: port ${PORT} already in use, deferring to the running instance
 `);
-    process.exit(3);
-  }
-  process.stderr.write(`figma-forge bridge: ${err.stack || err.message}
+        process.exit(3);
+      }
+      if (required) {
+        process.stderr.write(`figma-forge bridge: ${err.stack || err.message}
 `);
-  process.exit(1);
-});
-http.listen(PORT, HOST, () => {
-  process.stdout.write(`figma-forge bridge listening on ws://${HOST}:${PORT}
+        process.exit(1);
+      }
+      process.stderr.write(`figma-forge bridge: could not bind ${host}: ${err.message}
 `);
-});
+      resolve(null);
+    });
+    server.listen(PORT, host, () => {
+      servers.push(server);
+      process.stdout.write(`figma-forge bridge listening on ws://${formatHost(host)}:${PORT}
+`);
+      resolve(server);
+    });
+  });
+}
+function formatHost(host) {
+  return host.includes(":") ? `[${host}]` : host;
+}
+for (const [index, host] of HOSTS.entries()) {
+  await listenOn(host, index === 0);
+}
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => {
     wss.close();
-    http.close(() => process.exit(0));
+    for (const server of servers) server.close();
+    process.exit(0);
   });
 }

@@ -54,6 +54,7 @@ Then:
 /figma-forge:build a settings page     plan and build
 /figma-forge:modify all buttons to secondary
 /figma-forge:import-code src/tokens.css   import code tokens as Figma variables
+/figma-forge:setup                     check Ollama and the rest of the setup
 /figma-forge:verify page
 /figma-forge:recover                   roll back a failed write
 /figma-forge:status                    what is connected, what changed
@@ -73,9 +74,32 @@ Code restarts — you only reopen the Figma plugin if you closed it.
 | `figma_forge_apply_plan` | The write lane: ordered ops under a journal, with dry run |
 | `figma_forge_verify` | Design-system and structural invariants |
 | `figma_forge_recover` | Roll back a journalled operation; manage quarantine |
+| `figma_forge_graph` | Index every screen; find them by meaning or by word |
 | `figma_forge_import_code` | Import CSS/Tailwind tokens as variables; map Storybook components |
 | `figma_forge_execute` | Raw Plugin API JavaScript, read-only by default |
 | `figma_forge_modules` | Persistent helper modules stored in the document |
+
+## Finding things in a large file
+
+Node names do not survive real files. On a page from one test file, 21 screens
+included "other profile" seven times, plus "other" and "Header" — nothing to
+search by.
+
+```
+figma_forge_graph { action: "build" }
+figma_forge_graph { action: "search", query: "экран оплаты картой" }
+```
+
+The graph indexes each screen by what it actually contains: its text, the
+components it is built from, and its page and section names. Search fuses BM25
+over words with cosine over embeddings by reciprocal rank, and every result says
+which half found it.
+
+Word search needs nothing. Semantic search additionally needs
+[Ollama](https://ollama.com) running locally with `embeddinggemma` (~620 MB) —
+`/figma-forge:setup` checks and offers to install it. Embeddings run on your own
+machine, so screen text never leaves it. Ollama Cloud is not an option here: it
+hosts only generative models, with no embedding model in its catalogue.
 
 ## Importing from code
 
@@ -156,6 +180,8 @@ repo, with no build step.
 - A Tailwind v3 config is executed to read its theme, so it must import cleanly
   on its own. A config that only sets `content` inherits the default palette from
   Tailwind itself, and there is nothing in the file to import.
+- The screen graph is a snapshot, not a live view. It indexes screens rather
+  than every node, and caps text per screen, so rebuild it after real changes.
 - Figma's manifest rejects raw IP addresses in `allowedDomains`, so the plugin
   connects to `ws://localhost`. Changing the bridge port away from 3055 means
   adding that port to `figma-plugin/manifest.json` and re-importing the plugin.

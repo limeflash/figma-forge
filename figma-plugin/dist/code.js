@@ -2873,6 +2873,164 @@ ${body}
     return result;
   }
 
+  // figma-plugin/src/runtime/commands/graph.ts
+  var SCREEN_TYPES = /* @__PURE__ */ new Set(["FRAME", "COMPONENT", "COMPONENT_SET"]);
+  function isScreen(node) {
+    if (!SCREEN_TYPES.has(node.type)) return false;
+    const parent = node.parent;
+    if (!parent) return false;
+    if (parent.type === "PAGE") return true;
+    let current = parent;
+    while (current && current.type === "SECTION") current = current.parent;
+    return !!current && current.type === "PAGE";
+  }
+  function sectionOf(node) {
+    let current = node.parent;
+    while (current && current.type !== "PAGE") {
+      if (current.type === "SECTION") return current;
+      current = current.parent;
+    }
+    return null;
+  }
+  async function buildGraph(params) {
+    const maxScreens = params.maxScreensPerPage ?? 400;
+    const maxTextChars = params.maxTextChars ?? 1200;
+    const maxLookups = params.maxInstanceLookups ?? 1500;
+    let pages;
+    let startIndex = 0;
+    let totalPages;
+    if (params.scope === "page") {
+      const page = params.pageId ? await figma.getNodeByIdAsync(params.pageId) : figma.currentPage;
+      if (!page || page.type !== "PAGE") throw new Error(`${params.pageId} is not a page.`);
+      pages = [page];
+      totalPages = 1;
+    } else {
+      const all = figma.root.children;
+      totalPages = all.length;
+      startIndex = params.startPage ?? 0;
+      const count = params.maxPages ?? 8;
+      pages = all.slice(startIndex, startIndex + count);
+    }
+    const pageRows = [];
+    const screens = [];
+    const componentUsage = /* @__PURE__ */ new Map();
+    const stats = { textNodes: 0, instances: 0, lookupsSkipped: 0 };
+    for (const [offset, page] of pages.entries()) {
+      await page.loadAsync();
+      const found = page.findAllWithCriteria({
+        types: ["FRAME", "COMPONENT", "COMPONENT_SET", "TEXT", "INSTANCE"]
+      });
+      const pageScreens = found.filter((node) => SCREEN_TYPES.has(node.type) && isScreen(node)).slice(0, maxScreens);
+      const screenIds = new Set(pageScreens.map((screen) => screen.id));
+      const owner = (node) => {
+        let current = node;
+        while (current) {
+          if (screenIds.has(current.id)) return current.id;
+          current = current.parent;
+        }
+        return null;
+      };
+      const textByScreen = /* @__PURE__ */ new Map();
+      const instancesByScreen = /* @__PURE__ */ new Map();
+      for (const node of found) {
+        if (node.type === "TEXT") {
+          stats.textNodes++;
+          const screenId = owner(node);
+          if (!screenId) continue;
+          if (safe(() => node.visible) === false) continue;
+          const characters = safe(() => node.characters);
+          if (typeof characters !== "string" || !characters.trim()) continue;
+          const bucket = textByScreen.get(screenId) ?? { parts: [], chars: 0, count: 0 };
+          bucket.count++;
+          if (bucket.chars < maxTextChars) {
+            const trimmed = characters.trim().replace(/\s+/g, " ");
+            bucket.parts.push(trimmed);
+            bucket.chars += trimmed.length + 1;
+          }
+          textByScreen.set(screenId, bucket);
+          continue;
+        }
+        if (node.type === "INSTANCE") {
+          stats.instances++;
+          const screenId = owner(node);
+          if (!screenId) continue;
+          const list = instancesByScreen.get(screenId) ?? [];
+          list.push(node);
+          instancesByScreen.set(screenId, list);
+        }
+      }
+      const flatInstances = [];
+      for (const [screenId, list] of instancesByScreen) {
+        for (const node of list) flatInstances.push({ screenId, node });
+      }
+      const budgeted = flatInstances.slice(0, maxLookups);
+      stats.lookupsSkipped += flatInstances.length - budgeted.length;
+      const resolved = await Promise.all(
+        budgeted.map(
+          ({ screenId, node }) => node.getMainComponentAsync().then((main) => ({ screenId, main })).catch(() => ({ screenId, main: null }))
+        )
+      );
+      const keysByScreen = /* @__PURE__ */ new Map();
+      for (const { screenId, main } of resolved) {
+        if (!main) continue;
+        const set = main.parent && main.parent.type === "COMPONENT_SET" ? main.parent : null;
+        const key = safe(() => (set ?? main).key);
+        if (!key) continue;
+        const name = (set ?? main).name;
+        const perScreen = keysByScreen.get(screenId) ?? /* @__PURE__ */ new Map();
+        perScreen.set(key, name);
+        keysByScreen.set(screenId, perScreen);
+        const usage = componentUsage.get(key) ?? { name, instances: 0, screens: /* @__PURE__ */ new Set() };
+        usage.instances++;
+        usage.screens.add(screenId);
+        componentUsage.set(key, usage);
+      }
+      for (const screen of pageScreens) {
+        const section = sectionOf(screen);
+        const text = textByScreen.get(screen.id);
+        const keys = keysByScreen.get(screen.id) ?? /* @__PURE__ */ new Map();
+        screens.push({
+          id: screen.id,
+          name: screen.name,
+          type: screen.type,
+          pageId: page.id,
+          pageName: page.name,
+          sectionName: section ? section.name : void 0,
+          path: [page.name, section ? section.name : null, screen.name].filter(Boolean).join(" / "),
+          width: Math.round(safe(() => screen.width) ?? 0),
+          height: Math.round(safe(() => screen.height) ?? 0),
+          text: text ? text.parts.join(" \xB7 ").slice(0, maxTextChars) : "",
+          textNodes: text ? text.count : 0,
+          instanceCount: (instancesByScreen.get(screen.id) ?? []).length,
+          componentKeys: [...keys.keys()],
+          componentNames: [...keys.values()]
+        });
+      }
+      pageRows.push({
+        id: page.id,
+        name: page.name,
+        index: params.scope === "page" ? 0 : startIndex + offset,
+        screens: pageScreens.length
+      });
+    }
+    const components = [...componentUsage].map(([key, usage]) => ({
+      key,
+      name: usage.name,
+      instances: usage.instances,
+      screens: usage.screens.size
+    }));
+    components.sort((a, b) => b.instances - a.instances);
+    const consumed = startIndex + pages.length;
+    return {
+      pages: pageRows,
+      screens,
+      components,
+      nextPage: params.scope === "page" || consumed >= totalPages ? null : consumed,
+      totalPages,
+      stats: { ...stats, screens: screens.length, pagesInChunk: pages.length }
+    };
+  }
+
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
   var STORAGE_KEYS = {
@@ -2914,6 +3072,7 @@ ${body}
     verify: (params) => verify(params),
     recover: (params) => recover(params),
     import_tokens: (params) => importTokens(params),
+    build_graph: (params) => buildGraph(params),
     execute: (params) => execute(params),
     modules: (params) => {
       const action = params.action ?? "list";

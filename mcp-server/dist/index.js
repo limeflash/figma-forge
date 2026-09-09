@@ -2239,8 +2239,8 @@ var require_resolve = __commonJS({
       }
       return count;
     }
-    function getFullPath(resolver, id = "", normalize2) {
-      if (normalize2 !== false)
+    function getFullPath(resolver, id = "", normalize3) {
+      if (normalize3 !== false)
         id = normalizeId(id);
       const p = resolver.parse(id);
       return _getFullPath(resolver, p);
@@ -2988,7 +2988,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve3.call(this, root, ref);
+      let _sch = resolve4.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3015,7 +3015,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve3(root, ref) {
+    function resolve4(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3231,28 +3231,28 @@ var require_utils = __commonJS({
       for (let i = left.length; i < parts.length; i++) expanded.push(parts[i]);
       return compressIPv6ZeroRun(expanded);
     }
-    function normalizeIPv6(host) {
-      const bracketed = host[0] === "[" && host[host.length - 1] === "]";
-      const hasBracket = host[0] === "[" || host[host.length - 1] === "]";
-      if (hasBracket && !bracketed) return { host, isIPV6: false, error: true };
-      let input = bracketed ? host.slice(1, -1) : host;
+    function normalizeIPv6(host2) {
+      const bracketed = host2[0] === "[" && host2[host2.length - 1] === "]";
+      const hasBracket = host2[0] === "[" || host2[host2.length - 1] === "]";
+      if (hasBracket && !bracketed) return { host: host2, isIPV6: false, error: true };
+      let input = bracketed ? host2.slice(1, -1) : host2;
       if (bracketed && isIPvFuture(input)) {
         input = input.toLowerCase();
         return { host: `[${input}]`, escapedHost: input, isIPV6: false, isIPVFuture: true };
       }
       if (findToken(input, ":") < 2) {
-        return { host, isIPV6: false, error: bracketed };
+        return { host: host2, isIPV6: false, error: bracketed };
       }
       let zoneIdentifier = "";
       const zoneSeparator = input.indexOf("%");
       if (zoneSeparator !== -1) {
         const separatorLength = input.slice(zoneSeparator, zoneSeparator + 3).toLowerCase() === "%25" ? 3 : 1;
         zoneIdentifier = input.slice(zoneSeparator + separatorLength);
-        if (!isZoneIdentifier(zoneIdentifier)) return { host, isIPV6: false, error: true };
+        if (!isZoneIdentifier(zoneIdentifier)) return { host: host2, isIPV6: false, error: true };
         input = input.slice(0, zoneSeparator);
       }
       const address = normalizeIPv6Address(input);
-      if (address === void 0) return { host, isIPV6: false, error: true };
+      if (address === void 0) return { host: host2, isIPV6: false, error: true };
       return {
         host: address + (zoneIdentifier ? "%" + zoneIdentifier : ""),
         escapedHost: address + (zoneIdentifier ? "%25" + zoneIdentifier : ""),
@@ -3344,10 +3344,10 @@ var require_utils = __commonJS({
     var HOST_DELIMS = { "@": "%40", "/": "%2F", "?": "%3F", "#": "%23", ":": "%3A" };
     var HOST_DELIM_RE = /[@/?#:]/g;
     var HOST_DELIM_NO_COLON_RE = /[@/?#]/g;
-    function reescapeHostDelimiters(host, isIP) {
+    function reescapeHostDelimiters(host2, isIP) {
       const re = isIP ? HOST_DELIM_NO_COLON_RE : HOST_DELIM_RE;
       re.lastIndex = 0;
-      return host.replace(re, (ch) => HOST_DELIMS[ch]);
+      return host2.replace(re, (ch) => HOST_DELIMS[ch]);
     }
     function normalizePercentEncoding(input, decodeUnreserved = false) {
       if (input.indexOf("%") === -1) {
@@ -3563,20 +3563,20 @@ var require_utils = __commonJS({
         uriTokens.push("@");
       }
       if (component.host !== void 0) {
-        let host = component.host;
-        if (!isIPv4(host)) {
-          let ipV6res = normalizeIPv6(host);
+        let host2 = component.host;
+        if (!isIPv4(host2)) {
+          let ipV6res = normalizeIPv6(host2);
           if (ipV6res.isIPV6 !== true && ipV6res.isIPVFuture !== true) {
-            host = normalizePercentEncoding(host, true);
-            ipV6res = normalizeIPv6(host);
+            host2 = normalizePercentEncoding(host2, true);
+            ipV6res = normalizeIPv6(host2);
           }
           if (ipV6res.isIPV6 === true || ipV6res.isIPVFuture === true) {
-            host = `[${ipV6res.escapedHost}]`;
+            host2 = `[${ipV6res.escapedHost}]`;
           } else {
-            host = reescapeHostDelimiters(host, false);
+            host2 = reescapeHostDelimiters(host2, false);
           }
         }
-        uriTokens.push(host);
+        uriTokens.push(host2);
       }
       if (typeof component.port === "number" || typeof component.port === "string") {
         const port2 = String(component.port);
@@ -3835,7 +3835,7 @@ var require_fast_uri = __commonJS({
       }
       return decodedScheme;
     }
-    function normalize2(uri, options) {
+    function normalize3(uri, options) {
       if (typeof uri === "string") {
         uri = /** @type {T} */
         normalizeString(uri, options);
@@ -3845,7 +3845,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve3(baseURI, relativeURI, options) {
+    function resolve4(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -4027,12 +4027,12 @@ var require_fast_uri = __commonJS({
       }
       return false;
     }
-    function isIPLiteral(host) {
-      return host[0] === "[" && host[host.length - 1] === "]";
+    function isIPLiteral(host2) {
+      return host2[0] === "[" && host2[host2.length - 1] === "]";
     }
     function hasMalformedComponentPercentEncoding(matches) {
-      const host = matches[4];
-      return hasMalformedPercentEncoding(matches[3]) || host !== void 0 && !isIPLiteral(host) && hasMalformedPercentEncoding(host) || hasMalformedPercentEncoding(matches[6]) || hasMalformedPercentEncoding(matches[7]) || hasMalformedPercentEncoding(matches[8]);
+      const host2 = matches[4];
+      return hasMalformedPercentEncoding(matches[3]) || host2 !== void 0 && !isIPLiteral(host2) && hasMalformedPercentEncoding(host2) || hasMalformedPercentEncoding(matches[6]) || hasMalformedPercentEncoding(matches[7]) || hasMalformedPercentEncoding(matches[8]);
     }
     function canonicalizeHost(parsed, options, schemeHandler, isIP) {
       if (!options.unicodeSupport && (!schemeHandler || !schemeHandler.unicodeSupport) && parsed.host && !isIPLiteral(parsed.host) && (options.domainHost || schemeHandler && schemeHandler.domainHost) && isIP === false && nonSimpleDomain(parsed.host)) {
@@ -4155,8 +4155,8 @@ var require_fast_uri = __commonJS({
         if (!schemeHandler || schemeHandler && !schemeHandler.skipNormalize) {
           if (uri.indexOf("%") !== -1) {
             if (parsed.host !== void 0 && !malformedIPLiteral) {
-              const host = isIP ? parsed.host : normalizePercentEncoding(parsed.host, true);
-              parsed.host = reescapeHostDelimiters(host, isIP);
+              const host2 = isIP ? parsed.host : normalizePercentEncoding(parsed.host, true);
+              parsed.host = reescapeHostDelimiters(host2, isIP);
             }
           }
           if (parsed.path) {
@@ -4212,8 +4212,8 @@ var require_fast_uri = __commonJS({
     }
     var fastUri = {
       SCHEMES,
-      normalize: normalize2,
-      resolve: resolve3,
+      normalize: normalize3,
+      resolve: resolve4,
       resolveComponent,
       equal,
       serialize,
@@ -11406,18 +11406,18 @@ var ParseStatus = class _ParseStatus {
     if (this.value !== "aborted")
       this.value = "aborted";
   }
-  static mergeArray(status, results) {
+  static mergeArray(status2, results) {
     const arrayValue = [];
     for (const s of results) {
       if (s.status === "aborted")
         return INVALID;
       if (s.status === "dirty")
-        status.dirty();
+        status2.dirty();
       arrayValue.push(s.value);
     }
-    return { status: status.value, value: arrayValue };
+    return { status: status2.value, value: arrayValue };
   }
-  static async mergeObjectAsync(status, pairs) {
+  static async mergeObjectAsync(status2, pairs) {
     const syncPairs = [];
     for (const pair of pairs) {
       const key = await pair.key;
@@ -11427,9 +11427,9 @@ var ParseStatus = class _ParseStatus {
         value
       });
     }
-    return _ParseStatus.mergeObjectSync(status, syncPairs);
+    return _ParseStatus.mergeObjectSync(status2, syncPairs);
   }
-  static mergeObjectSync(status, pairs) {
+  static mergeObjectSync(status2, pairs) {
     const finalObject = {};
     for (const pair of pairs) {
       const { key, value } = pair;
@@ -11438,14 +11438,14 @@ var ParseStatus = class _ParseStatus {
       if (value.status === "aborted")
         return INVALID;
       if (key.status === "dirty")
-        status.dirty();
+        status2.dirty();
       if (value.status === "dirty")
-        status.dirty();
+        status2.dirty();
       if (key.value !== "__proto__" && (typeof value.value !== "undefined" || pair.alwaysSet)) {
         finalObject[key.value] = value.value;
       }
     }
-    return { status: status.value, value: finalObject };
+    return { status: status2.value, value: finalObject };
   }
 };
 var INVALID = Object.freeze({
@@ -11905,7 +11905,7 @@ var ZodString = class _ZodString2 extends ZodType {
       });
       return INVALID;
     }
-    const status = new ParseStatus();
+    const status2 = new ParseStatus();
     let ctx = void 0;
     for (const check2 of this._def.checks) {
       if (check2.kind === "min") {
@@ -11919,7 +11919,7 @@ var ZodString = class _ZodString2 extends ZodType {
             exact: false,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "max") {
         if (input.data.length > check2.value) {
@@ -11932,7 +11932,7 @@ var ZodString = class _ZodString2 extends ZodType {
             exact: false,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "length") {
         const tooBig = input.data.length > check2.value;
@@ -11958,7 +11958,7 @@ var ZodString = class _ZodString2 extends ZodType {
               message: check2.message
             });
           }
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "email") {
         if (!emailRegex.test(input.data)) {
@@ -11968,7 +11968,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "emoji") {
         if (!emojiRegex) {
@@ -11981,7 +11981,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "uuid") {
         if (!uuidRegex.test(input.data)) {
@@ -11991,7 +11991,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "nanoid") {
         if (!nanoidRegex.test(input.data)) {
@@ -12001,7 +12001,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "cuid") {
         if (!cuidRegex.test(input.data)) {
@@ -12011,7 +12011,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "cuid2") {
         if (!cuid2Regex.test(input.data)) {
@@ -12021,7 +12021,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "ulid") {
         if (!ulidRegex.test(input.data)) {
@@ -12031,7 +12031,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "url") {
         try {
@@ -12043,7 +12043,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "regex") {
         check2.regex.lastIndex = 0;
@@ -12055,7 +12055,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "trim") {
         input.data = input.data.trim();
@@ -12067,7 +12067,7 @@ var ZodString = class _ZodString2 extends ZodType {
             validation: { includes: check2.value, position: check2.position },
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "toLowerCase") {
         input.data = input.data.toLowerCase();
@@ -12081,7 +12081,7 @@ var ZodString = class _ZodString2 extends ZodType {
             validation: { startsWith: check2.value },
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "endsWith") {
         if (!input.data.endsWith(check2.value)) {
@@ -12091,7 +12091,7 @@ var ZodString = class _ZodString2 extends ZodType {
             validation: { endsWith: check2.value },
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "datetime") {
         const regex = datetimeRegex(check2);
@@ -12102,7 +12102,7 @@ var ZodString = class _ZodString2 extends ZodType {
             validation: "datetime",
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "date") {
         const regex = dateRegex;
@@ -12113,7 +12113,7 @@ var ZodString = class _ZodString2 extends ZodType {
             validation: "date",
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "time") {
         const regex = timeRegex(check2);
@@ -12124,7 +12124,7 @@ var ZodString = class _ZodString2 extends ZodType {
             validation: "time",
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "duration") {
         if (!durationRegex.test(input.data)) {
@@ -12134,7 +12134,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "ip") {
         if (!isValidIP(input.data, check2.version)) {
@@ -12144,7 +12144,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "jwt") {
         if (!isValidJWT(input.data, check2.alg)) {
@@ -12154,7 +12154,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "cidr") {
         if (!isValidCidr(input.data, check2.version)) {
@@ -12164,7 +12164,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "base64") {
         if (!base64Regex.test(input.data)) {
@@ -12174,7 +12174,7 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "base64url") {
         if (!base64urlRegex.test(input.data)) {
@@ -12184,13 +12184,13 @@ var ZodString = class _ZodString2 extends ZodType {
             code: ZodIssueCode.invalid_string,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else {
         util.assertNever(check2);
       }
     }
-    return { status: status.value, value: input.data };
+    return { status: status2.value, value: input.data };
   }
   _regex(regex, validation, message) {
     return this.refinement((data) => regex.test(data), {
@@ -12466,7 +12466,7 @@ var ZodNumber = class _ZodNumber extends ZodType {
       return INVALID;
     }
     let ctx = void 0;
-    const status = new ParseStatus();
+    const status2 = new ParseStatus();
     for (const check2 of this._def.checks) {
       if (check2.kind === "int") {
         if (!util.isInteger(input.data)) {
@@ -12477,7 +12477,7 @@ var ZodNumber = class _ZodNumber extends ZodType {
             received: "float",
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "min") {
         const tooSmall = check2.inclusive ? input.data < check2.value : input.data <= check2.value;
@@ -12491,7 +12491,7 @@ var ZodNumber = class _ZodNumber extends ZodType {
             exact: false,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "max") {
         const tooBig = check2.inclusive ? input.data > check2.value : input.data >= check2.value;
@@ -12505,7 +12505,7 @@ var ZodNumber = class _ZodNumber extends ZodType {
             exact: false,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "multipleOf") {
         if (floatSafeRemainder(input.data, check2.value) !== 0) {
@@ -12515,7 +12515,7 @@ var ZodNumber = class _ZodNumber extends ZodType {
             multipleOf: check2.value,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "finite") {
         if (!Number.isFinite(input.data)) {
@@ -12524,13 +12524,13 @@ var ZodNumber = class _ZodNumber extends ZodType {
             code: ZodIssueCode.not_finite,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else {
         util.assertNever(check2);
       }
     }
-    return { status: status.value, value: input.data };
+    return { status: status2.value, value: input.data };
   }
   gte(value, message) {
     return this.setLimit("min", value, true, errorUtil.toString(message));
@@ -12695,7 +12695,7 @@ var ZodBigInt = class _ZodBigInt extends ZodType {
       return this._getInvalidInput(input);
     }
     let ctx = void 0;
-    const status = new ParseStatus();
+    const status2 = new ParseStatus();
     for (const check2 of this._def.checks) {
       if (check2.kind === "min") {
         const tooSmall = check2.inclusive ? input.data < check2.value : input.data <= check2.value;
@@ -12708,7 +12708,7 @@ var ZodBigInt = class _ZodBigInt extends ZodType {
             inclusive: check2.inclusive,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "max") {
         const tooBig = check2.inclusive ? input.data > check2.value : input.data >= check2.value;
@@ -12721,7 +12721,7 @@ var ZodBigInt = class _ZodBigInt extends ZodType {
             inclusive: check2.inclusive,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "multipleOf") {
         if (input.data % check2.value !== BigInt(0)) {
@@ -12731,13 +12731,13 @@ var ZodBigInt = class _ZodBigInt extends ZodType {
             multipleOf: check2.value,
             message: check2.message
           });
-          status.dirty();
+          status2.dirty();
         }
       } else {
         util.assertNever(check2);
       }
     }
-    return { status: status.value, value: input.data };
+    return { status: status2.value, value: input.data };
   }
   _getInvalidInput(input) {
     const ctx = this._getOrReturnCtx(input);
@@ -12895,7 +12895,7 @@ var ZodDate = class _ZodDate extends ZodType {
       });
       return INVALID;
     }
-    const status = new ParseStatus();
+    const status2 = new ParseStatus();
     let ctx = void 0;
     for (const check2 of this._def.checks) {
       if (check2.kind === "min") {
@@ -12909,7 +12909,7 @@ var ZodDate = class _ZodDate extends ZodType {
             minimum: check2.value,
             type: "date"
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (check2.kind === "max") {
         if (input.data.getTime() > check2.value) {
@@ -12922,14 +12922,14 @@ var ZodDate = class _ZodDate extends ZodType {
             maximum: check2.value,
             type: "date"
           });
-          status.dirty();
+          status2.dirty();
         }
       } else {
         util.assertNever(check2);
       }
     }
     return {
-      status: status.value,
+      status: status2.value,
       value: new Date(input.data.getTime())
     };
   }
@@ -13115,7 +13115,7 @@ ZodVoid.create = (params) => {
 };
 var ZodArray = class _ZodArray extends ZodType {
   _parse(input) {
-    const { ctx, status } = this._processInputParams(input);
+    const { ctx, status: status2 } = this._processInputParams(input);
     const def = this._def;
     if (ctx.parsedType !== ZodParsedType.array) {
       addIssueToContext(ctx, {
@@ -13138,7 +13138,7 @@ var ZodArray = class _ZodArray extends ZodType {
           exact: true,
           message: def.exactLength.message
         });
-        status.dirty();
+        status2.dirty();
       }
     }
     if (def.minLength !== null) {
@@ -13151,7 +13151,7 @@ var ZodArray = class _ZodArray extends ZodType {
           exact: false,
           message: def.minLength.message
         });
-        status.dirty();
+        status2.dirty();
       }
     }
     if (def.maxLength !== null) {
@@ -13164,20 +13164,20 @@ var ZodArray = class _ZodArray extends ZodType {
           exact: false,
           message: def.maxLength.message
         });
-        status.dirty();
+        status2.dirty();
       }
     }
     if (ctx.common.async) {
       return Promise.all([...ctx.data].map((item, i) => {
         return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
       })).then((result2) => {
-        return ParseStatus.mergeArray(status, result2);
+        return ParseStatus.mergeArray(status2, result2);
       });
     }
     const result = [...ctx.data].map((item, i) => {
       return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
     });
-    return ParseStatus.mergeArray(status, result);
+    return ParseStatus.mergeArray(status2, result);
   }
   get element() {
     return this._def.type;
@@ -13266,7 +13266,7 @@ var ZodObject = class _ZodObject extends ZodType {
       });
       return INVALID;
     }
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     const { shape, keys: shapeKeys } = this._getCached();
     const extraKeys = [];
     if (!(this._def.catchall instanceof ZodNever && this._def.unknownKeys === "strip")) {
@@ -13301,7 +13301,7 @@ var ZodObject = class _ZodObject extends ZodType {
             code: ZodIssueCode.unrecognized_keys,
             keys: extraKeys
           });
-          status.dirty();
+          status2.dirty();
         }
       } else if (unknownKeys === "strip") {
       } else {
@@ -13335,10 +13335,10 @@ var ZodObject = class _ZodObject extends ZodType {
         }
         return syncPairs;
       }).then((syncPairs) => {
-        return ParseStatus.mergeObjectSync(status, syncPairs);
+        return ParseStatus.mergeObjectSync(status2, syncPairs);
       });
     } else {
-      return ParseStatus.mergeObjectSync(status, pairs);
+      return ParseStatus.mergeObjectSync(status2, pairs);
     }
   }
   get shape() {
@@ -13816,7 +13816,7 @@ function mergeValues(a, b) {
 }
 var ZodIntersection = class extends ZodType {
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     const handleParsed = (parsedLeft, parsedRight) => {
       if (isAborted(parsedLeft) || isAborted(parsedRight)) {
         return INVALID;
@@ -13829,9 +13829,9 @@ var ZodIntersection = class extends ZodType {
         return INVALID;
       }
       if (isDirty(parsedLeft) || isDirty(parsedRight)) {
-        status.dirty();
+        status2.dirty();
       }
-      return { status: status.value, value: merged.data };
+      return { status: status2.value, value: merged.data };
     };
     if (ctx.common.async) {
       return Promise.all([
@@ -13869,7 +13869,7 @@ ZodIntersection.create = (left, right, params) => {
 };
 var ZodTuple = class _ZodTuple extends ZodType {
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.array) {
       addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
@@ -13897,7 +13897,7 @@ var ZodTuple = class _ZodTuple extends ZodType {
         exact: false,
         type: "array"
       });
-      status.dirty();
+      status2.dirty();
     }
     const items = [...ctx.data].map((item, itemIndex) => {
       const schema = this._def.items[itemIndex] || this._def.rest;
@@ -13907,10 +13907,10 @@ var ZodTuple = class _ZodTuple extends ZodType {
     }).filter((x) => !!x);
     if (ctx.common.async) {
       return Promise.all(items).then((results) => {
-        return ParseStatus.mergeArray(status, results);
+        return ParseStatus.mergeArray(status2, results);
       });
     } else {
-      return ParseStatus.mergeArray(status, items);
+      return ParseStatus.mergeArray(status2, items);
     }
   }
   get items() {
@@ -13942,7 +13942,7 @@ var ZodRecord = class _ZodRecord extends ZodType {
     return this._def.valueType;
   }
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.object) {
       addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
@@ -13962,9 +13962,9 @@ var ZodRecord = class _ZodRecord extends ZodType {
       });
     }
     if (ctx.common.async) {
-      return ParseStatus.mergeObjectAsync(status, pairs);
+      return ParseStatus.mergeObjectAsync(status2, pairs);
     } else {
-      return ParseStatus.mergeObjectSync(status, pairs);
+      return ParseStatus.mergeObjectSync(status2, pairs);
     }
   }
   get element() {
@@ -13995,7 +13995,7 @@ var ZodMap = class extends ZodType {
     return this._def.valueType;
   }
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.map) {
       addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
@@ -14022,11 +14022,11 @@ var ZodMap = class extends ZodType {
             return INVALID;
           }
           if (key.status === "dirty" || value.status === "dirty") {
-            status.dirty();
+            status2.dirty();
           }
           finalMap.set(key.value, value.value);
         }
-        return { status: status.value, value: finalMap };
+        return { status: status2.value, value: finalMap };
       });
     } else {
       const finalMap = /* @__PURE__ */ new Map();
@@ -14037,11 +14037,11 @@ var ZodMap = class extends ZodType {
           return INVALID;
         }
         if (key.status === "dirty" || value.status === "dirty") {
-          status.dirty();
+          status2.dirty();
         }
         finalMap.set(key.value, value.value);
       }
-      return { status: status.value, value: finalMap };
+      return { status: status2.value, value: finalMap };
     }
   }
 };
@@ -14055,7 +14055,7 @@ ZodMap.create = (keyType, valueType, params) => {
 };
 var ZodSet = class _ZodSet extends ZodType {
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.set) {
       addIssueToContext(ctx, {
         code: ZodIssueCode.invalid_type,
@@ -14075,7 +14075,7 @@ var ZodSet = class _ZodSet extends ZodType {
           exact: false,
           message: def.minSize.message
         });
-        status.dirty();
+        status2.dirty();
       }
     }
     if (def.maxSize !== null) {
@@ -14088,7 +14088,7 @@ var ZodSet = class _ZodSet extends ZodType {
           exact: false,
           message: def.maxSize.message
         });
-        status.dirty();
+        status2.dirty();
       }
     }
     const valueType = this._def.valueType;
@@ -14098,10 +14098,10 @@ var ZodSet = class _ZodSet extends ZodType {
         if (element.status === "aborted")
           return INVALID;
         if (element.status === "dirty")
-          status.dirty();
+          status2.dirty();
         parsedSet.add(element.value);
       }
-      return { status: status.value, value: parsedSet };
+      return { status: status2.value, value: parsedSet };
     }
     const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
     if (ctx.common.async) {
@@ -14432,15 +14432,15 @@ var ZodEffects = class extends ZodType {
     return this._def.schema._def.typeName === ZodFirstPartyTypeKind.ZodEffects ? this._def.schema.sourceType() : this._def.schema;
   }
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     const effect = this._def.effect || null;
     const checkCtx = {
       addIssue: (arg) => {
         addIssueToContext(ctx, arg);
         if (arg.fatal) {
-          status.abort();
+          status2.abort();
         } else {
-          status.dirty();
+          status2.dirty();
         }
       },
       get path() {
@@ -14452,7 +14452,7 @@ var ZodEffects = class extends ZodType {
       const processed = effect.transform(ctx.data, checkCtx);
       if (ctx.common.async) {
         return Promise.resolve(processed).then(async (processed2) => {
-          if (status.value === "aborted")
+          if (status2.value === "aborted")
             return INVALID;
           const result = await this._def.schema._parseAsync({
             data: processed2,
@@ -14463,12 +14463,12 @@ var ZodEffects = class extends ZodType {
             return INVALID;
           if (result.status === "dirty")
             return DIRTY(result.value);
-          if (status.value === "dirty")
+          if (status2.value === "dirty")
             return DIRTY(result.value);
           return result;
         });
       } else {
-        if (status.value === "aborted")
+        if (status2.value === "aborted")
           return INVALID;
         const result = this._def.schema._parseSync({
           data: processed,
@@ -14479,7 +14479,7 @@ var ZodEffects = class extends ZodType {
           return INVALID;
         if (result.status === "dirty")
           return DIRTY(result.value);
-        if (status.value === "dirty")
+        if (status2.value === "dirty")
           return DIRTY(result.value);
         return result;
       }
@@ -14504,17 +14504,17 @@ var ZodEffects = class extends ZodType {
         if (inner.status === "aborted")
           return INVALID;
         if (inner.status === "dirty")
-          status.dirty();
+          status2.dirty();
         executeRefinement(inner.value);
-        return { status: status.value, value: inner.value };
+        return { status: status2.value, value: inner.value };
       } else {
         return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((inner) => {
           if (inner.status === "aborted")
             return INVALID;
           if (inner.status === "dirty")
-            status.dirty();
+            status2.dirty();
           return executeRefinement(inner.value).then(() => {
-            return { status: status.value, value: inner.value };
+            return { status: status2.value, value: inner.value };
           });
         });
       }
@@ -14532,13 +14532,13 @@ var ZodEffects = class extends ZodType {
         if (result instanceof Promise) {
           throw new Error(`Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`);
         }
-        return { status: status.value, value: result };
+        return { status: status2.value, value: result };
       } else {
         return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base) => {
           if (!isValid(base))
             return INVALID;
           return Promise.resolve(effect.transform(base.value, checkCtx)).then((result) => ({
-            status: status.value,
+            status: status2.value,
             value: result
           }));
         });
@@ -14717,7 +14717,7 @@ var ZodBranded = class extends ZodType {
 };
 var ZodPipeline = class _ZodPipeline extends ZodType {
   _parse(input) {
-    const { status, ctx } = this._processInputParams(input);
+    const { status: status2, ctx } = this._processInputParams(input);
     if (ctx.common.async) {
       const handleAsync = async () => {
         const inResult = await this._def.in._parseAsync({
@@ -14728,7 +14728,7 @@ var ZodPipeline = class _ZodPipeline extends ZodType {
         if (inResult.status === "aborted")
           return INVALID;
         if (inResult.status === "dirty") {
-          status.dirty();
+          status2.dirty();
           return DIRTY(inResult.value);
         } else {
           return this._def.out._parseAsync({
@@ -14748,7 +14748,7 @@ var ZodPipeline = class _ZodPipeline extends ZodType {
       if (inResult.status === "aborted")
         return INVALID;
       if (inResult.status === "dirty") {
-        status.dirty();
+        status2.dirty();
         return {
           status: "dirty",
           value: inResult.value
@@ -21150,8 +21150,8 @@ var UrlElicitationRequiredError = class extends McpError {
 };
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/experimental/tasks/interfaces.js
-function isTerminal(status) {
-  return status === "completed" || status === "failed" || status === "cancelled";
+function isTerminal(status2) {
+  return status2 === "completed" || status2 === "failed" || status2 === "cancelled";
 }
 
 // node_modules/zod-to-json-schema/dist/esm/Options.js
@@ -22980,7 +22980,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
+        await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -22997,7 +22997,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve3, reject) => {
+    return new Promise((resolve4, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -23075,7 +23075,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve3(parseResult.data);
+            resolve4(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -23336,12 +23336,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve3, reject) => {
+    return new Promise((resolve4, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve3, interval);
+      const timeoutId = setTimeout(resolve4, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -23370,8 +23370,8 @@ var Protocol = class {
         }
         return task;
       },
-      storeTaskResult: async (taskId, status, result) => {
-        await taskStore.storeTaskResult(taskId, status, result, sessionId);
+      storeTaskResult: async (taskId, status2, result) => {
+        await taskStore.storeTaskResult(taskId, status2, result, sessionId);
         const task = await taskStore.getTask(taskId, sessionId);
         if (task) {
           const notification = TaskStatusNotificationSchema.parse({
@@ -23387,15 +23387,15 @@ var Protocol = class {
       getTaskResult: (taskId) => {
         return taskStore.getTaskResult(taskId, sessionId);
       },
-      updateTaskStatus: async (taskId, status, statusMessage) => {
+      updateTaskStatus: async (taskId, status2, statusMessage) => {
         const task = await taskStore.getTask(taskId, sessionId);
         if (!task) {
           throw new McpError(ErrorCode.InvalidParams, `Task "${taskId}" not found - it may have been cleaned up`);
         }
         if (isTerminal(task.status)) {
-          throw new McpError(ErrorCode.InvalidParams, `Cannot update task "${taskId}" from terminal status "${task.status}" to "${status}". Terminal states (completed, failed, cancelled) cannot transition to other states.`);
+          throw new McpError(ErrorCode.InvalidParams, `Cannot update task "${taskId}" from terminal status "${task.status}" to "${status2}". Terminal states (completed, failed, cancelled) cannot transition to other states.`);
         }
-        await taskStore.updateTaskStatus(taskId, status, statusMessage, sessionId);
+        await taskStore.updateTaskStatus(taskId, status2, statusMessage, sessionId);
         const updatedTask = await taskStore.getTask(taskId, sessionId);
         if (updatedTask) {
           const notification = TaskStatusNotificationSchema.parse({
@@ -24432,7 +24432,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
+      await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -25096,19 +25096,19 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve3) => {
+    return new Promise((resolve4) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve3();
+        resolve4();
       } else {
-        this._stdout.once("drain", resolve3);
+        this._stdout.once("drain", resolve4);
       }
     });
   }
 };
 
 // mcp-server/src/index.ts
-import { basename as basename3, dirname, join as join2 } from "node:path";
+import { basename as basename3, dirname, join as join3 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // mcp-server/src/bridge.ts
@@ -25207,7 +25207,7 @@ var Bridge = class {
     if (this.socket && this.socket.readyState === import_websocket.default.OPEN && this.joined) return;
     if (this.connecting) return this.connecting;
     this.closedIntentionally = false;
-    this.connecting = new Promise((resolve3, reject) => {
+    this.connecting = new Promise((resolve4, reject) => {
       const socket = new import_websocket.default(`ws://${this.options.host}:${this.options.port}`);
       this.socket = socket;
       const settleTimer = setTimeout(() => {
@@ -25230,7 +25230,7 @@ var Bridge = class {
             const peers = message.peers;
             this.figmaPeers = peers?.figma ?? 0;
             clearTimeout(settleTimer);
-            resolve3();
+            resolve4();
           } else if (message.event === "peer-joined" || message.event === "peer-left") {
             const peers = message.peers;
             this.figmaPeers = peers?.figma ?? 0;
@@ -25296,7 +25296,7 @@ var Bridge = class {
     }
     const id = `a${this.nextId++}`;
     const limit = timeoutMs ?? this.options.requestTimeoutMs;
-    return new Promise((resolve3, reject) => {
+    return new Promise((resolve4, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(
@@ -25306,7 +25306,7 @@ var Bridge = class {
           )
         );
       }, limit);
-      this.pending.set(id, { resolve: resolve3, reject, timer, command });
+      this.pending.set(id, { resolve: resolve4, reject, timer, command });
       this.socket.send(JSON.stringify({ type: "request", channel: this.options.channel, id, command, params }));
     });
   }
@@ -26137,12 +26137,122 @@ function summarizeIR(ir, sampleSize = 12) {
   };
 }
 
-// mcp-server/src/store.ts
-import { mkdir, readdir, readFile as readFile4, rm, writeFile } from "node:fs/promises";
+// mcp-server/src/graph/ollama.ts
+var DEFAULT_MODEL = "embeddinggemma";
+var DEFAULT_HOST = "http://127.0.0.1:11434";
+function host() {
+  const configured = process.env.FIGMA_FORGE_OLLAMA_HOST ?? process.env.OLLAMA_HOST;
+  if (!configured || !configured.trim() || configured.includes("${")) return DEFAULT_HOST;
+  const value = configured.trim();
+  return /^https?:\/\//.test(value) ? value : `http://${value}`;
+}
+function embeddingModel() {
+  const configured = process.env.FIGMA_FORGE_EMBED_MODEL;
+  return configured && configured.trim() && !configured.includes("${") ? configured.trim() : DEFAULT_MODEL;
+}
+async function status() {
+  const base = host();
+  const model = embeddingModel();
+  const result = { reachable: false, host: base, models: [], hasModel: false, model };
+  try {
+    const version2 = await fetch(`${base}/api/version`, { signal: AbortSignal.timeout(2e3) });
+    if (version2.ok) {
+      result.reachable = true;
+      result.version = (await version2.json()).version;
+    }
+  } catch {
+    result.remedy = `Ollama is not running. Install it from https://ollama.com/download, then \`ollama pull ${model}\`. Graph search still works without it, using words only.`;
+    return result;
+  }
+  try {
+    const tags = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3e3) });
+    if (tags.ok) {
+      const body = await tags.json();
+      result.models = (body.models ?? []).map((entry) => entry.name ?? "").filter(Boolean);
+      result.hasModel = result.models.some((name) => name === model || name.split(":")[0] === model.split(":")[0]);
+    }
+  } catch {
+  }
+  if (!result.hasModel) result.remedy = `Run \`ollama pull ${model}\` to enable semantic search.`;
+  return result;
+}
+function documentPrompt(title, text2) {
+  return `title: ${title || "none"} | text: ${text2}`;
+}
+function queryPrompt(text2) {
+  return `task: search result | query: ${text2}`;
+}
+var OllamaUnavailable = class extends Error {
+  remedy;
+  constructor(message, remedy) {
+    super(message);
+    this.name = "OllamaUnavailable";
+    this.remedy = remedy;
+  }
+};
+async function embed(inputs, options = {}) {
+  if (!inputs.length) return [];
+  const base = host();
+  const model = embeddingModel();
+  const batchSize = options.batchSize ?? 64;
+  const out = [];
+  for (let offset = 0; offset < inputs.length; offset += batchSize) {
+    const batch = inputs.slice(offset, offset + batchSize);
+    let response;
+    try {
+      response = await fetch(`${base}/api/embed`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model, input: batch }),
+        // Generous: a cold model load can take a while on first call.
+        signal: AbortSignal.timeout(options.timeoutMs ?? 18e4)
+      });
+    } catch (error2) {
+      const state = await status();
+      throw new OllamaUnavailable(
+        `Could not reach Ollama at ${base}: ${error2 instanceof Error ? error2.message : String(error2)}`,
+        state.remedy ?? "Start Ollama and try again."
+      );
+    }
+    if (!response.ok) {
+      const body2 = await response.text().catch(() => "");
+      if (/not found|pull it first/i.test(body2)) {
+        throw new OllamaUnavailable(`Model "${model}" is not installed.`, `Run \`ollama pull ${model}\`.`);
+      }
+      throw new OllamaUnavailable(`Ollama returned ${response.status}: ${body2.slice(0, 200)}`, "Check the Ollama logs.");
+    }
+    const body = await response.json();
+    if (!body.embeddings || body.embeddings.length !== batch.length) {
+      throw new OllamaUnavailable(
+        `Ollama returned ${body.embeddings?.length ?? 0} vectors for ${batch.length} inputs.`,
+        "Try a smaller batch size."
+      );
+    }
+    for (const vector of body.embeddings) out.push(normalize2(Float32Array.from(vector)));
+    options.onProgress?.(Math.min(offset + batchSize, inputs.length), inputs.length);
+  }
+  return out;
+}
+function normalize2(vector) {
+  let sum = 0;
+  for (const value of vector) sum += value * value;
+  const length = Math.sqrt(sum);
+  if (!length) return vector;
+  for (let i = 0; i < vector.length; i++) vector[i] /= length;
+  return vector;
+}
+function dot(a, b) {
+  let sum = 0;
+  const length = Math.min(a.length, b.length);
+  for (let i = 0; i < length; i++) sum += a[i] * b[i];
+  return sum;
+}
+
+// mcp-server/src/graph/store.ts
+import { mkdir, readFile as readFile4, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve as resolve2 } from "node:path";
-var INDEX_SCHEMA_VERSION = 1;
-var LIBRARY_TTL_MS = 15 * 60 * 1e3;
+var GRAPH_SCHEMA_VERSION = 1;
 function dataRoot() {
   const configured = process.env.FIGMA_FORGE_DATA_DIR;
   if (configured && configured.trim() && !configured.includes("${")) return resolve2(configured);
@@ -26151,22 +26261,158 @@ function dataRoot() {
 function slug(value) {
   return (value || "unknown").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
 }
+function graphPath(fileId) {
+  return join(dataRoot(), "graph", `${slug(fileId)}.json`);
+}
+function vectorPath(fileId) {
+  return join(dataRoot(), "graph", `${slug(fileId)}.vec`);
+}
+async function saveGraph(graph) {
+  await mkdir(join(dataRoot(), "graph"), { recursive: true });
+  await writeFile(graphPath(graph.fileId), JSON.stringify(graph), "utf8");
+}
+async function loadGraph(fileId) {
+  try {
+    const graph = JSON.parse(await readFile4(graphPath(fileId), "utf8"));
+    return graph.schemaVersion === GRAPH_SCHEMA_VERSION ? graph : null;
+  } catch {
+    return null;
+  }
+}
+async function saveVectors(fileId, vectors) {
+  await mkdir(join(dataRoot(), "graph"), { recursive: true });
+  if (!vectors.length) {
+    await rm(vectorPath(fileId), { force: true });
+    return;
+  }
+  const dimensions = vectors[0].length;
+  const flat = new Float32Array(vectors.length * dimensions);
+  vectors.forEach((vector, index) => flat.set(vector, index * dimensions));
+  await writeFile(vectorPath(fileId), Buffer.from(flat.buffer, flat.byteOffset, flat.byteLength));
+}
+async function loadVectors(fileId, dimensions) {
+  try {
+    const buffer = await readFile4(vectorPath(fileId));
+    const aligned = buffer.byteOffset % 4 === 0 ? new Float32Array(buffer.buffer, buffer.byteOffset, Math.floor(buffer.byteLength / 4)) : new Float32Array(new Uint8Array(buffer).buffer);
+    const rows = [];
+    for (let offset = 0; offset + dimensions <= aligned.length; offset += dimensions) {
+      rows.push(aligned.subarray(offset, offset + dimensions));
+    }
+    return rows;
+  } catch {
+    return [];
+  }
+}
+async function clearGraph(fileId) {
+  await rm(graphPath(fileId), { force: true });
+  await rm(vectorPath(fileId), { force: true });
+}
+
+// mcp-server/src/graph/search.ts
+function tokenize2(value) {
+  return value.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((token) => token.length > 1);
+}
+function screenDocument(screen) {
+  return [screen.name, screen.path, screen.componentNames.join(" "), screen.text].filter(Boolean).join("\n");
+}
+function buildLexicalIndex(screens) {
+  const postings = /* @__PURE__ */ new Map();
+  const lengths = [];
+  let total = 0;
+  screens.forEach((screen, index) => {
+    const tokens = tokenize2(screenDocument(screen));
+    lengths[index] = tokens.length;
+    total += tokens.length;
+    for (const token of tokens) {
+      let row = postings.get(token);
+      if (!row) {
+        row = /* @__PURE__ */ new Map();
+        postings.set(token, row);
+      }
+      row.set(index, (row.get(index) ?? 0) + 1);
+    }
+  });
+  return {
+    postings,
+    lengths,
+    averageLength: screens.length ? total / screens.length : 0,
+    documentCount: screens.length
+  };
+}
+var K1 = 1.2;
+var B = 0.75;
+function lexicalSearch(index, query, limit) {
+  const tokens = tokenize2(query);
+  if (!tokens.length || !index.documentCount) return [];
+  const scores = /* @__PURE__ */ new Map();
+  for (const token of tokens) {
+    const postings = index.postings.get(token);
+    if (!postings) continue;
+    const idf = Math.log(1 + (index.documentCount - postings.size + 0.5) / (postings.size + 0.5));
+    for (const [document, frequency] of postings) {
+      const length = index.lengths[document] || 1;
+      const denominator = frequency + K1 * (1 - B + B * length / (index.averageLength || 1));
+      scores.set(document, (scores.get(document) ?? 0) + idf * (frequency * (K1 + 1)) / denominator);
+    }
+  }
+  return [...scores].map(([documentIndex, score]) => ({ index: documentIndex, score })).sort((a, b) => b.score - a.score).slice(0, limit);
+}
+function vectorSearch(vectors, query, limit) {
+  const scored = [];
+  for (let i = 0; i < vectors.length; i++) scored.push({ index: i, score: dot(vectors[i], query) });
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+function fuse(lexical, vector, limit, k = 60) {
+  const rows = /* @__PURE__ */ new Map();
+  const record2 = (list, field) => {
+    list.forEach((entry, rank) => {
+      const row = rows.get(entry.index) ?? { index: entry.index, score: 0, lexicalRank: null, vectorRank: null, lexicalScore: null, vectorScore: null };
+      row.score += 1 / (k + rank + 1);
+      if (field === "lexical") {
+        row.lexicalRank = rank + 1;
+        row.lexicalScore = entry.score;
+      } else {
+        row.vectorRank = rank + 1;
+        row.vectorScore = entry.score;
+      }
+      rows.set(entry.index, row);
+    });
+  };
+  record2(lexical, "lexical");
+  record2(vector, "vector");
+  return [...rows.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+// mcp-server/src/store.ts
+import { mkdir as mkdir2, readdir, readFile as readFile5, rm as rm2, writeFile as writeFile2 } from "node:fs/promises";
+import { homedir as homedir2 } from "node:os";
+import { join as join2, resolve as resolve3 } from "node:path";
+var INDEX_SCHEMA_VERSION = 1;
+var LIBRARY_TTL_MS = 15 * 60 * 1e3;
+function dataRoot2() {
+  const configured = process.env.FIGMA_FORGE_DATA_DIR;
+  if (configured && configured.trim() && !configured.includes("${")) return resolve3(configured);
+  return join2(homedir2(), ".figma-forge");
+}
+function slug2(value) {
+  return (value || "unknown").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+}
 async function ensureDir(path) {
-  await mkdir(path, { recursive: true });
+  await mkdir2(path, { recursive: true });
   return path;
 }
 async function readJson(path) {
   try {
-    return JSON.parse(await readFile4(path, "utf8"));
+    return JSON.parse(await readFile5(path, "utf8"));
   } catch {
     return null;
   }
 }
 async function writeJson(path, value) {
-  await writeFile(path, JSON.stringify(value, null, 2), "utf8");
+  await writeFile2(path, JSON.stringify(value, null, 2), "utf8");
 }
 function indexPath(fileKey, scope) {
-  return join(dataRoot(), "index", `${slug(fileKey)}--${slug(scope)}.json`);
+  return join2(dataRoot2(), "index", `${slug2(fileKey)}--${slug2(scope)}.json`);
 }
 async function readIndex(fileKey, scope, pluginVersion) {
   const cached2 = await readJson(indexPath(fileKey, scope));
@@ -26175,7 +26421,7 @@ async function readIndex(fileKey, scope, pluginVersion) {
   return cached2;
 }
 async function writeIndex(fileKey, scope, pluginVersion, index) {
-  await ensureDir(join(dataRoot(), "index"));
+  await ensureDir(join2(dataRoot2(), "index"));
   const record2 = {
     schemaVersion: INDEX_SCHEMA_VERSION,
     pluginVersion,
@@ -26197,10 +26443,10 @@ async function markDirty(fileKey, scope, nodeIds) {
   await writeJson(path, cached2);
 }
 function journalPath(operationId) {
-  return join(dataRoot(), "journals", `${slug(operationId)}.json`);
+  return join2(dataRoot2(), "journals", `${slug2(operationId)}.json`);
 }
 async function writeJournal(journal) {
-  await ensureDir(join(dataRoot(), "journals"));
+  await ensureDir(join2(dataRoot2(), "journals"));
   const path = journalPath(journal.operationId);
   await writeJson(path, journal);
   return path;
@@ -26209,12 +26455,12 @@ async function readJournal(operationId) {
   return await readJson(journalPath(operationId));
 }
 async function listJournals(limit = 20) {
-  const dir = join(dataRoot(), "journals");
+  const dir = join2(dataRoot2(), "journals");
   const out = [];
   try {
     for (const name of await readdir(dir)) {
       if (!name.endsWith(".json")) continue;
-      const journal = await readJson(join(dir, name));
+      const journal = await readJson(join2(dir, name));
       if (journal) out.push(journal);
     }
   } catch {
@@ -26226,25 +26472,25 @@ async function latestRecoverable() {
   const journals = await listJournals(50);
   return journals.find((journal) => journal.status === "failed") ?? journals[0] ?? null;
 }
-async function updateJournalStatus(operationId, status, error2) {
+async function updateJournalStatus(operationId, status2, error2) {
   const journal = await readJournal(operationId);
   if (!journal) return;
-  journal.status = status;
+  journal.status = status2;
   if (error2) journal.error = error2;
   await writeJournal(journal);
 }
 function sessionPath(channel) {
-  return join(dataRoot(), "sessions", `${slug(channel)}.json`);
+  return join2(dataRoot2(), "sessions", `${slug2(channel)}.json`);
 }
 async function writeSession(session) {
-  await ensureDir(join(dataRoot(), "sessions"));
+  await ensureDir(join2(dataRoot2(), "sessions"));
   await writeJson(sessionPath(session.channel), session);
 }
 async function readSession(channel) {
   return await readJson(sessionPath(channel));
 }
 function dataDirectory() {
-  return dataRoot();
+  return dataRoot2();
 }
 
 // mcp-server/src/index.ts
@@ -26266,7 +26512,7 @@ var port = Number(envValue("FIGMA_FORGE_BRIDGE_PORT") ?? 3055) || 3055;
 var bridge = new Bridge({
   port,
   channel: defaultChannel(),
-  bridgeScript: join2(here, "bridge.js")
+  bridgeScript: join3(here, "bridge.js")
 });
 function text(value) {
   return { content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] };
@@ -26330,35 +26576,35 @@ server.registerTool(
     try {
       if (channel) bridge.setChannel(channel);
       await bridge.ready();
-      const status = await bridge.status();
-      if (!status.figmaAttached) {
+      const status2 = await bridge.status();
+      if (!status2.figmaAttached) {
         return text({
-          bridge: { running: status.bridgeRunning, port: status.port },
-          channel: status.channel,
+          bridge: { running: status2.bridgeRunning, port: status2.port },
+          channel: status2.channel,
           figmaAttached: false,
           next: [
             "Open the target file in Figma.",
             "Plugins \u2192 Development \u2192 Figma Forge.",
-            `Enter port ${status.port} and channel "${status.channel}", then press Connect.`,
+            `Enter port ${status2.port} and channel "${status2.channel}", then press Connect.`,
             "Re-run figma_forge_connect to confirm."
           ]
         });
       }
       const info = await sessionInfo();
       await writeSession({
-        channel: status.channel,
+        channel: status2.channel,
         fileKey: info.fileKey,
         fileId: info.fileId,
         documentName: info.documentName,
         sessionId: info.sessionId,
-        port: status.port,
+        port: status2.port,
         updatedAt: Date.now()
       });
       const cached2 = await readIndex(fileIdentity(info), "file", PLUGIN_VERSION);
       return text({
         connected: true,
-        channel: status.channel,
-        port: status.port,
+        channel: status2.channel,
+        port: status2.port,
         file: { key: info.fileKey, name: info.documentName, currentPage: info.currentPage },
         designSystemIndex: cached2 ? { cached: true, builtAt: new Date(cached2.builtAt).toISOString(), dirtyNodes: cached2.dirtyNodeIds.length } : { cached: false, hint: 'Run figma_forge_design_system { action: "refresh" } before building anything.' }
       });
@@ -26375,11 +26621,11 @@ server.registerTool(
     inputSchema: {}
   },
   async () => {
-    const status = await bridge.status();
-    const session = await readSession(status.channel);
+    const status2 = await bridge.status();
+    const session = await readSession(status2.channel);
     const journals = await listJournals(5);
     let info = null;
-    if (status.figmaAttached) {
+    if (status2.figmaAttached) {
       try {
         info = await sessionInfo();
       } catch {
@@ -26388,10 +26634,10 @@ server.registerTool(
     }
     const cached2 = info || session ? await readIndex(fileIdentity(info ?? session), "file", PLUGIN_VERSION) : null;
     return text({
-      bridge: { running: status.bridgeRunning, port: status.port, channels: status.channels, lastError: status.lastError },
-      agentConnected: status.agentConnected,
-      figmaAttached: status.figmaAttached,
-      channel: status.channel,
+      bridge: { running: status2.bridgeRunning, port: status2.port, channels: status2.channels, lastError: status2.lastError },
+      agentConnected: status2.agentConnected,
+      figmaAttached: status2.figmaAttached,
+      channel: status2.channel,
       file: info ? { key: info.fileKey, name: info.documentName, currentPage: info.currentPage } : session ?? null,
       index: cached2 ? { cached: true, builtAt: new Date(cached2.builtAt).toISOString(), dirtyNodes: cached2.dirtyNodeIds.length } : { cached: false },
       dataDirectory: dataDirectory(),
@@ -26771,6 +27017,217 @@ server.registerTool(
       const results = await call("import_tokens", { ir, dryRun: params.dryRun, takeOwnership: params.takeOwnership }, 18e4);
       return text({ source: ir.source, results, unsupported: ir.unsupported });
     } catch (error2) {
+      return failure(error2);
+    }
+  }
+);
+function screenEmbeddingInput(screen) {
+  const body = [screen.path, screen.componentNames.slice(0, 30).join(", "), screen.text].filter(Boolean).join("\n").slice(0, 4e3);
+  return documentPrompt(screen.name, body);
+}
+server.registerTool(
+  "figma_forge_graph",
+  {
+    title: "Screen graph and semantic search",
+    description: `Builds a searchable graph of every screen in the file \u2014 its text, the components it uses, and where it lives \u2014 then searches it by meaning as well as by word. Use this to find things in a large file, where node names are often useless ("other", "Frame 47") and the real signal is the screen's text and component usage.
+
+Actions: "build" walks the file page by page and indexes it (run once, then after significant changes); "search" finds screens; "screen" shows one screen and what resembles it; "component" lists where a component is used; "status" reports index freshness and whether semantic search is available.
+
+Word search always works. Semantic search additionally needs Ollama with an embedding model, and degrades to words alone when it is missing.`,
+    inputSchema: {
+      action: external_exports.enum(["build", "search", "screen", "component", "status", "clear"]).default("search"),
+      query: external_exports.string().optional().describe('For "search": what you are looking for, in any language.'),
+      nodeId: external_exports.string().optional().describe('For "screen": the screen id.'),
+      componentKey: external_exports.string().optional().describe('For "component": the component key.'),
+      limit: external_exports.number().int().min(1).max(50).optional(),
+      scope: external_exports.enum(["file", "page"]).optional().describe('For "build": index one page instead of the whole file.'),
+      pageId: external_exports.string().optional(),
+      embed: external_exports.boolean().optional().describe('For "build": compute embeddings. Default true when Ollama is available.'),
+      rebuild: external_exports.boolean().optional().describe('For "build": discard the existing graph first.')
+    }
+  },
+  async (params) => {
+    try {
+      const action = params.action ?? "search";
+      const limit = params.limit ?? 10;
+      if (action === "status") {
+        const info2 = await sessionInfo().catch(() => null);
+        const graph2 = info2 ? await loadGraph(fileIdentity(info2)) : null;
+        const embedding = await status();
+        return text({
+          graph: graph2 ? {
+            built: new Date(graph2.builtAt).toISOString(),
+            screens: graph2.screens.length,
+            pagesIndexed: graph2.pages.length,
+            totalPages: graph2.totalPages,
+            complete: graph2.complete,
+            components: graph2.components.length,
+            embedded: graph2.embedding ? { model: graph2.embedding.model, vectors: graph2.embedding.order.length } : false
+          } : null,
+          semanticSearch: embedding,
+          hint: !graph2 ? 'No graph yet. Run figma_forge_graph { action: "build" }.' : !graph2.embedding && embedding.reachable && embedding.hasModel ? "Graph exists but has no embeddings. Re-run build to add them." : void 0
+        });
+      }
+      const info = await sessionInfo();
+      const fileId = fileIdentity(info);
+      if (action === "clear") {
+        await clearGraph(fileId);
+        return text({ cleared: true, fileId });
+      }
+      if (action === "build") {
+        if (params.rebuild) await clearGraph(fileId);
+        const pages = [];
+        const screens = [];
+        const componentTotals = /* @__PURE__ */ new Map();
+        let cursor = 0;
+        let totalPages = 0;
+        const stats = {};
+        const started = Date.now();
+        while (cursor !== null) {
+          const chunk = await call(
+            "build_graph",
+            { scope: params.scope ?? "file", pageId: params.pageId, startPage: cursor, maxPages: 8 },
+            18e4
+          );
+          pages.push(...chunk.pages);
+          screens.push(...chunk.screens);
+          totalPages = chunk.totalPages;
+          for (const key of Object.keys(chunk.stats)) stats[key] = (stats[key] ?? 0) + chunk.stats[key];
+          for (const component of chunk.components) {
+            const row = componentTotals.get(component.key) ?? { name: component.name, instances: 0, screens: 0 };
+            row.instances += component.instances;
+            row.screens += component.screens;
+            componentTotals.set(component.key, row);
+          }
+          cursor = chunk.nextPage;
+        }
+        const graph2 = {
+          schemaVersion: 1,
+          fileId,
+          documentName: info.documentName,
+          builtAt: Date.now(),
+          pages,
+          totalPages,
+          complete: params.scope !== "page",
+          screens,
+          components: [...componentTotals].map(([key, row]) => ({ key, ...row })).sort((a, b) => b.instances - a.instances)
+        };
+        const walkMs = Date.now() - started;
+        let embedding = { enabled: false };
+        if (params.embed !== false && screens.length) {
+          const state = await status();
+          if (!state.reachable || !state.hasModel) {
+            embedding = { enabled: false, reason: state.remedy, host: state.host };
+          } else {
+            const embedStarted = Date.now();
+            const vectors = await embed(screens.map(screenEmbeddingInput));
+            graph2.embedding = {
+              model: state.model,
+              dimensions: vectors[0]?.length ?? 0,
+              order: screens.map((screen) => screen.id),
+              builtAt: Date.now()
+            };
+            await saveVectors(fileId, vectors);
+            embedding = {
+              enabled: true,
+              model: state.model,
+              vectors: vectors.length,
+              dimensions: vectors[0]?.length ?? 0,
+              ms: Date.now() - embedStarted
+            };
+          }
+        }
+        await saveGraph(graph2);
+        return text({
+          built: true,
+          document: info.documentName,
+          pagesIndexed: pages.length,
+          totalPages,
+          screens: screens.length,
+          components: graph2.components.length,
+          walkMs,
+          embedding,
+          stats,
+          topComponents: graph2.components.slice(0, 10),
+          next: embedding.enabled === false && embedding.reason ? "Word search works now. For semantic search, follow the reason above and re-run build." : 'Try figma_forge_graph { action: "search", query: "\u2026" }.'
+        });
+      }
+      const graph = await loadGraph(fileId);
+      if (!graph) {
+        return failure(new Error('No graph for this file yet. Run figma_forge_graph { action: "build" } first.'));
+      }
+      if (action === "component") {
+        if (!params.componentKey) return failure(new Error('action "component" needs a `componentKey`.'));
+        const usage = graph.components.find((component) => component.key === params.componentKey);
+        const using = graph.screens.filter((screen) => screen.componentKeys.includes(params.componentKey)).slice(0, limit).map((screen) => ({ id: screen.id, name: screen.name, path: screen.path }));
+        return text({ component: usage ?? { key: params.componentKey, unknown: true }, usedOn: using, shown: using.length });
+      }
+      if (action === "screen") {
+        if (!params.nodeId) return failure(new Error('action "screen" needs a `nodeId`.'));
+        const screen = graph.screens.find((row) => row.id === params.nodeId);
+        if (!screen) return failure(new Error(`Screen ${params.nodeId} is not in the graph. Rebuild if the file changed.`));
+        const keys = new Set(screen.componentKeys);
+        const similar = graph.screens.filter((row) => row.id !== screen.id).map((row) => ({
+          row,
+          shared: row.componentKeys.filter((key) => keys.has(key)).length
+        })).filter((entry) => entry.shared > 0).sort((a, b) => b.shared - a.shared).slice(0, limit).map((entry) => ({ id: entry.row.id, name: entry.row.name, path: entry.row.path, sharedComponents: entry.shared }));
+        return text({ screen, similar });
+      }
+      if (!params.query) return failure(new Error('action "search" needs a `query`.'));
+      const lexicalIndex = buildLexicalIndex(graph.screens);
+      const lexical = lexicalSearch(lexicalIndex, params.query, limit * 3);
+      let vector = [];
+      let semantic = { used: false };
+      if (graph.embedding) {
+        const state = await status();
+        if (state.reachable && state.hasModel) {
+          const vectors = await loadVectors(fileId, graph.embedding.dimensions);
+          if (vectors.length) {
+            const [queryVector] = await embed([queryPrompt(params.query)]);
+            const positions = new Map(graph.embedding.order.map((id, index) => [id, index]));
+            const raw = vectorSearch(vectors, queryVector, limit * 3);
+            const byId = new Map(graph.screens.map((screen, index) => [screen.id, index]));
+            vector = raw.map((hit) => {
+              const id = graph.embedding.order[hit.index];
+              const screenIndex = byId.get(id);
+              return screenIndex === void 0 ? null : { index: screenIndex, score: hit.score };
+            }).filter((hit) => hit !== null);
+            semantic = { used: true, model: state.model, indexed: positions.size };
+          }
+        } else {
+          semantic = { used: false, reason: state.remedy };
+        }
+      } else {
+        semantic = { used: false, reason: "This graph has no embeddings. Re-run build with Ollama available." };
+      }
+      const fused = fuse(lexical, vector, limit);
+      return text({
+        query: params.query,
+        semantic,
+        matches: fused.length,
+        results: fused.map((hit) => {
+          const screen = graph.screens[hit.index];
+          return {
+            id: screen.id,
+            name: screen.name,
+            path: screen.path,
+            size: `${screen.width}\xD7${screen.height}`,
+            textPreview: screen.text.slice(0, 160),
+            components: screen.componentNames.slice(0, 6),
+            why: {
+              word: hit.lexicalRank ? `#${hit.lexicalRank}` : null,
+              meaning: hit.vectorRank ? `#${hit.vectorRank} (${hit.vectorScore?.toFixed(3)})` : null
+            }
+          };
+        }),
+        note: 'Open one with figma_forge_inspect { scope: "node", nodeId }, or focus it in Figma.'
+      });
+    } catch (error2) {
+      if (error2 instanceof OllamaUnavailable) {
+        return { isError: true, content: [{ type: "text", text: `${error2.message}
+
+${error2.remedy}` }] };
+      }
       return failure(error2);
     }
   }

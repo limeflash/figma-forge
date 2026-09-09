@@ -20,6 +20,10 @@ import { z } from 'zod';
 import { Bridge, BridgeError } from './bridge.js';
 import { overview, search, RawIndex, ResultKind } from './search.js';
 import { importTokenSource, parseStorybook, resolveSourcePath, summarizeIR } from './import/index.js';
+import * as ollama from './graph/ollama.js';
+import { clearGraph, loadGraph, loadVectors, saveGraph, saveVectors, StoredGraph } from './graph/store.js';
+import { buildLexicalIndex, fuse, lexicalSearch, screenDocument, vectorSearch } from './graph/search.js';
+import { GraphChunk } from './graph/types.js';
 import {
   clearIndex,
   dataDirectory,
@@ -701,6 +705,280 @@ server.registerTool(
       const results = await call('import_tokens', { ir, dryRun: params.dryRun, takeOwnership: params.takeOwnership }, 180_000);
       return text({ source: ir.source, results, unsupported: ir.unsupported });
     } catch (error) {
+      return failure(error);
+    }
+  }
+);
+
+/**
+ * Embedding text per screen. The path carries page and section names, which are
+ * often the only human-written words on a screen whose own name is "other".
+ */
+function screenEmbeddingInput(screen: { name: string; path: string; text: string; componentNames: string[] }): string {
+  const body = [screen.path, screen.componentNames.slice(0, 30).join(', '), screen.text]
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 4000);
+  return ollama.documentPrompt(screen.name, body);
+}
+
+server.registerTool(
+  'figma_forge_graph',
+  {
+    title: 'Screen graph and semantic search',
+    description:
+      'Builds a searchable graph of every screen in the file — its text, the components it uses, and where it lives — ' +
+      'then searches it by meaning as well as by word. Use this to find things in a large file, where node names are ' +
+      'often useless ("other", "Frame 47") and the real signal is the screen\'s text and component usage.\n\n' +
+      'Actions: "build" walks the file page by page and indexes it (run once, then after significant changes); ' +
+      '"search" finds screens; "screen" shows one screen and what resembles it; "component" lists where a component ' +
+      'is used; "status" reports index freshness and whether semantic search is available.\n\n' +
+      'Word search always works. Semantic search additionally needs Ollama with an embedding model, and degrades to ' +
+      'words alone when it is missing.',
+    inputSchema: {
+      action: z.enum(['build', 'search', 'screen', 'component', 'status', 'clear']).default('search'),
+      query: z.string().optional().describe('For "search": what you are looking for, in any language.'),
+      nodeId: z.string().optional().describe('For "screen": the screen id.'),
+      componentKey: z.string().optional().describe('For "component": the component key.'),
+      limit: z.number().int().min(1).max(50).optional(),
+      scope: z.enum(['file', 'page']).optional().describe('For "build": index one page instead of the whole file.'),
+      pageId: z.string().optional(),
+      embed: z.boolean().optional().describe('For "build": compute embeddings. Default true when Ollama is available.'),
+      rebuild: z.boolean().optional().describe('For "build": discard the existing graph first.'),
+    },
+  },
+  async (params): Promise<ToolResult> => {
+    try {
+      const action = params.action ?? 'search';
+      const limit = params.limit ?? 10;
+
+      if (action === 'status') {
+        const info = await sessionInfo().catch(() => null);
+        const graph = info ? await loadGraph(fileIdentity(info)) : null;
+        const embedding = await ollama.status();
+        return text({
+          graph: graph
+            ? {
+                built: new Date(graph.builtAt).toISOString(),
+                screens: graph.screens.length,
+                pagesIndexed: graph.pages.length,
+                totalPages: graph.totalPages,
+                complete: graph.complete,
+                components: graph.components.length,
+                embedded: graph.embedding
+                  ? { model: graph.embedding.model, vectors: graph.embedding.order.length }
+                  : false,
+              }
+            : null,
+          semanticSearch: embedding,
+          hint: !graph
+            ? 'No graph yet. Run figma_forge_graph { action: "build" }.'
+            : !graph.embedding && embedding.reachable && embedding.hasModel
+              ? 'Graph exists but has no embeddings. Re-run build to add them.'
+              : undefined,
+        });
+      }
+
+      const info = await sessionInfo();
+      const fileId = fileIdentity(info);
+
+      if (action === 'clear') {
+        await clearGraph(fileId);
+        return text({ cleared: true, fileId });
+      }
+
+      if (action === 'build') {
+        if (params.rebuild) await clearGraph(fileId);
+
+        const pages: StoredGraph['pages'] = [];
+        const screens: StoredGraph['screens'] = [];
+        const componentTotals = new Map<string, { name: string; instances: number; screens: number }>();
+
+        let cursor: number | null = 0;
+        let totalPages = 0;
+        const stats: Record<string, number> = {};
+        const started = Date.now();
+
+        // The plugin pages through the file so no single bridge request has to
+        // walk 65 pages inside one timeout.
+        while (cursor !== null) {
+          const chunk: GraphChunk = await call<GraphChunk>(
+            'build_graph',
+            { scope: params.scope ?? 'file', pageId: params.pageId, startPage: cursor, maxPages: 8 },
+            180_000
+          );
+          pages.push(...chunk.pages);
+          screens.push(...chunk.screens);
+          totalPages = chunk.totalPages;
+          for (const key of Object.keys(chunk.stats)) stats[key] = (stats[key] ?? 0) + chunk.stats[key];
+          for (const component of chunk.components) {
+            const row = componentTotals.get(component.key) ?? { name: component.name, instances: 0, screens: 0 };
+            row.instances += component.instances;
+            row.screens += component.screens;
+            componentTotals.set(component.key, row);
+          }
+          cursor = chunk.nextPage;
+        }
+
+        const graph: StoredGraph = {
+          schemaVersion: 1,
+          fileId,
+          documentName: info.documentName,
+          builtAt: Date.now(),
+          pages,
+          totalPages,
+          complete: params.scope !== 'page',
+          screens,
+          components: [...componentTotals]
+            .map(([key, row]) => ({ key, ...row }))
+            .sort((a, b) => b.instances - a.instances),
+        };
+
+        const walkMs = Date.now() - started;
+        let embedding: Record<string, unknown> = { enabled: false };
+
+        if (params.embed !== false && screens.length) {
+          const state = await ollama.status();
+          if (!state.reachable || !state.hasModel) {
+            embedding = { enabled: false, reason: state.remedy, host: state.host };
+          } else {
+            const embedStarted = Date.now();
+            const vectors = await ollama.embed(screens.map(screenEmbeddingInput));
+            graph.embedding = {
+              model: state.model,
+              dimensions: vectors[0]?.length ?? 0,
+              order: screens.map((screen) => screen.id),
+              builtAt: Date.now(),
+            };
+            await saveVectors(fileId, vectors);
+            embedding = {
+              enabled: true,
+              model: state.model,
+              vectors: vectors.length,
+              dimensions: vectors[0]?.length ?? 0,
+              ms: Date.now() - embedStarted,
+            };
+          }
+        }
+
+        await saveGraph(graph);
+
+        return text({
+          built: true,
+          document: info.documentName,
+          pagesIndexed: pages.length,
+          totalPages,
+          screens: screens.length,
+          components: graph.components.length,
+          walkMs,
+          embedding,
+          stats,
+          topComponents: graph.components.slice(0, 10),
+          next:
+            embedding.enabled === false && embedding.reason
+              ? 'Word search works now. For semantic search, follow the reason above and re-run build.'
+              : 'Try figma_forge_graph { action: "search", query: "…" }.',
+        });
+      }
+
+      const graph = await loadGraph(fileId);
+      if (!graph) {
+        return failure(new Error('No graph for this file yet. Run figma_forge_graph { action: "build" } first.'));
+      }
+
+      if (action === 'component') {
+        if (!params.componentKey) return failure(new Error('action "component" needs a `componentKey`.'));
+        const usage = graph.components.find((component) => component.key === params.componentKey);
+        const using = graph.screens
+          .filter((screen) => screen.componentKeys.includes(params.componentKey!))
+          .slice(0, limit)
+          .map((screen) => ({ id: screen.id, name: screen.name, path: screen.path }));
+        return text({ component: usage ?? { key: params.componentKey, unknown: true }, usedOn: using, shown: using.length });
+      }
+
+      if (action === 'screen') {
+        if (!params.nodeId) return failure(new Error('action "screen" needs a `nodeId`.'));
+        const screen = graph.screens.find((row) => row.id === params.nodeId);
+        if (!screen) return failure(new Error(`Screen ${params.nodeId} is not in the graph. Rebuild if the file changed.`));
+
+        // "Similar" here means built from the same parts, which is what someone
+        // asking about one screen usually wants to find.
+        const keys = new Set(screen.componentKeys);
+        const similar = graph.screens
+          .filter((row) => row.id !== screen.id)
+          .map((row) => ({
+            row,
+            shared: row.componentKeys.filter((key) => keys.has(key)).length,
+          }))
+          .filter((entry) => entry.shared > 0)
+          .sort((a, b) => b.shared - a.shared)
+          .slice(0, limit)
+          .map((entry) => ({ id: entry.row.id, name: entry.row.name, path: entry.row.path, sharedComponents: entry.shared }));
+
+        return text({ screen, similar });
+      }
+
+      if (!params.query) return failure(new Error('action "search" needs a `query`.'));
+
+      const lexicalIndex = buildLexicalIndex(graph.screens);
+      const lexical = lexicalSearch(lexicalIndex, params.query, limit * 3);
+
+      let vector: { index: number; score: number }[] = [];
+      let semantic: Record<string, unknown> = { used: false };
+
+      if (graph.embedding) {
+        const state = await ollama.status();
+        if (state.reachable && state.hasModel) {
+          const vectors = await loadVectors(fileId, graph.embedding.dimensions);
+          if (vectors.length) {
+            const [queryVector] = await ollama.embed([ollama.queryPrompt(params.query)]);
+            const positions = new Map(graph.embedding.order.map((id, index) => [id, index]));
+            const raw = vectorSearch(vectors, queryVector, limit * 3);
+            // Vector rows are ordered by the embedding manifest, which may differ
+            // from the current screen order if the graph was rebuilt partially.
+            const byId = new Map(graph.screens.map((screen, index) => [screen.id, index]));
+            vector = raw
+              .map((hit) => {
+                const id = graph.embedding!.order[hit.index];
+                const screenIndex = byId.get(id);
+                return screenIndex === undefined ? null : { index: screenIndex, score: hit.score };
+              })
+              .filter((hit): hit is { index: number; score: number } => hit !== null);
+            semantic = { used: true, model: state.model, indexed: positions.size };
+          }
+        } else {
+          semantic = { used: false, reason: state.remedy };
+        }
+      } else {
+        semantic = { used: false, reason: 'This graph has no embeddings. Re-run build with Ollama available.' };
+      }
+
+      const fused = fuse(lexical, vector, limit);
+      return text({
+        query: params.query,
+        semantic,
+        matches: fused.length,
+        results: fused.map((hit) => {
+          const screen = graph.screens[hit.index];
+          return {
+            id: screen.id,
+            name: screen.name,
+            path: screen.path,
+            size: `${screen.width}×${screen.height}`,
+            textPreview: screen.text.slice(0, 160),
+            components: screen.componentNames.slice(0, 6),
+            why: {
+              word: hit.lexicalRank ? `#${hit.lexicalRank}` : null,
+              meaning: hit.vectorRank ? `#${hit.vectorRank} (${hit.vectorScore?.toFixed(3)})` : null,
+            },
+          };
+        }),
+        note: 'Open one with figma_forge_inspect { scope: "node", nodeId }, or focus it in Figma.',
+      });
+    } catch (error) {
+      if (error instanceof ollama.OllamaUnavailable) {
+        return { isError: true, content: [{ type: 'text', text: `${error.message}\n\n${error.remedy}` }] };
+      }
       return failure(error);
     }
   }

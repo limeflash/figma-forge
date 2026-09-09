@@ -48,6 +48,23 @@ try {
   /* first run in this project */
 }
 
+async function ollamaState() {
+  const base = process.env.FIGMA_FORGE_OLLAMA_HOST || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+  const url = /^https?:\/\//.test(base) ? base : `http://${base}`;
+  try {
+    const response = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(1200) });
+    if (!response.ok) return null;
+    const body = await response.json();
+    const model = process.env.FIGMA_FORGE_EMBED_MODEL || 'embeddinggemma';
+    const has = (body.models || []).some((m) => (m.name || '').split(':')[0] === model.split(':')[0]);
+    return { running: true, hasModel: has, model };
+  } catch {
+    return null;
+  }
+}
+
+const ollama = await ollamaState();
+
 const lines = [];
 if (attached) {
   lines.push(`Figma Forge: connected on channel "${channel}" (port ${port}).`);
@@ -58,6 +75,12 @@ if (attached) {
   lines.push('Open the Figma Forge plugin in the target file and connect, then run figma_forge_connect.');
 } else {
   lines.push(`Figma Forge: not connected. Run figma_forge_connect (channel "${channel}") when you need Figma.`);
+}
+
+if (!ollama) {
+  lines.push('Semantic screen search is off (Ollama not running). Word search still works; /figma-forge:setup explains.');
+} else if (!ollama.hasModel) {
+  lines.push(`Semantic screen search is off (no ${ollama.model} model). /figma-forge:setup can pull it.`);
 }
 
 process.stdout.write(

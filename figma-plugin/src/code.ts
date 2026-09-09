@@ -16,6 +16,7 @@ import { applyPlan, Plan } from './runtime/commands/apply-plan';
 import { verify, VerifyParams } from './runtime/commands/verify';
 import { recover, RecoverParams } from './runtime/commands/recover';
 import { importTokens, ImportTokensParams } from './runtime/commands/import-tokens';
+import { buildGraph, GraphParams } from './runtime/commands/graph';
 import { errorMessage } from './runtime/journal';
 
 const PLUGIN_VERSION = '0.1.0';
@@ -109,6 +110,8 @@ const handlers: Record<string, Handler> = {
   recover: (params) => recover(params as RecoverParams),
 
   import_tokens: (params) => importTokens(params as unknown as ImportTokensParams),
+
+  build_graph: (params) => buildGraph(params as GraphParams),
 
   execute: (params) => execute(params as unknown as ExecParams),
 

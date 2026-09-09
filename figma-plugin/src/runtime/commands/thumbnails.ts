@@ -11,6 +11,7 @@
 
 import { screenshot } from '../shims';
 import { errorMessage } from '../journal';
+import { safe } from '../serialize';
 
 type AnyNode = BaseNode & { children?: readonly SceneNode[] };
 
@@ -41,6 +42,59 @@ export interface ThumbnailResult {
 }
 
 let keyIndex: Map<string, string> | null = null;
+/** componentKey/componentId -> an instance of it that is actually placed. */
+let instanceIndex: Map<string, string> | null = null;
+
+/**
+ * A main component is a poor likeness of itself. Measured on the real file:
+ * `Buttons / Big Main` is authored at 160×56 with placeholder content and
+ * exports to 1.3 KB, while the instance on the screen is 384×56 with the real
+ * label and exports to 21 KB. The preview exists to show how a screen reads, so
+ * it wants the instance.
+ *
+ * Scanning every instance in the document would be far too slow, so this looks
+ * at the current page — where, by definition, the components being designed
+ * with are usually already in use — and gives up quietly otherwise.
+ */
+async function findPlacedInstance(component: ComponentNode | ComponentSetNode): Promise<AnyNode | null> {
+  if (!instanceIndex) {
+    instanceIndex = new Map();
+    const instances = figma.currentPage.findAllWithCriteria({ types: ['INSTANCE'] });
+    const budget = instances.slice(0, 3000);
+    const resolved = await Promise.all(
+      budget.map((instance) =>
+        (instance as InstanceNode)
+          .getMainComponentAsync()
+          .then((main) => ({ instance, main }))
+          .catch(() => ({ instance, main: null as ComponentNode | null }))
+      )
+    );
+    for (const { instance, main } of resolved) {
+      if (!main) continue;
+      const set = main.parent && main.parent.type === 'COMPONENT_SET' ? main.parent : null;
+      for (const owner of [main, set]) {
+        if (!owner) continue;
+        const key = safe(() => (owner as ComponentNode).key);
+        // Widest wins: a stretched instance shows the component at the size a
+        // screen actually uses it.
+        for (const handle of [key, owner.id]) {
+          if (!handle) continue;
+          const existing = instanceIndex.get(handle);
+          if (!existing) {
+            instanceIndex.set(handle, instance.id);
+            continue;
+          }
+          const previous = figma.currentPage.findOne((node) => node.id === existing);
+          if (previous && instance.width > previous.width) instanceIndex.set(handle, instance.id);
+        }
+      }
+    }
+  }
+
+  const key = safe(() => (component as ComponentNode).key);
+  const id = instanceIndex.get(key ?? '') ?? instanceIndex.get(component.id);
+  return id ? ((await figma.getNodeByIdAsync(id)) as AnyNode | null) : null;
+}
 
 async function resolveOne(requested: string): Promise<AnyNode | null> {
   // Ids contain a colon; anything else is a component key.
@@ -52,7 +106,7 @@ async function resolveOne(requested: string): Promise<AnyNode | null> {
   try {
     return (await figma.importComponentByKeyAsync(requested)) as unknown as AnyNode;
   } catch {
-    /* not a published component; try a set, then look locally */
+    /* not importable; try a set, then look locally, then give up */
   }
   try {
     const set = await figma.importComponentSetByKeyAsync(requested);
@@ -88,13 +142,22 @@ export async function exportThumbnails(params: ThumbnailParams): Promise<Thumbna
 
     try {
       let node = await resolveOne(requested);
-      if (!node) throw new Error('not found in this file');
+      if (!node) {
+        throw new Error(
+          'could not be resolved — not a node id in this file, and not importable as a published component'
+        );
+      }
 
-      // A component set has no geometry of its own; preview its default variant.
-      if (node.type === 'COMPONENT_SET') {
-        const set = node as unknown as ComponentSetNode;
-        node = (set.defaultVariant ?? set.children[0]) as unknown as AnyNode;
-        if (!node) throw new Error('component set has no variants');
+      if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
+        const placed = await findPlacedInstance(node as unknown as ComponentNode | ComponentSetNode);
+        if (placed) {
+          node = placed;
+        } else if (node.type === 'COMPONENT_SET') {
+          // A component set has no geometry of its own; fall back to a variant.
+          const set = node as unknown as ComponentSetNode;
+          node = (set.defaultVariant ?? set.children[0]) as unknown as AnyNode;
+          if (!node) throw new Error('component set has no variants and no instance is placed on this page');
+        }
       }
 
       const sized = node as unknown as { width: number; height: number };

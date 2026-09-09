@@ -986,13 +986,16 @@
     await Promise.all(fonts.map((font) => figma.loadFontAsync(font)));
   }
   function errorMessage(error) {
-    if (error instanceof Error) return error.message;
-    if (typeof error === "string") return error;
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === "string" && error) return error;
+    if (error === null || error === void 0) return "failed without an error message";
     try {
-      return JSON.stringify(error);
+      const json = JSON.stringify(error);
+      if (json && json !== "{}" && json !== "null") return json;
     } catch {
-      return String(error);
     }
+    const text = String(error);
+    return text && text !== "[object Object]" ? text : "failed without an error message";
   }
   async function ensurePage(name) {
     for (const page2 of figma.root.children) {
@@ -3100,6 +3103,40 @@ ${body}
 
   // figma-plugin/src/runtime/commands/thumbnails.ts
   var keyIndex = null;
+  var instanceIndex = null;
+  async function findPlacedInstance(component) {
+    if (!instanceIndex) {
+      instanceIndex = /* @__PURE__ */ new Map();
+      const instances = figma.currentPage.findAllWithCriteria({ types: ["INSTANCE"] });
+      const budget = instances.slice(0, 3e3);
+      const resolved = await Promise.all(
+        budget.map(
+          (instance) => instance.getMainComponentAsync().then((main) => ({ instance, main })).catch(() => ({ instance, main: null }))
+        )
+      );
+      for (const { instance, main } of resolved) {
+        if (!main) continue;
+        const set = main.parent && main.parent.type === "COMPONENT_SET" ? main.parent : null;
+        for (const owner of [main, set]) {
+          if (!owner) continue;
+          const key2 = safe(() => owner.key);
+          for (const handle of [key2, owner.id]) {
+            if (!handle) continue;
+            const existing = instanceIndex.get(handle);
+            if (!existing) {
+              instanceIndex.set(handle, instance.id);
+              continue;
+            }
+            const previous = figma.currentPage.findOne((node) => node.id === existing);
+            if (previous && instance.width > previous.width) instanceIndex.set(handle, instance.id);
+          }
+        }
+      }
+    }
+    const key = safe(() => component.key);
+    const id = instanceIndex.get(key ?? "") ?? instanceIndex.get(component.id);
+    return id ? await figma.getNodeByIdAsync(id) : null;
+  }
   async function resolveOne(requested) {
     if (requested.indexOf(":") >= 0 || /^\d+$/.test(requested)) {
       const node = await figma.getNodeByIdAsync(requested).catch(() => null);
@@ -3137,11 +3174,20 @@ ${body}
       seen.add(requested);
       try {
         let node = await resolveOne(requested);
-        if (!node) throw new Error("not found in this file");
-        if (node.type === "COMPONENT_SET") {
-          const set = node;
-          node = set.defaultVariant ?? set.children[0];
-          if (!node) throw new Error("component set has no variants");
+        if (!node) {
+          throw new Error(
+            "could not be resolved \u2014 not a node id in this file, and not importable as a published component"
+          );
+        }
+        if (node.type === "COMPONENT" || node.type === "COMPONENT_SET") {
+          const placed = await findPlacedInstance(node);
+          if (placed) {
+            node = placed;
+          } else if (node.type === "COMPONENT_SET") {
+            const set = node;
+            node = set.defaultVariant ?? set.children[0];
+            if (!node) throw new Error("component set has no variants and no instance is placed on this page");
+          }
         }
         const sized = node;
         const longest = Math.max(sized.width ?? 0, sized.height ?? 0);

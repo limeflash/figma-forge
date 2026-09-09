@@ -150,6 +150,7 @@ function buildTree(ops: PlanOp[]): { roots: TreeNode[]; unattached: PlanOp[] } {
     }
     if (op.op === 'set' && op.props) Object.assign(node.style, op.props as Record<string, unknown>);
     else if (op.op === 'bind_paint_variable') node.style.__variableFill = op.variableId;
+    else if (op.op === 'set_text') node.style.__pendingText = op.characters;
     else unattached.push(op);
   }
 
@@ -181,10 +182,20 @@ function renderNode(node: TreeNode, input: RenderInput, depth: number): string {
     const asset = input.thumbnails[requested];
     if (asset) {
       const width = style.layoutSizingHorizontal === 'FILL' ? 'width:100%;align-self:stretch' : `width:${asset.naturalWidth}px`;
-      return (
-        `${pad}<img class="asset" src="${escapeHtml(asset.file)}" alt="${escapeHtml(asset.name)}" ` +
-        `title="${escapeHtml(`${op.op}: ${asset.name}`)}" style="${width};height:auto" />`
-      );
+      const image =
+        `<img class="asset" src="${escapeHtml(asset.file)}" alt="${escapeHtml(asset.name)}" ` +
+        `title="${escapeHtml(`${op.op}: ${asset.name}`)}" style="${width};height:auto" />`;
+
+      // An exported image cannot show text the plan is about to change, so the
+      // new copy is captioned rather than silently misrepresented.
+      const pending = style.__pendingText as string | undefined;
+      if (pending) {
+        return (
+          `${pad}<div class="pending" style="${width}">${image}` +
+          `<span>→ «${escapeHtml(pending)}»</span></div>`
+        );
+      }
+      return `${pad}${image}`;
     }
     return (
       `${pad}<div class="missing" title="no thumbnail for ${escapeHtml(String(requested))}">` +
@@ -255,6 +266,13 @@ export async function renderPlan(input: RenderInput): Promise<{ file: string; ro
     color: #8a1f1f; font-weight: 600;
   }
   .missing small { font-weight: 400; opacity: 0.7; font-size: 10px; }
+  .pending { position: relative; display: block; }
+  .pending span {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: #0d99ff; color: #fff; font-size: 11px; font-weight: 600;
+    padding: 3px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
   .notes {
     max-width: 900px; margin: 28px auto 0; padding: 14px 18px; border-radius: 10px;
     background: rgba(0,0,0,0.25); color: #fff; font-size: 12px;

@@ -260,13 +260,20 @@ export async function loadFontsFor(node: TextNode): Promise<void> {
 }
 
 export function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error) return error;
+  if (error === null || error === undefined) return 'failed without an error message';
+
+  // Figma rejects some promises with a bare object, or with an Error whose
+  // message is empty — "null" in a report is worse than saying so plainly.
   try {
-    return JSON.stringify(error);
+    const json = JSON.stringify(error);
+    if (json && json !== '{}' && json !== 'null') return json;
   } catch {
-    return String(error);
+    /* fall through to the string form */
   }
+  const text = String(error);
+  return text && text !== '[object Object]' ? text : 'failed without an error message';
 }
 
 /** Finds or creates one of our housekeeping pages, without stealing focus. */

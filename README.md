@@ -53,6 +53,7 @@ Then:
 /figma-forge:search primary button     find components, styles, variables
 /figma-forge:build a settings page     plan and build
 /figma-forge:modify all buttons to secondary
+/figma-forge:import-code src/tokens.css   import code tokens as Figma variables
 /figma-forge:verify page
 /figma-forge:recover                   roll back a failed write
 /figma-forge:status                    what is connected, what changed
@@ -72,8 +73,33 @@ Code restarts — you only reopen the Figma plugin if you closed it.
 | `figma_forge_apply_plan` | The write lane: ordered ops under a journal, with dry run |
 | `figma_forge_verify` | Design-system and structural invariants |
 | `figma_forge_recover` | Roll back a journalled operation; manage quarantine |
+| `figma_forge_import_code` | Import CSS/Tailwind tokens as variables; map Storybook components |
 | `figma_forge_execute` | Raw Plugin API JavaScript, read-only by default |
 | `figma_forge_modules` | Persistent helper modules stored in the document |
+
+## Importing from code
+
+Tokens go one way — code to Figma — and components deliberately do not.
+
+```
+/figma-forge:import-code src/styles/tokens.css
+/figma-forge:import-code tailwind.config.js
+/figma-forge:import-code storybook-static/index.json
+```
+
+CSS custom properties and Tailwind theme values become Figma variables. Dark-mode
+blocks (`.dark`, `[data-theme="dark"]`, `prefers-color-scheme`) become Figma
+modes, and `var(--other)` references are preserved as variable aliases rather
+than flattened. Tailwind v4's `oklch()` palette is gamut-mapped to sRGB the way a
+browser renders it, not clipped per channel.
+
+Imports are source-owned: each variable is stamped with where it came from, so
+re-importing updates in place instead of duplicating, and a variable someone
+authored by hand is never overwritten without `takeOwnership`.
+
+Storybook is a **mapping**, not a conversion — it reports which stories already
+have a Figma component and which do not. Figma Forge does not turn React into
+Figma components, because the result is neither faithful nor editable.
 
 ## Architecture
 
@@ -124,6 +150,12 @@ repo, with no build step.
   workspaces; the index degrades rather than failing.
 - Large files need scoped scans. Whole-document indexing is capped and reports
   truncation instead of running forever.
+- Code import is one-directional and token-only. Composite CSS values (shadows,
+  gradients, font stacks) have no Figma variable equivalent and are reported as
+  unsupported rather than approximated.
+- A Tailwind v3 config is executed to read its theme, so it must import cleanly
+  on its own. A config that only sets `content` inherits the default palette from
+  Tailwind itself, and there is nothing in the file to import.
 
 ## License
 

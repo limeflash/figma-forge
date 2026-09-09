@@ -1065,10 +1065,10 @@ var require_util = __commonJS({
     var codegen_1 = require_codegen();
     var code_1 = require_code();
     function toHash(arr) {
-      const hash = {};
+      const hash2 = {};
       for (const item of arr)
-        hash[item] = true;
-      return hash;
+        hash2[item] = true;
+      return hash2;
     }
     exports.toHash = toHash;
     function alwaysValidSchema(it, schema) {
@@ -2988,7 +2988,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve2.call(this, root, ref);
+      let _sch = resolve3.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3015,7 +3015,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve2(root, ref) {
+    function resolve3(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3845,7 +3845,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve2(baseURI, relativeURI, options) {
+    function resolve3(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -3878,49 +3878,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative, options, skipNormalization) {
+    function resolveComponent(base, relative2, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse3(serialize(base, options), options);
-        relative = parse3(serialize(relative, options), options);
+        relative2 = parse3(serialize(relative2, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative.scheme) {
-        target.scheme = relative.scheme;
-        target.userinfo = relative.userinfo;
-        target.host = relative.host;
-        target.port = relative.port;
-        target.path = removeDotSegments(relative.path || "");
-        target.query = relative.query;
+      if (!options.tolerant && relative2.scheme) {
+        target.scheme = relative2.scheme;
+        target.userinfo = relative2.userinfo;
+        target.host = relative2.host;
+        target.port = relative2.port;
+        target.path = removeDotSegments(relative2.path || "");
+        target.query = relative2.query;
       } else {
-        if (relative.userinfo !== void 0 || relative.host !== void 0 || relative.port !== void 0) {
-          target.userinfo = relative.userinfo;
-          target.host = relative.host;
-          target.port = relative.port;
-          target.path = removeDotSegments(relative.path || "");
-          target.query = relative.query;
+        if (relative2.userinfo !== void 0 || relative2.host !== void 0 || relative2.port !== void 0) {
+          target.userinfo = relative2.userinfo;
+          target.host = relative2.host;
+          target.port = relative2.port;
+          target.path = removeDotSegments(relative2.path || "");
+          target.query = relative2.query;
         } else {
-          if (!relative.path) {
+          if (!relative2.path) {
             target.path = base.path;
-            if (relative.query !== void 0) {
-              target.query = relative.query;
+            if (relative2.query !== void 0) {
+              target.query = relative2.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative.path[0] === "/") {
-              target.path = removeDotSegments(relative.path);
+            if (relative2.path[0] === "/") {
+              target.path = removeDotSegments(relative2.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative.path;
+                target.path = "/" + relative2.path;
               } else if (!base.path) {
-                target.path = relative.path;
+                target.path = relative2.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative2.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative.query;
+            target.query = relative2.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -3928,7 +3928,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative.fragment;
+      target.fragment = relative2.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -4213,7 +4213,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize: normalize2,
-      resolve: resolve2,
+      resolve: resolve3,
       resolveComponent,
       equal,
       serialize,
@@ -22980,7 +22980,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -22997,7 +22997,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -23075,7 +23075,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve2(parseResult.data);
+            resolve3(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -23336,12 +23336,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve2, interval);
+      const timeoutId = setTimeout(resolve3, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -24432,7 +24432,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+      await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -25096,19 +25096,19 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve2) => {
+    return new Promise((resolve3) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve2();
+        resolve3();
       } else {
-        this._stdout.once("drain", resolve2);
+        this._stdout.once("drain", resolve3);
       }
     });
   }
 };
 
 // mcp-server/src/index.ts
-import { basename, dirname, join as join2 } from "node:path";
+import { basename as basename3, dirname, join as join2 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // mcp-server/src/bridge.ts
@@ -25199,7 +25199,7 @@ var Bridge = class {
     if (this.socket && this.socket.readyState === import_websocket.default.OPEN && this.joined) return;
     if (this.connecting) return this.connecting;
     this.closedIntentionally = false;
-    this.connecting = new Promise((resolve2, reject) => {
+    this.connecting = new Promise((resolve3, reject) => {
       const socket = new import_websocket.default(`ws://${this.options.host}:${this.options.port}`);
       this.socket = socket;
       const settleTimer = setTimeout(() => {
@@ -25222,7 +25222,7 @@ var Bridge = class {
             const peers = message.peers;
             this.figmaPeers = peers?.figma ?? 0;
             clearTimeout(settleTimer);
-            resolve2();
+            resolve3();
           } else if (message.event === "peer-joined" || message.event === "peer-left") {
             const peers = message.peers;
             this.figmaPeers = peers?.figma ?? 0;
@@ -25288,7 +25288,7 @@ var Bridge = class {
     }
     const id = `a${this.nextId++}`;
     const limit = timeoutMs ?? this.options.requestTimeoutMs;
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(
@@ -25298,7 +25298,7 @@ var Bridge = class {
           )
         );
       }, limit);
-      this.pending.set(id, { resolve: resolve2, reject, timer, command });
+      this.pending.set(id, { resolve: resolve3, reject, timer, command });
       this.socket.send(JSON.stringify({ type: "request", channel: this.options.channel, id, command, params }));
     });
   }
@@ -25501,15 +25501,643 @@ function overview(index) {
   };
 }
 
+// mcp-server/src/import/index.ts
+import { access } from "node:fs/promises";
+import { isAbsolute, relative, resolve } from "node:path";
+
+// mcp-server/src/import/css.ts
+import { basename } from "node:path";
+
+// mcp-server/src/import/ir.ts
+function hash(input) {
+  let value = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    value ^= input.charCodeAt(i);
+    value = Math.imul(value, 16777619) >>> 0;
+  }
+  return value.toString(16).padStart(8, "0");
+}
+var clamp01 = (value) => Math.min(1, Math.max(0, value));
+function encodeGamma(channel) {
+  return channel <= 31308e-7 ? 12.92 * channel : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055;
+}
+function oklchToLinear(l, c, hDegrees) {
+  const hRad = hDegrees * Math.PI / 180;
+  const a = c * Math.cos(hRad);
+  const bb = c * Math.sin(hRad);
+  const lCube = (l + 0.3963377774 * a + 0.2158037573 * bb) ** 3;
+  const mCube = (l - 0.1055613458 * a - 0.0638541728 * bb) ** 3;
+  const sCube = (l - 0.0894841775 * a - 1.291485548 * bb) ** 3;
+  return [
+    4.0767416621 * lCube - 3.3077115913 * mCube + 0.2309699292 * sCube,
+    -1.2684380046 * lCube + 2.6097574011 * mCube - 0.3413193965 * sCube,
+    -0.0041960863 * lCube - 0.7034186147 * mCube + 1.707614701 * sCube
+  ];
+}
+var IN_GAMUT_EPSILON = 1e-5;
+function inGamut(linear) {
+  return linear.every((channel) => channel >= -IN_GAMUT_EPSILON && channel <= 1 + IN_GAMUT_EPSILON);
+}
+function oklchToRgb(l, c, hDegrees) {
+  let linear = oklchToLinear(l, c, hDegrees);
+  if (!inGamut(linear)) {
+    let low = 0;
+    let high = c;
+    for (let i = 0; i < 24; i++) {
+      const mid = (low + high) / 2;
+      if (inGamut(oklchToLinear(l, mid, hDegrees))) low = mid;
+      else high = mid;
+    }
+    linear = oklchToLinear(l, low, hDegrees);
+  }
+  return {
+    r: clamp01(encodeGamma(clamp01(linear[0]))),
+    g: clamp01(encodeGamma(clamp01(linear[1]))),
+    b: clamp01(encodeGamma(clamp01(linear[2])))
+  };
+}
+function hslToRgb(h, s, l) {
+  const saturation = s / 100;
+  const lightness = l / 100;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const hPrime = (h % 360 + 360) % 360 / 60;
+  const x = chroma * (1 - Math.abs(hPrime % 2 - 1));
+  const [r1, g1, b1] = hPrime < 1 ? [chroma, x, 0] : hPrime < 2 ? [x, chroma, 0] : hPrime < 3 ? [0, chroma, x] : hPrime < 4 ? [0, x, chroma] : hPrime < 5 ? [x, 0, chroma] : [chroma, 0, x];
+  const m = lightness - chroma / 2;
+  return { r: clamp01(r1 + m), g: clamp01(g1 + m), b: clamp01(b1 + m) };
+}
+var NAMED_COLORS = {
+  transparent: "#00000000",
+  white: "#ffffff",
+  black: "#000000",
+  red: "#ff0000",
+  green: "#008000",
+  blue: "#0000ff",
+  gray: "#808080",
+  grey: "#808080",
+  silver: "#c0c0c0",
+  yellow: "#ffff00",
+  orange: "#ffa500",
+  purple: "#800080",
+  currentcolor: ""
+};
+function parseComponents(body) {
+  const [main, alphaPart] = body.split("/");
+  const parts = main.trim().split(/[\s,]+/).filter(Boolean).map((token) => {
+    const numeric = parseFloat(token);
+    return Number.isNaN(numeric) ? NaN : token.endsWith("%") ? numeric : numeric;
+  });
+  if (parts.some(Number.isNaN)) return null;
+  let alpha;
+  if (alphaPart !== void 0) {
+    const trimmed = alphaPart.trim();
+    const numeric = parseFloat(trimmed);
+    if (Number.isNaN(numeric)) return null;
+    alpha = trimmed.endsWith("%") ? numeric / 100 : numeric;
+  }
+  return { parts, alpha };
+}
+function parseColor(input) {
+  const value = input.trim().toLowerCase();
+  if (!value) return null;
+  const named = NAMED_COLORS[value];
+  if (named === "") return null;
+  const text2 = named ?? value;
+  if (text2.startsWith("#")) {
+    const hex = text2.slice(1);
+    const expand = (piece) => parseInt(piece.length === 1 ? piece + piece : piece, 16) / 255;
+    if (hex.length === 3 || hex.length === 4) {
+      return {
+        r: expand(hex[0]),
+        g: expand(hex[1]),
+        b: expand(hex[2]),
+        ...hex.length === 4 ? { a: expand(hex[3]) } : {}
+      };
+    }
+    if (hex.length === 6 || hex.length === 8) {
+      return {
+        r: expand(hex.slice(0, 2)),
+        g: expand(hex.slice(2, 4)),
+        b: expand(hex.slice(4, 6)),
+        ...hex.length === 8 ? { a: expand(hex.slice(6, 8)) } : {}
+      };
+    }
+    return null;
+  }
+  const call2 = /^(rgba?|hsla?|oklch)\(([^)]*)\)$/.exec(text2);
+  if (!call2) return null;
+  const [, fn, body] = call2;
+  const parsed = parseComponents(body);
+  if (!parsed) return null;
+  const { parts, alpha } = parsed;
+  if (fn === "rgb" || fn === "rgba") {
+    if (parts.length < 3) return null;
+    const legacyAlpha = parts.length > 3 ? parts[3] : void 0;
+    const channel = (raw, numeric) => raw.includes("%") ? numeric / 100 : numeric / 255;
+    const rawParts = body.split("/")[0].trim().split(/[\s,]+/).filter(Boolean);
+    const result = {
+      r: clamp01(channel(rawParts[0] ?? "", parts[0])),
+      g: clamp01(channel(rawParts[1] ?? "", parts[1])),
+      b: clamp01(channel(rawParts[2] ?? "", parts[2]))
+    };
+    const finalAlpha = alpha ?? legacyAlpha;
+    return finalAlpha === void 0 ? result : { ...result, a: clamp01(finalAlpha) };
+  }
+  if (fn === "hsl" || fn === "hsla") {
+    if (parts.length < 3) return null;
+    const result = hslToRgb(parts[0], parts[1], parts[2]);
+    const finalAlpha = alpha ?? (parts.length > 3 ? parts[3] : void 0);
+    return finalAlpha === void 0 ? result : { ...result, a: clamp01(finalAlpha) };
+  }
+  if (fn === "oklch") {
+    if (parts.length < 3) return null;
+    const rawParts = body.split("/")[0].trim().split(/[\s,]+/).filter(Boolean);
+    const lightness = rawParts[0]?.includes("%") ? parts[0] / 100 : parts[0];
+    const result = oklchToRgb(lightness, parts[1], parts[2]);
+    return alpha === void 0 ? result : { ...result, a: clamp01(alpha) };
+  }
+  return null;
+}
+var VAR_REFERENCE = /^var\(\s*(--[\w-]+)\s*(?:,[^)]*)?\)$/;
+var LENGTH = /^(-?[\d.]+)(px|rem|em|%)?$/;
+function inferValue(raw, options = {}) {
+  const value = raw.trim().replace(/\s*!important$/, "");
+  if (!value) return { unsupported: "empty value" };
+  const reference = VAR_REFERENCE.exec(value);
+  if (reference) return { type: "COLOR", value: { alias: reference[1] } };
+  const color = parseColor(value);
+  if (color) return { type: "COLOR", value: color };
+  const length = LENGTH.exec(value);
+  if (length) {
+    const numeric = parseFloat(length[1]);
+    const unit = length[2];
+    if (unit === "rem" || unit === "em") return { type: "FLOAT", value: numeric * (options.remBase ?? 16) };
+    return { type: "FLOAT", value: numeric };
+  }
+  if (value === "true" || value === "false") return { type: "BOOLEAN", value: value === "true" };
+  if (/\s/.test(value) || value.includes(",")) {
+    if (/\d+(px|rem)\s+\d/.test(value) || value.includes("gradient(")) {
+      return { unsupported: "composite value \u2014 Figma variables hold a single value" };
+    }
+    return { type: "STRING", value };
+  }
+  return { type: "STRING", value };
+}
+function tokenName(cssName, style = "slash") {
+  const bare = cssName.replace(/^--/, "");
+  return style === "flat" ? bare : bare.replace(/-/g, "/");
+}
+function deduplicate(variables, warnings) {
+  const seen = /* @__PURE__ */ new Map();
+  const out = [];
+  for (const variable of variables) {
+    const count = seen.get(variable.name) ?? 0;
+    seen.set(variable.name, count + 1);
+    if (count === 0) {
+      out.push(variable);
+      continue;
+    }
+    warnings.push(`Duplicate token name "${variable.name}" (from ${variable.sourceId}) renamed to "${variable.name}-${count + 1}".`);
+    out.push({ ...variable, name: `${variable.name}-${count + 1}` });
+  }
+  return out;
+}
+function resolveAliasTypes(collection, warnings) {
+  const byCssName = /* @__PURE__ */ new Map();
+  for (const variable of collection.variables) {
+    const cssName = variable.sourceId.startsWith("css:") ? variable.sourceId.slice(4) : null;
+    if (cssName) byCssName.set(cssName, variable);
+  }
+  const isAlias = (value) => !!value && typeof value === "object" && "alias" in value;
+  const concreteType = (variable, seen) => {
+    const values = Object.values(variable.valuesByMode);
+    const direct = values.find((value) => !isAlias(value));
+    if (direct !== void 0) return variable.type;
+    for (const value of values) {
+      if (!isAlias(value)) continue;
+      if (seen.has(value.alias)) continue;
+      seen.add(value.alias);
+      const target = byCssName.get(value.alias);
+      if (!target) continue;
+      const resolved = concreteType(target, seen);
+      if (resolved) return resolved;
+    }
+    return null;
+  };
+  for (const variable of collection.variables) {
+    const values = Object.values(variable.valuesByMode);
+    if (!values.length || values.some((value) => !isAlias(value))) continue;
+    const resolved = concreteType(variable, /* @__PURE__ */ new Set([variable.sourceId]));
+    if (resolved) {
+      variable.type = resolved;
+    } else {
+      warnings.push(
+        `"${variable.name}" only ever references other tokens and none of them resolve here; it will be imported as a colour. Import the file that defines the target first.`
+      );
+    }
+  }
+}
+
+// mcp-server/src/import/css.ts
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+function scanBlocks(source) {
+  const blocks = [];
+  const stack = [];
+  let preludeStart = 0;
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if (char === "{") {
+      const prelude = source.slice(preludeStart, i).trim();
+      stack.push({ prelude, start: i + 1 });
+      preludeStart = i + 1;
+    } else if (char === "}") {
+      const open = stack.pop();
+      if (!open) continue;
+      blocks.push({
+        prelude: open.prelude,
+        body: source.slice(open.start, i),
+        ancestors: stack.map((entry) => entry.prelude)
+      });
+      preludeStart = i + 1;
+    }
+  }
+  return blocks;
+}
+function declarations(body) {
+  const out = [];
+  let depth = 0;
+  let current = "";
+  const flush = () => {
+    const text2 = current.trim();
+    current = "";
+    if (!text2.startsWith("--")) return;
+    const colon = text2.indexOf(":");
+    if (colon < 0) return;
+    const name = text2.slice(0, colon).trim();
+    const value = text2.slice(colon + 1).trim();
+    if (/^--[\w-]+$/.test(name) && value) out.push({ name, value });
+  };
+  for (const char of body) {
+    if (char === "(") depth++;
+    else if (char === ")") depth--;
+    else if (char === "{") depth += 100;
+    else if (char === "}") depth -= 100;
+    if (char === ";" && depth === 0) {
+      flush();
+      continue;
+    }
+    current += char;
+  }
+  flush();
+  return out;
+}
+var DARK = /(^|[\s,>+~])(\.dark\b|\.theme-dark\b|\[data-theme[~|^$*]?=["']?dark|\[data-mode[~|^$*]?=["']?dark|\[data-color-scheme[~|^$*]?=["']?dark)/i;
+var LIGHT = /(^|[\s,>+~])(\.light\b|\.theme-light\b|\[data-theme[~|^$*]?=["']?light|\[data-mode[~|^$*]?=["']?light)/i;
+var ROOT = /^(:root|html|body|:host|\*)?$|^(:root|html|body|:host)\b/;
+function modeFor(block, options) {
+  const base = options.baseMode ?? "Light";
+  const dark = options.darkMode ?? "Dark";
+  const chain = [...block.ancestors, block.prelude].join(" ");
+  if (/@media[^{]*prefers-color-scheme\s*:\s*dark/i.test(chain)) return dark;
+  if (DARK.test(block.prelude)) return dark;
+  if (LIGHT.test(block.prelude)) return base;
+  if (/^@theme\b/.test(block.prelude)) return base;
+  if (/^@layer\b/.test(block.prelude)) return null;
+  if (ROOT.test(block.prelude)) return base;
+  return options.includeAllSelectors ? base : null;
+}
+function parseCss(source, path, options = {}) {
+  const warnings = [];
+  const unsupported = [];
+  const cleaned = stripComments(source);
+  const blocks = scanBlocks(cleaned);
+  const byName = /* @__PURE__ */ new Map();
+  const modesSeen = [];
+  let order = 0;
+  for (const block of blocks) {
+    const mode = modeFor(block, options);
+    if (!mode) continue;
+    if (!modesSeen.includes(mode)) modesSeen.push(mode);
+    for (const declaration of declarations(block.body)) {
+      let record2 = byName.get(declaration.name);
+      if (!record2) {
+        record2 = { order: order++, modes: /* @__PURE__ */ new Map() };
+        byName.set(declaration.name, record2);
+      }
+      record2.modes.set(mode, declaration.value);
+    }
+  }
+  if (byName.size === 0) {
+    warnings.push(
+      "No custom properties found. Tokens are read from `:root`, `html`, `@theme`, and dark-mode blocks; pass `includeAllSelectors` to read component-scoped ones too."
+    );
+  }
+  const baseMode = options.baseMode ?? "Light";
+  const modes = modesSeen.length > 1 ? modesSeen : ["Value"];
+  const soleMode = modes.length === 1 ? modes[0] : null;
+  const variables = [];
+  for (const [cssName, record2] of [...byName].sort((a, b) => a[1].order - b[1].order)) {
+    const valuesByMode = {};
+    const rawByMode = {};
+    let type = null;
+    let skipped = null;
+    for (const mode of modes) {
+      const raw = record2.modes.get(soleMode ? baseMode : mode) ?? record2.modes.get(baseMode) ?? [...record2.modes.values()][0];
+      if (raw === void 0) continue;
+      const inferred = inferValue(raw, { remBase: options.remBase });
+      if ("unsupported" in inferred) {
+        skipped = inferred.unsupported;
+        break;
+      }
+      if (type === null || type === "COLOR" && "alias" in inferred.value) type = inferred.type;
+      valuesByMode[mode] = inferred.value;
+      rawByMode[mode] = raw;
+    }
+    if (skipped) {
+      unsupported.push({ name: cssName, value: [...record2.modes.values()][0] ?? "", reason: skipped });
+      continue;
+    }
+    if (!type || Object.keys(valuesByMode).length === 0) continue;
+    variables.push({
+      name: tokenName(cssName, options.nameStyle),
+      type,
+      valuesByMode,
+      sourceId: `css:${cssName}`,
+      sourceHash: hash(JSON.stringify(rawByMode)),
+      rawByMode,
+      codeSyntax: { WEB: `var(${cssName})` }
+    });
+  }
+  const collection = {
+    name: options.collectionName ?? `Imported / ${basename(path).replace(/\.[^.]+$/, "")}`,
+    modes,
+    variables: deduplicate(variables, warnings)
+  };
+  resolveAliasTypes(collection, warnings);
+  return {
+    source: { kind: "css", path, hash: hash(cleaned), importedAt: Date.now() },
+    collections: [collection],
+    warnings,
+    unsupported
+  };
+}
+
+// mcp-server/src/import/tailwind.ts
+import { readFile } from "node:fs/promises";
+import { basename as basename2 } from "node:path";
+import { pathToFileURL } from "node:url";
+var DEFAULT_GROUPS = [
+  "colors",
+  "spacing",
+  "borderRadius",
+  "borderWidth",
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+  "opacity",
+  "zIndex",
+  "screens",
+  "maxWidth",
+  "minWidth"
+];
+function flatten(value, prefix, out) {
+  if (value == null) return;
+  if (typeof value === "string" || typeof value === "number") {
+    out.set(prefix.join("."), String(value));
+    return;
+  }
+  if (Array.isArray(value)) {
+    if (typeof value[0] === "string" || typeof value[0] === "number") {
+      out.set(prefix.join("."), String(value[0]));
+    }
+    return;
+  }
+  if (typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    flatten(child, key === "DEFAULT" ? prefix : [...prefix, key], out);
+  }
+}
+function isV4Css(path, source) {
+  return /\.css$/i.test(path) || /@theme\b/.test(source) || /@import\s+["']tailwindcss["']/.test(source);
+}
+async function parseTailwind(path, options = {}) {
+  const source = await readFile(path, "utf8").catch(() => "");
+  if (isV4Css(path, source)) {
+    const ir = parseCss(source, path, {
+      collectionName: options.collectionName ?? "Imported / Tailwind",
+      ...options
+    });
+    ir.source.kind = "tailwind";
+    if (!ir.collections[0]?.variables.length) {
+      ir.warnings.push(
+        "This looks like a Tailwind v4 stylesheet but no `@theme` tokens were found. Point at the file that declares `@theme`, or at a v3 `tailwind.config.js`."
+      );
+    }
+    return ir;
+  }
+  const warnings = [];
+  const unsupported = [];
+  let config2;
+  try {
+    const module = await import(`${pathToFileURL(path).href}?t=${Date.now()}`);
+    config2 = module.default ?? module;
+  } catch (error2) {
+    throw new Error(
+      `Could not load ${path}: ${error2 instanceof Error ? error2.message : String(error2)}
+A v3 config is executed to read its theme, so it must import cleanly from its own directory. If it depends on a build-time loader, export the resolved theme to CSS and import that instead.`
+    );
+  }
+  const theme = config2.theme ?? {};
+  const extend2 = theme.extend ?? {};
+  const groups = options.groups ?? DEFAULT_GROUPS;
+  const flat = /* @__PURE__ */ new Map();
+  for (const group of groups) {
+    for (const layer of [theme[group], extend2[group]]) {
+      if (layer === void 0) continue;
+      if (typeof layer === "function") {
+        warnings.push(`theme.${group} is a function and was skipped \u2014 its value depends on Tailwind's own resolver.`);
+        continue;
+      }
+      flatten(layer, [group], flat);
+    }
+  }
+  if (flat.size === 0) {
+    warnings.push(
+      `No theme values found in ${basename2(path)} for groups: ${groups.join(", ")}. A config that only sets \`content\` inherits the default theme, which lives inside Tailwind rather than the file.`
+    );
+  }
+  const variables = [];
+  const mode = "Value";
+  for (const [dotted, raw] of flat) {
+    const inferred = inferValue(raw, { remBase: options.remBase });
+    if ("unsupported" in inferred) {
+      unsupported.push({ name: dotted, value: raw, reason: inferred.unsupported });
+      continue;
+    }
+    const name = dotted.replace(/\./g, "/");
+    variables.push({
+      name,
+      type: inferred.type,
+      valuesByMode: { [mode]: inferred.value },
+      sourceId: `tailwind:${dotted}`,
+      sourceHash: hash(raw),
+      rawByMode: { [mode]: raw },
+      codeSyntax: { WEB: tailwindClassHint(dotted) }
+    });
+  }
+  return {
+    source: { kind: "tailwind", path, hash: hash(JSON.stringify([...flat])), importedAt: Date.now() },
+    collections: [
+      {
+        name: options.collectionName ?? "Imported / Tailwind",
+        modes: [mode],
+        variables: deduplicate(variables, warnings)
+      }
+    ],
+    warnings,
+    unsupported
+  };
+}
+function tailwindClassHint(dotted) {
+  const [group, ...rest] = dotted.split(".");
+  const suffix = rest.join("-");
+  const prefixes = {
+    colors: "bg|text|border",
+    spacing: "p|m|gap",
+    borderRadius: "rounded",
+    fontSize: "text",
+    fontWeight: "font",
+    opacity: "opacity",
+    zIndex: "z",
+    maxWidth: "max-w",
+    minWidth: "min-w"
+  };
+  const prefix = prefixes[group];
+  return prefix ? `${prefix}-${suffix}` : `${group}.${suffix}`;
+}
+
+// mcp-server/src/import/storybook.ts
+import { readFile as readFile2 } from "node:fs/promises";
+async function parseStorybook(path) {
+  const warnings = [];
+  const raw = await readFile2(path, "utf8");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error2) {
+    throw new Error(`${path} is not valid JSON: ${error2 instanceof Error ? error2.message : String(error2)}`);
+  }
+  const entries = parsed.entries ?? parsed.stories;
+  if (!entries || typeof entries !== "object") {
+    throw new Error(
+      `${path} has no "entries" or "stories" object. Point at Storybook's generated \`index.json\` (or \`stories.json\`), not \`main.js\` or a story file.`
+    );
+  }
+  const byTitle = /* @__PURE__ */ new Map();
+  for (const entry of Object.values(entries)) {
+    if (!entry || typeof entry.title !== "string") continue;
+    let component = byTitle.get(entry.title);
+    if (!component) {
+      const segments = entry.title.split("/").map((segment) => segment.trim()).filter(Boolean);
+      component = {
+        title: entry.title,
+        name: segments[segments.length - 1] ?? entry.title,
+        nameCandidates: candidateNames(segments),
+        importPath: entry.importPath,
+        stories: [],
+        docsOnly: true,
+        tags: [],
+        sourceId: `storybook:${entry.title}`
+      };
+      byTitle.set(entry.title, component);
+    }
+    if (entry.type === "docs") continue;
+    component.docsOnly = false;
+    if (entry.name && !component.stories.includes(entry.name)) component.stories.push(entry.name);
+    for (const tag of entry.tags ?? []) if (!component.tags.includes(tag)) component.tags.push(tag);
+  }
+  const components = [...byTitle.values()].sort((a, b) => a.title.localeCompare(b.title));
+  if (!components.length) warnings.push("The index parsed but contained no components.");
+  const docsOnly = components.filter((component) => component.docsOnly).length;
+  if (docsOnly) warnings.push(`${docsOnly} entr${docsOnly === 1 ? "y is" : "ies are"} documentation-only, with no stories to read variants from.`);
+  return {
+    source: { kind: "storybook", path, hash: hash(raw), importedAt: Date.now(), version: parsed.v },
+    components,
+    warnings
+  };
+}
+function candidateNames(segments) {
+  const out = [];
+  for (let take = Math.min(segments.length, 3); take >= 1; take--) {
+    const joined = segments.slice(segments.length - take).join(" / ");
+    if (!out.includes(joined)) out.push(joined);
+  }
+  return out;
+}
+
+// mcp-server/src/import/index.ts
+import { readFile as readFile3 } from "node:fs/promises";
+function projectRoot() {
+  const configured = process.env.FIGMA_FORGE_PROJECT_DIR;
+  if (configured && configured.trim() && !configured.includes("${")) return resolve(configured);
+  return process.cwd();
+}
+async function resolveSourcePath(path) {
+  const root = projectRoot();
+  const absolute = isAbsolute(path) ? resolve(path) : resolve(root, path);
+  try {
+    await access(absolute);
+  } catch {
+    throw new Error(`No file at ${absolute}. Paths are resolved against ${root}.`);
+  }
+  const rel = relative(root, absolute);
+  return {
+    absolute,
+    display: rel && !rel.startsWith("..") ? rel : absolute,
+    outsideProject: !rel || rel.startsWith("..")
+  };
+}
+async function importTokenSource(source, absolutePath, options = {}) {
+  if (source === "tailwind") return await parseTailwind(absolutePath, options);
+  if (source === "css") return parseCss(await readFile3(absolutePath, "utf8"), absolutePath, options);
+  throw new Error(`"${source}" does not produce tokens \u2014 use action "map" for Storybook.`);
+}
+function summarizeIR(ir, sampleSize = 12) {
+  return {
+    source: ir.source,
+    collections: ir.collections.map((collection) => ({
+      name: collection.name,
+      modes: collection.modes,
+      variableCount: collection.variables.length,
+      byType: collection.variables.reduce((counts, variable) => {
+        counts[variable.type] = (counts[variable.type] ?? 0) + 1;
+        return counts;
+      }, {}),
+      sample: collection.variables.slice(0, sampleSize).map((variable) => ({
+        name: variable.name,
+        type: variable.type,
+        values: variable.rawByMode,
+        aliases: Object.values(variable.valuesByMode).filter((value) => value && typeof value === "object" && "alias" in value).map((value) => value.alias)
+      })),
+      truncated: Math.max(0, collection.variables.length - sampleSize)
+    })),
+    unsupported: ir.unsupported,
+    warnings: ir.warnings
+  };
+}
+
 // mcp-server/src/store.ts
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile as readFile4, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve as resolve2 } from "node:path";
 var INDEX_SCHEMA_VERSION = 1;
 var LIBRARY_TTL_MS = 15 * 60 * 1e3;
 function dataRoot() {
   const configured = process.env.FIGMA_FORGE_DATA_DIR;
-  if (configured && configured.trim() && !configured.includes("${")) return resolve(configured);
+  if (configured && configured.trim() && !configured.includes("${")) return resolve2(configured);
   return join(homedir(), ".figma-forge");
 }
 function slug(value) {
@@ -25521,7 +26149,7 @@ async function ensureDir(path) {
 }
 async function readJson(path) {
   try {
-    return JSON.parse(await readFile(path, "utf8"));
+    return JSON.parse(await readFile4(path, "utf8"));
   } catch {
     return null;
   }
@@ -25623,7 +26251,7 @@ function defaultChannel() {
   const explicit = envValue("FIGMA_FORGE_CHANNEL");
   if (explicit) return explicit;
   const projectDir = envValue("FIGMA_FORGE_PROJECT_DIR") ?? process.cwd();
-  const name = basename(projectDir).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
+  const name = basename3(projectDir).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
   return name || "figma-forge";
 }
 var port = Number(envValue("FIGMA_FORGE_BRIDGE_PORT") ?? 3055) || 3055;
@@ -26028,6 +26656,109 @@ In scope: figma, target, scratch, params, select(node, selector), matches, set(n
     try {
       const result = await call("execute", params, 12e4);
       return text(result);
+    } catch (error2) {
+      return failure(error2);
+    }
+  }
+);
+server.registerTool(
+  "figma_forge_import_code",
+  {
+    title: "Import tokens and components from code",
+    description: 'Brings a codebase\'s design tokens into Figma as variables, and maps Storybook components onto Figma ones.\n\nSources: "css" (custom properties \u2014 `:root`, dark-mode blocks, `@theme`), "tailwind" (a v4 CSS theme layer or a v3 tailwind.config.js, which is executed to read its theme), "storybook" (a generated index.json).\n\nActions: "preview" parses and shows what would be created, without touching Figma \u2014 always start here. "apply" writes the variables. "map" is Storybook-only and reports which components already exist in Figma and which do not.\n\nImports are source-owned: each variable is stamped with where it came from, so re-importing updates rather than duplicates, and a hand-authored variable is never overwritten without `takeOwnership`.',
+    inputSchema: {
+      source: external_exports.enum(["css", "tailwind", "storybook"]),
+      path: external_exports.string().describe("Path to the file, resolved against the project directory."),
+      action: external_exports.enum(["preview", "apply", "map"]).default("preview"),
+      collectionName: external_exports.string().optional().describe('Target Figma variable collection. Defaults to "Imported / <file>".'),
+      baseMode: external_exports.string().optional().describe('Name for the light/base mode. Default "Light".'),
+      darkMode: external_exports.string().optional().describe('Name for the dark mode. Default "Dark".'),
+      nameStyle: external_exports.enum(["slash", "flat"]).optional().describe('"slash" turns --color-blue-500 into color/blue/500.'),
+      remBase: external_exports.number().optional().describe("Pixels per rem when converting lengths. Default 16."),
+      includeAllSelectors: external_exports.boolean().optional().describe("Read custom properties from every selector, not just root blocks."),
+      takeOwnership: external_exports.boolean().optional().describe("Adopt existing variables that match by name but were authored by hand."),
+      dryRun: external_exports.boolean().optional().describe('For "apply": report what would change without writing.')
+    }
+  },
+  async (params) => {
+    try {
+      const location = await resolveSourcePath(params.path);
+      if (params.source === "storybook") {
+        if (params.action === "apply") {
+          return failure(
+            new Error(
+              'Storybook import does not write components. Figma Forge deliberately does not convert React to editable Figma components \u2014 the result is neither faithful nor maintainable. Use action "map" to see which Figma components correspond to your stories, then build or update those with apply_plan.'
+            )
+          );
+        }
+        const storybook = await parseStorybook(location.absolute);
+        if (params.action === "preview") {
+          return text({
+            source: { ...storybook.source, path: location.display },
+            componentCount: storybook.components.length,
+            components: storybook.components.slice(0, 40),
+            truncated: Math.max(0, storybook.components.length - 40),
+            warnings: storybook.warnings
+          });
+        }
+        const info = await sessionInfo();
+        const cached2 = await readIndex(info.fileKey ?? "local", "file", PLUGIN_VERSION);
+        if (!cached2) {
+          return failure(
+            new Error('No design-system index is cached yet. Run figma_forge_design_system { action: "refresh" } first.')
+          );
+        }
+        const matched = [];
+        const missing = [];
+        for (const component of storybook.components) {
+          let hits = [];
+          for (const candidate of component.nameCandidates) {
+            const attempt = search(cached2.index, candidate, { kinds: ["component"], limit: 3 });
+            if (attempt[0] && (!hits[0] || attempt[0].score > hits[0].score)) hits = attempt;
+          }
+          const best = hits[0];
+          if (best && best.score >= 250) {
+            matched.push({
+              storybook: component.title,
+              stories: component.stories,
+              figma: { name: best.name, componentKey: best.key, type: best.type },
+              confidence: best.score >= 500 ? "exact-name" : "partial-name",
+              alternatives: hits.slice(1).map((hit) => ({ name: hit.name, key: hit.key }))
+            });
+          } else {
+            missing.push({ storybook: component.title, stories: component.stories, closest: best ? best.name : null });
+          }
+        }
+        const figmaNames = new Set(matched.map((row) => row.figma.name));
+        const unmatchedFigma = cached2.index.components.filter((component) => component.type === "COMPONENT_SET" || !component.setId).filter((component) => !figmaNames.has(component.name)).slice(0, 40).map((component) => component.name);
+        return text({
+          source: { ...storybook.source, path: location.display },
+          matched,
+          notInFigma: missing,
+          notInStorybook: unmatchedFigma,
+          note: 'Story names are variant candidates, not proof of variants. Confirm against the Figma component with design_system { action: "resolve" } before treating them as legal property values.',
+          warnings: storybook.warnings
+        });
+      }
+      const ir = await importTokenSource(params.source, location.absolute, {
+        collectionName: params.collectionName,
+        baseMode: params.baseMode,
+        darkMode: params.darkMode,
+        nameStyle: params.nameStyle,
+        remBase: params.remBase,
+        includeAllSelectors: params.includeAllSelectors
+      });
+      ir.source.path = location.display;
+      if (params.action === "map") return failure(new Error('"map" applies to Storybook only.'));
+      if (params.action === "preview") {
+        return text({
+          ...summarizeIR(ir),
+          outsideProject: location.outsideProject || void 0,
+          next: 'Re-run with action "apply" to write these into Figma. Add dryRun to see the create/update split first.'
+        });
+      }
+      const results = await call("import_tokens", { ir, dryRun: params.dryRun, takeOwnership: params.takeOwnership }, 18e4);
+      return text({ source: ir.source, results, unsupported: ir.unsupported });
     } catch (error2) {
       return failure(error2);
     }

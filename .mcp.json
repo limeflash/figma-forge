@@ -1,14 +1,11 @@
 {
+  "_comment": "Development config for working ON Figma Forge in this repo. Claude Code loads a project-root .mcp.json with the project directory as cwd, so a relative path resolves. The config shipped to installed plugins is mcp-server/mcp.json, which uses ${CLAUDE_PLUGIN_ROOT} — that placeholder is empty here, which is why the two files cannot be one.",
   "mcpServers": {
     "figma-forge": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"],
+      "args": ["mcp-server/dist/index.js"],
       "env": {
-        "FIGMA_FORGE_BRIDGE_PORT": "${user_config.bridge_port}",
-        "FIGMA_FORGE_CHANNEL": "${user_config.channel}",
-        "FIGMA_FORGE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
-        "FIGMA_FORGE_DATA_DIR": "${CLAUDE_PLUGIN_DATA}",
-        "FIGMA_FORGE_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}"
+        "FIGMA_FORGE_BRIDGE_PORT": "3055"
       }
     }
   }

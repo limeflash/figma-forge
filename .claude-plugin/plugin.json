@@ -2,7 +2,7 @@
   "name": "figma-forge",
   "displayName": "Figma Forge",
   "version": "0.1.0",
-  "description": "Build and modify Figma designs from Claude Code with first-class design-system awareness — library-first components, variant/property handling, token binding, and post-write QA. Talks to Figma through a bundled Figma plugin over a local WebSocket bridge, so no paid Figma seat is required.",
+  "description": "Build and modify Figma designs from Claude Code with first-class design-system awareness \u2014 library-first components, variant/property handling, token binding, and post-write QA. Talks to Figma through a bundled Figma plugin over a local WebSocket bridge, so no paid Figma seat is required.",
   "author": {
     "name": "ennanoff",
     "email": "ennanoff@gmail.com"
@@ -16,7 +16,7 @@
     "variables",
     "ui"
   ],
-  "mcpServers": "./.mcp.json",
+  "mcpServers": "./mcp-server/mcp.json",
   "hooks": "./hooks/hooks.json",
   "userConfig": {
     "bridge_port": {

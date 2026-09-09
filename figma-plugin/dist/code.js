@@ -2655,6 +2655,196 @@ ${body}
     }
   }
 
+  // figma-plugin/src/runtime/commands/import-tokens.ts
+  var IMPORT_KEYS = {
+    source: "ff.source",
+    sourceHash: "ff.sourceHash",
+    importedFrom: "ff.importedFrom"
+  };
+  var isAlias = (value) => !!value && typeof value === "object" && "alias" in value;
+  function toFigmaValue(value) {
+    if (value && typeof value === "object" && "r" in value) {
+      const color = value;
+      return { r: color.r, g: color.g, b: color.b, a: color.a === void 0 ? 1 : color.a };
+    }
+    return value;
+  }
+  function ensureModes(collection, wanted) {
+    const byName = {};
+    for (const mode of collection.modes) byName[mode.name] = mode.modeId;
+    wanted.forEach((name, index) => {
+      if (byName[name]) return;
+      if (index === 0 && collection.modes.length === 1 && /^Mode 1$/i.test(collection.modes[0].name)) {
+        collection.renameMode(collection.modes[0].modeId, name);
+        byName[name] = collection.modes[0].modeId;
+        return;
+      }
+      try {
+        byName[name] = collection.addMode(name);
+      } catch (error) {
+        throw new Error(
+          `Could not add mode "${name}" to "${collection.name}": ${errorMessage(error)}. Additional modes require a paid Figma plan \u2014 re-run with a single-mode import.`
+        );
+      }
+    });
+    return byName;
+  }
+  async function importTokens(params) {
+    const ir = params.ir;
+    if (!ir || !Array.isArray(ir.collections)) throw new Error("import_tokens needs an `ir` with a `collections` array.");
+    const results = [];
+    for (const source of ir.collections) {
+      results.push(await importCollection(source, ir, params));
+    }
+    return results;
+  }
+  async function importCollection(source, ir, params) {
+    const dryRun = params.dryRun === true;
+    const name = params.collectionName ?? source.name;
+    const origin = `${ir.source.kind}:${ir.source.path}`;
+    const result = {
+      dryRun,
+      collection: { name, created: false, modes: [] },
+      created: [],
+      updated: [],
+      unchanged: [],
+      conflicts: [],
+      aliasFailures: [],
+      warnings: [...ir.warnings ?? []]
+    };
+    const existingCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    let collection = existingCollections.filter((candidate) => candidate.name === name)[0] ?? null;
+    if (collection && collection.remote) {
+      result.conflicts.push({ name, reason: "A collection with this name comes from a library and cannot be written to." });
+      return result;
+    }
+    if (!collection) {
+      result.collection.created = true;
+      if (dryRun) {
+        result.collection.modes = source.modes.map((mode) => ({ modeId: `(new) ${mode}`, name: mode }));
+      } else {
+        collection = figma.variables.createVariableCollection(name);
+        collection.setPluginData(IMPORT_KEYS.importedFrom, origin);
+      }
+    }
+    const modeIds = collection && !dryRun ? ensureModes(collection, source.modes) : {};
+    if (collection && !dryRun) {
+      result.collection.id = collection.id;
+      result.collection.modes = collection.modes.map((mode) => ({ modeId: mode.modeId, name: mode.name }));
+    }
+    const bySourceId = /* @__PURE__ */ new Map();
+    const byName = /* @__PURE__ */ new Map();
+    if (collection) {
+      for (const id of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(id);
+        if (!variable) continue;
+        byName.set(variable.name, variable);
+        const owned = safe(() => variable.getPluginData(IMPORT_KEYS.source));
+        if (owned) bySourceId.set(owned, variable);
+      }
+    }
+    const written = /* @__PURE__ */ new Map();
+    for (const token of source.variables) {
+      let variable = bySourceId.get(token.sourceId) ?? null;
+      let isNew = false;
+      if (!variable) {
+        const collision = byName.get(token.name);
+        if (collision) {
+          const owner = safe(() => collision.getPluginData(IMPORT_KEYS.source));
+          if (owner && owner !== token.sourceId) {
+            result.conflicts.push({
+              name: token.name,
+              reason: `already imported from a different source (${owner})`
+            });
+            continue;
+          }
+          if (!owner && !params.takeOwnership) {
+            result.conflicts.push({
+              name: token.name,
+              reason: "a hand-authored variable already has this name \u2014 pass takeOwnership to adopt it"
+            });
+            continue;
+          }
+          variable = collision;
+        } else {
+          isNew = true;
+        }
+      }
+      if (variable && variable.resolvedType !== token.type) {
+        result.conflicts.push({
+          name: token.name,
+          reason: `existing variable is ${variable.resolvedType}, the token is ${token.type}; Figma cannot change a variable's type`
+        });
+        continue;
+      }
+      if (variable && safe(() => variable.getPluginData(IMPORT_KEYS.sourceHash)) === token.sourceHash) {
+        result.unchanged.push(token.name);
+        written.set(token.sourceId, variable);
+        continue;
+      }
+      if (dryRun) {
+        (isNew ? result.created : result.updated).push(token.name);
+        continue;
+      }
+      if (!variable) {
+        variable = figma.variables.createVariable(token.name, collection, token.type);
+      } else if (variable.name !== token.name) {
+        variable.name = token.name;
+      }
+      for (const modeName of source.modes) {
+        const value = token.valuesByMode[modeName];
+        if (value === void 0 || isAlias(value)) continue;
+        const modeId = modeIds[modeName];
+        if (!modeId) continue;
+        variable.setValueForMode(modeId, toFigmaValue(value));
+      }
+      if (token.scopes) variable.scopes = token.scopes;
+      if (token.codeSyntax) {
+        for (const platform of Object.keys(token.codeSyntax)) {
+          try {
+            variable.setVariableCodeSyntax(platform, token.codeSyntax[platform]);
+          } catch {
+          }
+        }
+      }
+      variable.setPluginData(IMPORT_KEYS.source, token.sourceId);
+      variable.setPluginData(IMPORT_KEYS.sourceHash, token.sourceHash);
+      variable.setPluginData(IMPORT_KEYS.importedFrom, origin);
+      written.set(token.sourceId, variable);
+      (isNew ? result.created : result.updated).push(token.name);
+    }
+    if (!dryRun) {
+      const prefix = `${ir.source.kind === "tailwind" ? "css" : ir.source.kind}:`;
+      for (const token of source.variables) {
+        const variable = written.get(token.sourceId) ?? bySourceId.get(token.sourceId);
+        if (!variable) continue;
+        for (const modeName of source.modes) {
+          const value = token.valuesByMode[modeName];
+          if (value === void 0 || !isAlias(value)) continue;
+          const modeId = modeIds[modeName];
+          if (!modeId) continue;
+          const targetSourceId = `${prefix}${value.alias}`;
+          const target = written.get(targetSourceId) ?? bySourceId.get(targetSourceId);
+          if (!target) {
+            result.aliasFailures.push({ name: token.name, alias: value.alias });
+            continue;
+          }
+          try {
+            variable.setValueForMode(modeId, figma.variables.createVariableAlias(target));
+          } catch (error) {
+            result.aliasFailures.push({ name: token.name, alias: `${value.alias} (${errorMessage(error)})` });
+          }
+        }
+      }
+    }
+    if (result.aliasFailures.length) {
+      result.warnings.push(
+        `${result.aliasFailures.length} alias(es) could not be resolved and kept their fallback value. The referenced tokens are usually defined in a file that was not part of this import.`
+      );
+    }
+    return result;
+  }
+
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
   var STORAGE_KEYS = {
@@ -2690,6 +2880,7 @@ ${body}
     apply_plan: (params) => applyPlan(params),
     verify: (params) => verify(params),
     recover: (params) => recover(params),
+    import_tokens: (params) => importTokens(params),
     execute: (params) => execute(params),
     modules: (params) => {
       const action = params.action ?? "list";

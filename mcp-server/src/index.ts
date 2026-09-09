@@ -19,6 +19,7 @@ import { z } from 'zod';
 
 import { Bridge, BridgeError } from './bridge.js';
 import { overview, search, RawIndex, ResultKind } from './search.js';
+import { importTokenSource, parseStorybook, resolveSourcePath, summarizeIR } from './import/index.js';
 import {
   clearIndex,
   dataDirectory,
@@ -559,6 +560,139 @@ server.registerTool(
     try {
       const result = await call<{ violations: string[] }>('execute', params as Record<string, unknown>, 120_000);
       return text(result);
+    } catch (error) {
+      return failure(error);
+    }
+  }
+);
+
+server.registerTool(
+  'figma_forge_import_code',
+  {
+    title: 'Import tokens and components from code',
+    description:
+      'Brings a codebase\'s design tokens into Figma as variables, and maps Storybook components onto Figma ones.\n\n' +
+      'Sources: "css" (custom properties — `:root`, dark-mode blocks, `@theme`), "tailwind" (a v4 CSS theme layer or ' +
+      'a v3 tailwind.config.js, which is executed to read its theme), "storybook" (a generated index.json).\n\n' +
+      'Actions: "preview" parses and shows what would be created, without touching Figma — always start here. ' +
+      '"apply" writes the variables. "map" is Storybook-only and reports which components already exist in Figma ' +
+      'and which do not.\n\n' +
+      'Imports are source-owned: each variable is stamped with where it came from, so re-importing updates rather ' +
+      'than duplicates, and a hand-authored variable is never overwritten without `takeOwnership`.',
+    inputSchema: {
+      source: z.enum(['css', 'tailwind', 'storybook']),
+      path: z.string().describe('Path to the file, resolved against the project directory.'),
+      action: z.enum(['preview', 'apply', 'map']).default('preview'),
+      collectionName: z.string().optional().describe('Target Figma variable collection. Defaults to "Imported / <file>".'),
+      baseMode: z.string().optional().describe('Name for the light/base mode. Default "Light".'),
+      darkMode: z.string().optional().describe('Name for the dark mode. Default "Dark".'),
+      nameStyle: z.enum(['slash', 'flat']).optional().describe('"slash" turns --color-blue-500 into color/blue/500.'),
+      remBase: z.number().optional().describe('Pixels per rem when converting lengths. Default 16.'),
+      includeAllSelectors: z.boolean().optional().describe('Read custom properties from every selector, not just root blocks.'),
+      takeOwnership: z.boolean().optional().describe('Adopt existing variables that match by name but were authored by hand.'),
+      dryRun: z.boolean().optional().describe('For "apply": report what would change without writing.'),
+    },
+  },
+  async (params): Promise<ToolResult> => {
+    try {
+      const location = await resolveSourcePath(params.path);
+
+      if (params.source === 'storybook') {
+        if (params.action === 'apply') {
+          return failure(
+            new Error(
+              'Storybook import does not write components. Figma Forge deliberately does not convert React to ' +
+                'editable Figma components — the result is neither faithful nor maintainable. Use action "map" to ' +
+                'see which Figma components correspond to your stories, then build or update those with apply_plan.'
+            )
+          );
+        }
+
+        const storybook = await parseStorybook(location.absolute);
+        if (params.action === 'preview') {
+          return text({
+            source: { ...storybook.source, path: location.display },
+            componentCount: storybook.components.length,
+            components: storybook.components.slice(0, 40),
+            truncated: Math.max(0, storybook.components.length - 40),
+            warnings: storybook.warnings,
+          });
+        }
+
+        // "map": score every Storybook component against the cached DS index.
+        const info = await sessionInfo();
+        const cached = await readIndex<RawIndex>(info.fileKey ?? 'local', 'file', PLUGIN_VERSION);
+        if (!cached) {
+          return failure(
+            new Error('No design-system index is cached yet. Run figma_forge_design_system { action: "refresh" } first.')
+          );
+        }
+
+        const matched: unknown[] = [];
+        const missing: unknown[] = [];
+        for (const component of storybook.components) {
+          let hits: ReturnType<typeof search> = [];
+          for (const candidate of component.nameCandidates) {
+            const attempt = search(cached.index, candidate, { kinds: ['component'], limit: 3 });
+            if (attempt[0] && (!hits[0] || attempt[0].score > hits[0].score)) hits = attempt;
+          }
+          const best = hits[0];
+          // A weak name overlap is not a mapping; saying so is more useful than
+          // pairing "Card" with "Discard button".
+          if (best && best.score >= 250) {
+            matched.push({
+              storybook: component.title,
+              stories: component.stories,
+              figma: { name: best.name, componentKey: best.key, type: best.type },
+              confidence: best.score >= 500 ? 'exact-name' : 'partial-name',
+              alternatives: hits.slice(1).map((hit) => ({ name: hit.name, key: hit.key })),
+            });
+          } else {
+            missing.push({ storybook: component.title, stories: component.stories, closest: best ? best.name : null });
+          }
+        }
+
+        const figmaNames = new Set(matched.map((row) => (row as { figma: { name: string } }).figma.name));
+        const unmatchedFigma = cached.index.components
+          .filter((component) => component.type === 'COMPONENT_SET' || !component.setId)
+          .filter((component) => !figmaNames.has(component.name))
+          .slice(0, 40)
+          .map((component) => component.name);
+
+        return text({
+          source: { ...storybook.source, path: location.display },
+          matched,
+          notInFigma: missing,
+          notInStorybook: unmatchedFigma,
+          note:
+            'Story names are variant candidates, not proof of variants. Confirm against the Figma component with ' +
+            'design_system { action: "resolve" } before treating them as legal property values.',
+          warnings: storybook.warnings,
+        });
+      }
+
+      const ir = await importTokenSource(params.source, location.absolute, {
+        collectionName: params.collectionName,
+        baseMode: params.baseMode,
+        darkMode: params.darkMode,
+        nameStyle: params.nameStyle,
+        remBase: params.remBase,
+        includeAllSelectors: params.includeAllSelectors,
+      });
+      ir.source.path = location.display;
+
+      if (params.action === 'map') return failure(new Error('"map" applies to Storybook only.'));
+
+      if (params.action === 'preview') {
+        return text({
+          ...summarizeIR(ir),
+          outsideProject: location.outsideProject || undefined,
+          next: 'Re-run with action "apply" to write these into Figma. Add dryRun to see the create/update split first.',
+        });
+      }
+
+      const results = await call('import_tokens', { ir, dryRun: params.dryRun, takeOwnership: params.takeOwnership }, 180_000);
+      return text({ source: ir.source, results, unsupported: ir.unsupported });
     } catch (error) {
       return failure(error);
     }

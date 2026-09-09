@@ -26856,7 +26856,17 @@ server.registerTool(
       let verification;
       if (result.ok && params.verify !== false && (result.created.length || result.modified.length)) {
         try {
-          verification = await call("verify", { scope: "operation", operationId: result.operationId }, 12e4);
+          verification = await call(
+            "verify",
+            {
+              scope: "operation",
+              operationId: result.operationId,
+              // We already know what changed; making the plugin search for it
+              // costs a full-document scan.
+              nodeIds: [...result.created, ...result.modified]
+            },
+            12e4
+          );
         } catch (error2) {
           verification = { skipped: error2 instanceof Error ? error2.message : String(error2) };
         }
@@ -26883,6 +26893,7 @@ server.registerTool(
       nodeId: external_exports.string().optional(),
       pageId: external_exports.string().optional(),
       operationId: external_exports.string().optional(),
+      nodeIds: external_exports.array(external_exports.string()).optional().describe('For scope "operation": check exactly these nodes instead of searching the document for them.'),
       rules: external_exports.array(external_exports.string()).optional().describe("Only run these rules."),
       ignore: external_exports.array(external_exports.string()).optional(),
       minSeverity: external_exports.enum(["error", "warning", "info"]).optional(),
@@ -26906,7 +26917,7 @@ server.registerTool(
     inputSchema: {
       action: external_exports.enum(["rollback", "list", "restore_quarantine", "purge_quarantine", "list_operation"]).default("rollback"),
       operationId: external_exports.string().optional(),
-      nodeIds: external_exports.array(external_exports.string()).optional()
+      nodeIds: external_exports.array(external_exports.string()).optional().describe("Verify exactly these nodes; far faster than searching for them.")
     }
   },
   async (params) => {
@@ -27364,9 +27375,11 @@ server.registerTool(
         content.push({ type: "text", text: `${shot.name} \u2014 ${url ?? `\u0443\u0437\u0435\u043B ${root.nodeId}`}` });
         content.push({ type: "image", data: shot.bytes, mimeType: "image/png" });
       }
-      const verification = await call("verify", { scope: "operation", operationId: built.operationId }, 12e4).catch(
-        () => null
-      );
+      const verification = await call(
+        "verify",
+        { scope: "operation", operationId: built.operationId, nodeIds: built.created },
+        12e4
+      ).catch(() => null);
       content.push({
         type: "text",
         text: JSON.stringify(

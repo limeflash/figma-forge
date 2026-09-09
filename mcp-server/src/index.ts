@@ -505,7 +505,17 @@ server.registerTool(
       let verification: unknown;
       if (result.ok && params.verify !== false && (result.created.length || result.modified.length)) {
         try {
-          verification = await call('verify', { scope: 'operation', operationId: result.operationId }, 120_000);
+          verification = await call(
+            'verify',
+            {
+              scope: 'operation',
+              operationId: result.operationId,
+              // We already know what changed; making the plugin search for it
+              // costs a full-document scan.
+              nodeIds: [...result.created, ...result.modified],
+            },
+            120_000
+          );
         } catch (error) {
           verification = { skipped: error instanceof Error ? error.message : String(error) };
         }
@@ -538,6 +548,7 @@ server.registerTool(
       nodeId: z.string().optional(),
       pageId: z.string().optional(),
       operationId: z.string().optional(),
+      nodeIds: z.array(z.string()).optional().describe('For scope "operation": check exactly these nodes instead of searching the document for them.'),
       rules: z.array(z.string()).optional().describe('Only run these rules.'),
       ignore: z.array(z.string()).optional(),
       minSeverity: z.enum(['error', 'warning', 'info']).optional(),
@@ -564,7 +575,7 @@ server.registerTool(
     inputSchema: {
       action: z.enum(['rollback', 'list', 'restore_quarantine', 'purge_quarantine', 'list_operation']).default('rollback'),
       operationId: z.string().optional(),
-      nodeIds: z.array(z.string()).optional(),
+      nodeIds: z.array(z.string()).optional().describe('Verify exactly these nodes; far faster than searching for them.'),
     },
   },
   async (params): Promise<ToolResult> => {
@@ -1188,9 +1199,11 @@ server.registerTool(
         content.push({ type: 'image', data: shot.bytes, mimeType: 'image/png' });
       }
 
-      const verification = await call('verify', { scope: 'operation', operationId: built.operationId }, 120_000).catch(
-        () => null
-      );
+      const verification = await call(
+        'verify',
+        { scope: 'operation', operationId: built.operationId, nodeIds: built.created },
+        120_000
+      ).catch(() => null);
 
       content.push({
         type: 'text',

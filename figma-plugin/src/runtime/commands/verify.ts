@@ -41,6 +41,11 @@ export interface VerifyParams {
   limit?: number;
   /** For scope "operation": only nodes tagged with this operation id. */
   operationId?: string;
+  /**
+   * Explicit nodes to check. A write already knows exactly what it touched, so
+   * passing the ids avoids searching the document for them.
+   */
+  nodeIds?: string[];
 }
 
 const SEVERITY_ORDER: Record<Severity, number> = { error: 3, warning: 2, info: 1 };
@@ -81,6 +86,24 @@ async function collect(params: VerifyParams): Promise<{ nodes: AnyNode[]; root: 
       break;
     }
     case 'operation': {
+      // The fast path, and the one writes use: the caller already knows which
+      // nodes it touched. Searching for them instead means loading all 65 pages
+      // of a large file and reading plugin data on every node in it — which on a
+      // real document takes minutes and grows with every write, making a
+      // finished plan look like a hung one.
+      if (params.nodeIds && params.nodeIds.length) {
+        const nodes: AnyNode[] = [];
+        for (const id of params.nodeIds.slice(0, maxNodes)) {
+          const node = (await figma.getNodeByIdAsync(id)) as AnyNode | null;
+          if (node) nodes.push(node);
+        }
+        return {
+          nodes,
+          root: nodes[0] ?? (figma.root as unknown as AnyNode),
+          truncated: Math.max(0, params.nodeIds.length - nodes.length),
+        };
+      }
+
       await figma.loadAllPagesAsync();
       const tagged = figma.root.findAll((node) => {
         const value = safe(() => node.getPluginData(DATA_KEYS.operation));

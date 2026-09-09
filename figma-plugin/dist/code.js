@@ -2411,6 +2411,18 @@ ${body}
         break;
       }
       case "operation": {
+        if (params.nodeIds && params.nodeIds.length) {
+          const nodes = [];
+          for (const id of params.nodeIds.slice(0, maxNodes)) {
+            const node = await figma.getNodeByIdAsync(id);
+            if (node) nodes.push(node);
+          }
+          return {
+            nodes,
+            root: nodes[0] ?? figma.root,
+            truncated: Math.max(0, params.nodeIds.length - nodes.length)
+          };
+        }
         await figma.loadAllPagesAsync();
         const tagged = figma.root.findAll((node) => {
           const value = safe(() => node.getPluginData(DATA_KEYS.operation));

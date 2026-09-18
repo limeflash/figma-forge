@@ -388,6 +388,16 @@ const BLEND_MODES: Record<string, string> = {
   luminosity: 'LUMINOSITY',
 };
 
+/** Which edge a positioned box holds on to, read from where it sits. */
+function edgePin(box: Box, parent: Box, axis: Axis): 'MIN' | 'MAX' | 'STRETCH' {
+  const at = axis === 'x' ? 0 : 1;
+  const extent = at + 2;
+  const before = box[at] - parent[at];
+  const after = parent[at] + parent[extent] - (box[at] + box[extent]);
+  if (near(before, 0, 1) && near(after, 0, 1)) return 'STRETCH';
+  return near(after, 0, 1) && before > 1 ? 'MAX' : 'MIN';
+}
+
 function hasVisuals(frame: FrameIR): boolean {
   return !!(frame.fills?.length || frame.stroke || frame.effects?.length || frame.opacity !== undefined || frame.blendMode);
 }
@@ -1383,11 +1393,11 @@ function convertElement(ctx: Context, el: RawElement, parentZ: number): Item | n
       layer.absolute = true;
       layer.sizing = { h: 'FIXED', v: 'FIXED' };
     }
-    const s = item.style;
-    layer.constraints = {
-      h: s.right !== undefined && s.left === undefined ? 'MAX' : s.left !== undefined && s.right !== undefined ? 'STRETCH' : 'MIN',
-      v: s.bottom !== undefined && s.top === undefined ? 'MAX' : s.top !== undefined && s.bottom !== undefined ? 'STRETCH' : 'MIN',
-    };
+    // Which edges it is pinned to has to come from where it sits: the browser
+    // reports `left`/`right` as used pixels, so `auto` cannot be told from a
+    // real offset, and reading both as pinned makes Figma stretch a small
+    // overlay across the content it only sat beside.
+    layer.constraints = { h: edgePin(item.box, el.r, 'x'), v: edgePin(item.box, el.r, 'y') };
     if (item.zIndex < 0) {
       frame.children.unshift(layer);
       continue;

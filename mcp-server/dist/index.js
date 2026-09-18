@@ -27320,6 +27320,14 @@ var BLEND_MODES = {
   color: "COLOR",
   luminosity: "LUMINOSITY"
 };
+function edgePin(box, parent, axis) {
+  const at = axis === "x" ? 0 : 1;
+  const extent = at + 2;
+  const before = box[at] - parent[at];
+  const after = parent[at] + parent[extent] - (box[at] + box[extent]);
+  if (near(before, 0, 1) && near(after, 0, 1)) return "STRETCH";
+  return near(after, 0, 1) && before > 1 ? "MAX" : "MIN";
+}
 function hasVisuals(frame) {
   return !!(frame.fills?.length || frame.stroke || frame.effects?.length || frame.opacity !== void 0 || frame.blendMode);
 }
@@ -28109,11 +28117,7 @@ function convertElement(ctx, el, parentZ) {
       layer.absolute = true;
       layer.sizing = { h: "FIXED", v: "FIXED" };
     }
-    const s = item.style;
-    layer.constraints = {
-      h: s.right !== void 0 && s.left === void 0 ? "MAX" : s.left !== void 0 && s.right !== void 0 ? "STRETCH" : "MIN",
-      v: s.bottom !== void 0 && s.top === void 0 ? "MAX" : s.top !== void 0 && s.bottom !== void 0 ? "STRETCH" : "MIN"
-    };
+    layer.constraints = { h: edgePin(item.box, el.r, "x"), v: edgePin(item.box, el.r, "y") };
     if (item.zIndex < 0) {
       frame.children.unshift(layer);
       continue;

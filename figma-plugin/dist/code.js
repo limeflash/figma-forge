@@ -3472,9 +3472,7 @@ ${body}
         const variable = exact ?? opaque;
         if (variable) {
           try {
-            paint = figma.variables.setBoundVariableForPaint(solid, "color", variable);
-            if (!exact) paint = { ...paint, opacity: alpha };
-            else paint = { ...paint, opacity: 1 };
+            paint = { ...figma.variables.setBoundVariableForPaint(solid, "color", variable), opacity: alpha };
             ctx.bound++;
           } catch {
           }

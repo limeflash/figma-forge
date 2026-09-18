@@ -342,9 +342,10 @@ function paintsOf(paints: PaintIR[] | undefined, ctx: BuildContext, usage: Usage
       const variable = exact ?? opaque;
       if (variable) {
         try {
-          paint = figma.variables.setBoundVariableForPaint(solid, 'color', variable);
-          if (!exact) paint = { ...(paint as SolidPaint), opacity: alpha };
-          else paint = { ...(paint as SolidPaint), opacity: 1 };
+          // Figma takes only the RGB from a bound variable, so the paint has to
+          // keep the alpha the page asked for — otherwise a 20% teal wash comes
+          // out solid and swallows whatever sits on it.
+          paint = { ...(figma.variables.setBoundVariableForPaint(solid, 'color', variable) as SolidPaint), opacity: alpha };
           ctx.bound++;
         } catch {
           /* an unbindable variable leaves the literal colour in place */

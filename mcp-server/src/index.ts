@@ -1319,6 +1319,10 @@ server.registerTool(
         .optional()
         .describe('For "build": an existing page id, or a page name to find or create. Default: a new page named after the source.'),
       bindTokens: z.boolean().optional().describe('For "build": bind colours to matching local variables. Default true.'),
+      components: z
+        .boolean()
+        .optional()
+        .describe('For "build": place instances of the file\'s own components where a layer matches one. Default true.'),
       dryRun: z.boolean().optional().describe('For "build": render and convert, report, write nothing.'),
       operationId: z.string().optional().describe('For "cleanup".'),
     },
@@ -1398,6 +1402,7 @@ server.registerTool(
         operationId,
         target: { pageId: params.target?.pageId, pageName },
         bindTokens: params.bindTokens !== false,
+        useComponents: params.components !== false,
         sections,
         call: (command, commandParams, timeout) => call(command, commandParams, timeout),
         progress: report,
@@ -1435,6 +1440,16 @@ server.registerTool(
           {
             imported: true,
             operationId,
+            components: written.instances.catalogue
+              ? {
+                  instances: written.instances.count,
+                  catalogue: written.instances.catalogue,
+                  used: Object.entries(written.instances.used)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 20)
+                    .map(([name, count]) => `${name} ×${count}`),
+                }
+              : undefined,
             page: {
               id: written.pageId,
               name: written.pageName,

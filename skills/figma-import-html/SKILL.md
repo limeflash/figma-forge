@@ -152,6 +152,12 @@ parts and warnings. Then build for real:
   sections sit side by side.
 - **Colours** bind to local colour variables with the same value. A semantic
   alias wins over a primitive. Turn this off with `bindTokens: false`.
+- **Components.** Buttons, chips, inputs and icons the file already has are
+  placed as instances of those components, with the screen's own words filled
+  into their text properties. The report lists which components were used and
+  how often; `components: false` builds everything as frames. A layer that
+  matched nothing keeps its layers, and so does an instance that fails to
+  build, so an import never comes out empty.
 - **Fonts.** Families are matched by how well they cover the weights the design
   uses, and by what the file already uses — a machine with "Golos Text"
   (two weights installed) and "Golos" (five) gets "Golos", not every text in
@@ -191,9 +197,10 @@ Look at them, and inspect one screen at `detail: "full"`.
 
 ## Limits
 
-- Screens become frames, not component instances, even when the mockup was
-  built from the user's design system. For a component library the designer
-  still decides what to componentize.
+- Only parts the file already draws become instances; everything else is
+  frames. A component is used when a layer agrees with it on size, on the
+  words it shows, on its fill and on its radius — a near miss stays a frame,
+  because a wrong instance looks right and behaves differently.
 - Hover and pressed styles are imported only as states you capture with
   `hover` steps.
 - Cross-origin iframes and cross-origin images without CORS become rasters.

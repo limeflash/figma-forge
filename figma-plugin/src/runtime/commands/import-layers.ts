@@ -20,6 +20,7 @@ import type {
   EffectIR,
   FrameIR,
   ImageIR,
+  InstanceIR,
   LayerIR,
   PaintIR,
   ScreenIR,
@@ -309,6 +310,7 @@ interface BuildContext {
   missingFonts: Set<string>;
   nodes: number;
   bound: number;
+  instances: number;
 }
 
 function paintOf(paint: PaintIR, ctx: BuildContext): Paint | null {
@@ -490,6 +492,48 @@ function common(node: SceneNode & BlendMixin, layer: LayerIR): void {
   }
 }
 
+/**
+ * Places the component the server matched. Anything that goes wrong — the
+ * component was deleted, a property no longer exists — falls back to building
+ * the layer tree, which is still in the IR.
+ */
+async function buildInstance(layer: FrameIR, parent: Container, ctx: BuildContext): Promise<InstanceNode | null> {
+  const spec = layer.instance!;
+  try {
+    const component = (await figma.getNodeByIdAsync(spec.componentId)) as ComponentNode | null;
+    if (!component || component.type !== 'COMPONENT') throw new Error('component is gone');
+    const instance = component.createInstance();
+    parent.appendChild(instance);
+    common(instance, layer);
+    if (spec.properties && Object.keys(spec.properties).length) {
+      try {
+        instance.setProperties(spec.properties);
+      } catch (error) {
+        ctx.warnings.push(`${layer.name}: ${spec.componentName} kept its own properties (${errorMessage(error)}).`);
+      }
+    }
+    for (const [name, characters] of Object.entries(spec.text ?? {})) {
+      const text = instance.findOne((node) => node.type === 'TEXT' && node.name === name) as TextNode | null;
+      if (!text) continue;
+      const font = safe(() => text.fontName) as FontName | undefined;
+      if (font && typeof font !== 'string') await loadFont(font);
+      text.characters = characters;
+    }
+    if (Math.abs(instance.width - layer.width) > 0.5 || Math.abs(instance.height - layer.height) > 0.5) {
+      safe(() => instance.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01)));
+    }
+    if (!isAutoLayout(parent) || layer.absolute) {
+      instance.x = layer.x;
+      instance.y = layer.y;
+    }
+    ctx.instances++;
+    return instance;
+  } catch (error) {
+    ctx.warnings.push(`${layer.name}: could not use ${spec.componentName} (${errorMessage(error)}); built as layers.`);
+    return null;
+  }
+}
+
 async function buildFrame(layer: FrameIR, parent: Container, ctx: BuildContext): Promise<FrameNode> {
   const frame = figma.createFrame();
   parent.appendChild(frame);
@@ -636,8 +680,10 @@ async function buildLayer(layer: LayerIR, parent: Container, ctx: BuildContext):
   const before = parent.children.length;
   try {
     switch (layer.type) {
-      case 'FRAME':
-        return await buildFrame(layer, parent, ctx);
+      case 'FRAME': {
+        const instance = layer.instance ? await buildInstance(layer, parent, ctx) : null;
+        return instance ?? (await buildFrame(layer, parent, ctx));
+      }
       case 'TEXT':
         return await buildText(layer, parent, ctx);
       case 'SVG':
@@ -661,6 +707,107 @@ async function buildLayer(layer: LayerIR, parent: Container, ctx: BuildContext):
     }
     return stand;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Components the file already has
+ * ------------------------------------------------------------------ */
+
+export interface ComponentFingerprint {
+  id: string;
+  name: string;
+  /** The set's name when this is a variant, so "Button / Primary" reads right. */
+  setName?: string;
+  variant?: Record<string, string>;
+  width: number;
+  height: number;
+  radius: number | null;
+  /** Top fill as `r,g,b,a` in 0-255, for a cheap colour comparison. */
+  fill: string | null;
+  /** Every string the component shows, in reading order. */
+  texts: { name: string; characters: string; property?: string }[];
+  /** Component properties that can be set on an instance. */
+  properties: { name: string; type: string; options?: string[] }[];
+  layers: number;
+  vectors: number;
+}
+
+const paintKey = (paints: readonly Paint[] | typeof figma.mixed): string | null => {
+  if (paints === figma.mixed || !Array.isArray(paints)) return null;
+  const solid = paints.find((paint) => paint.type === 'SOLID' && paint.visible !== false) as SolidPaint | undefined;
+  if (!solid) return null;
+  return `${channel(solid.color.r)},${channel(solid.color.g)},${channel(solid.color.b)},${Math.round((solid.opacity ?? 1) * 100)}`;
+};
+
+function fingerprint(node: ComponentNode): ComponentFingerprint | null {
+  const inside = node.findAll(() => true);
+  if (inside.length > 400) return null;
+  const texts = inside
+    .filter((child): child is TextNode => child.type === 'TEXT')
+    .map((text) => ({
+      name: text.name,
+      characters: typeof text.characters === 'string' ? text.characters : '',
+      property: (text.componentPropertyReferences ?? {}).characters ?? undefined,
+    }));
+  const set = node.parent && node.parent.type === 'COMPONENT_SET' ? (node.parent as ComponentSetNode) : null;
+  const definitions = set ? set.componentPropertyDefinitions : node.componentPropertyDefinitions;
+  const properties = Object.entries(definitions ?? {}).map(([name, definition]) => ({
+    name,
+    type: definition.type,
+    options: definition.variantOptions ? [...definition.variantOptions] : undefined,
+  }));
+  return {
+    id: node.id,
+    name: node.name,
+    setName: set ? set.name : undefined,
+    variant: node.variantProperties ? { ...node.variantProperties } : undefined,
+    width: Math.round(node.width * 100) / 100,
+    height: Math.round(node.height * 100) / 100,
+    radius: typeof node.cornerRadius === 'number' ? node.cornerRadius : null,
+    fill: paintKey(node.fills),
+    texts,
+    properties,
+    layers: inside.length,
+    vectors: inside.filter((child) => child.type === 'VECTOR' || child.type === 'BOOLEAN_OPERATION').length,
+  };
+}
+
+export interface ComponentCatalogueParams {
+  /** Only these pages; every page when absent. */
+  pageIds?: string[];
+  /** Components wider or taller than this are screens, not parts. */
+  maxSize?: number;
+  limit?: number;
+}
+
+export async function importComponents(params: ComponentCatalogueParams): Promise<{ components: ComponentFingerprint[]; pages: string[]; skipped: number }> {
+  const maxSize = params.maxSize ?? 1200;
+  const limit = params.limit ?? 4000;
+  const wanted = params.pageIds?.length ? new Set(params.pageIds) : null;
+  const components: ComponentFingerprint[] = [];
+  const pages: string[] = [];
+  let skipped = 0;
+  for (const page of figma.root.children) {
+    if (wanted && !wanted.has(page.id)) continue;
+    try {
+      await page.loadAsync();
+    } catch {
+      continue;
+    }
+    pages.push(page.name);
+    for (const node of page.findAllWithCriteria({ types: ['COMPONENT'] })) {
+      if (components.length >= limit) break;
+      const component = node as ComponentNode;
+      if (component.width > maxSize || component.height > maxSize || component.width < 4 || component.height < 4) {
+        skipped++;
+        continue;
+      }
+      const print = safe(() => fingerprint(component)) as ComponentFingerprint | undefined;
+      if (print) components.push(print);
+      else skipped++;
+    }
+  }
+  return { components, pages, skipped };
 }
 
 /* ------------------------------------------------------------------ *
@@ -810,6 +957,7 @@ export async function importScreen(params: ScreenIR): Promise<ImportScreenResult
     missingFonts: new Set(),
     nodes: 0,
     bound: 0,
+    instances: 0,
   };
   if (ctx.tokens && !ctx.tokens.byColor.size) ctx.tokens = null;
 

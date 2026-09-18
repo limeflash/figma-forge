@@ -20,9 +20,11 @@ import { buildGraph, GraphParams } from './runtime/commands/graph';
 import { exportThumbnails, resolveVariables, ThumbnailParams } from './runtime/commands/thumbnails';
 import {
   ArrangeParams,
+  ComponentCatalogueParams,
   importArrange,
   importCanvas,
   importCleanup,
+  importComponents,
   importImages,
   ImportImagesParams,
   importScreen,
@@ -141,6 +143,8 @@ const handlers: Record<string, Handler> = {
   import_arrange: (params) => importArrange(params as unknown as ArrangeParams),
 
   import_cleanup: (params) => importCleanup(params as { operationId: string }),
+
+  import_components: (params) => importComponents(params as unknown as ComponentCatalogueParams),
 
   execute: (params) => execute(params as unknown as ExecParams),
 

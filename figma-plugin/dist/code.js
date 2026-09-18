@@ -3587,6 +3587,42 @@ ${body}
       }
     }
   }
+  async function buildInstance(layer, parent, ctx) {
+    const spec = layer.instance;
+    try {
+      const component = await figma.getNodeByIdAsync(spec.componentId);
+      if (!component || component.type !== "COMPONENT") throw new Error("component is gone");
+      const instance = component.createInstance();
+      parent.appendChild(instance);
+      common(instance, layer);
+      if (spec.properties && Object.keys(spec.properties).length) {
+        try {
+          instance.setProperties(spec.properties);
+        } catch (error) {
+          ctx.warnings.push(`${layer.name}: ${spec.componentName} kept its own properties (${errorMessage(error)}).`);
+        }
+      }
+      for (const [name, characters] of Object.entries(spec.text ?? {})) {
+        const text = instance.findOne((node) => node.type === "TEXT" && node.name === name);
+        if (!text) continue;
+        const font = safe(() => text.fontName);
+        if (font && typeof font !== "string") await loadFont(font);
+        text.characters = characters;
+      }
+      if (Math.abs(instance.width - layer.width) > 0.5 || Math.abs(instance.height - layer.height) > 0.5) {
+        safe(() => instance.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01)));
+      }
+      if (!isAutoLayout(parent) || layer.absolute) {
+        instance.x = layer.x;
+        instance.y = layer.y;
+      }
+      ctx.instances++;
+      return instance;
+    } catch (error) {
+      ctx.warnings.push(`${layer.name}: could not use ${spec.componentName} (${errorMessage(error)}); built as layers.`);
+      return null;
+    }
+  }
   async function buildFrame(layer, parent, ctx) {
     const frame = figma.createFrame();
     parent.appendChild(frame);
@@ -3719,8 +3755,10 @@ ${body}
     const before = parent.children.length;
     try {
       switch (layer.type) {
-        case "FRAME":
-          return await buildFrame(layer, parent, ctx);
+        case "FRAME": {
+          const instance = layer.instance ? await buildInstance(layer, parent, ctx) : null;
+          return instance ?? await buildFrame(layer, parent, ctx);
+        }
         case "TEXT":
           return await buildText(layer, parent, ctx);
         case "SVG":
@@ -3742,6 +3780,71 @@ ${body}
       }
       return stand;
     }
+  }
+  var paintKey = (paints) => {
+    if (paints === figma.mixed || !Array.isArray(paints)) return null;
+    const solid = paints.find((paint) => paint.type === "SOLID" && paint.visible !== false);
+    if (!solid) return null;
+    return `${channel(solid.color.r)},${channel(solid.color.g)},${channel(solid.color.b)},${Math.round((solid.opacity ?? 1) * 100)}`;
+  };
+  function fingerprint(node) {
+    const inside = node.findAll(() => true);
+    if (inside.length > 400) return null;
+    const texts = inside.filter((child) => child.type === "TEXT").map((text) => ({
+      name: text.name,
+      characters: typeof text.characters === "string" ? text.characters : "",
+      property: (text.componentPropertyReferences ?? {}).characters ?? void 0
+    }));
+    const set = node.parent && node.parent.type === "COMPONENT_SET" ? node.parent : null;
+    const definitions = set ? set.componentPropertyDefinitions : node.componentPropertyDefinitions;
+    const properties = Object.entries(definitions ?? {}).map(([name, definition]) => ({
+      name,
+      type: definition.type,
+      options: definition.variantOptions ? [...definition.variantOptions] : void 0
+    }));
+    return {
+      id: node.id,
+      name: node.name,
+      setName: set ? set.name : void 0,
+      variant: node.variantProperties ? { ...node.variantProperties } : void 0,
+      width: Math.round(node.width * 100) / 100,
+      height: Math.round(node.height * 100) / 100,
+      radius: typeof node.cornerRadius === "number" ? node.cornerRadius : null,
+      fill: paintKey(node.fills),
+      texts,
+      properties,
+      layers: inside.length,
+      vectors: inside.filter((child) => child.type === "VECTOR" || child.type === "BOOLEAN_OPERATION").length
+    };
+  }
+  async function importComponents(params) {
+    const maxSize = params.maxSize ?? 1200;
+    const limit = params.limit ?? 4e3;
+    const wanted = params.pageIds?.length ? new Set(params.pageIds) : null;
+    const components = [];
+    const pages = [];
+    let skipped = 0;
+    for (const page of figma.root.children) {
+      if (wanted && !wanted.has(page.id)) continue;
+      try {
+        await page.loadAsync();
+      } catch {
+        continue;
+      }
+      pages.push(page.name);
+      for (const node of page.findAllWithCriteria({ types: ["COMPONENT"] })) {
+        if (components.length >= limit) break;
+        const component = node;
+        if (component.width > maxSize || component.height > maxSize || component.width < 4 || component.height < 4) {
+          skipped++;
+          continue;
+        }
+        const print = safe(() => fingerprint(component));
+        if (print) components.push(print);
+        else skipped++;
+      }
+    }
+    return { components, pages, skipped };
   }
   function tag(node, operationId, meta) {
     try {
@@ -3850,7 +3953,8 @@ ${body}
       warnings: [],
       missingFonts: /* @__PURE__ */ new Set(),
       nodes: 0,
-      bound: 0
+      bound: 0,
+      instances: 0
     };
     if (ctx.tokens && !ctx.tokens.byColor.size) ctx.tokens = null;
     const layer = { ...params.layer, x: params.x, y: params.y, absolute: void 0 };
@@ -4016,7 +4120,7 @@ ${body}
 
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
-  var PLUGIN_BUILT = true ? "2026-09-18T13:08:48.622Z" : "dev";
+  var PLUGIN_BUILT = true ? "2026-09-18T13:51:51.016Z" : "dev";
   var STORAGE_KEYS = {
     port: "figma-forge.port",
     channel: "figma-forge.channel",
@@ -4065,6 +4169,7 @@ ${body}
     import_screen: (params) => importScreen(params),
     import_arrange: (params) => importArrange(params),
     import_cleanup: (params) => importCleanup(params),
+    import_components: (params) => importComponents(params),
     execute: (params) => execute(params),
     modules: (params) => {
       const action = params.action ?? "list";

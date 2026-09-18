@@ -2239,8 +2239,8 @@ var require_resolve = __commonJS({
       }
       return count;
     }
-    function getFullPath(resolver, id = "", normalize5) {
-      if (normalize5 !== false)
+    function getFullPath(resolver, id = "", normalize6) {
+      if (normalize6 !== false)
         id = normalizeId(id);
       const p = resolver.parse(id);
       return _getFullPath(resolver, p);
@@ -3835,7 +3835,7 @@ var require_fast_uri = __commonJS({
       }
       return decodedScheme;
     }
-    function normalize5(uri, options) {
+    function normalize6(uri, options) {
       if (typeof uri === "string") {
         uri = /** @type {T} */
         normalizeString(uri, options);
@@ -4212,7 +4212,7 @@ var require_fast_uri = __commonJS({
     }
     var fastUri = {
       SCHEMES,
-      normalize: normalize5,
+      normalize: normalize6,
       resolve: resolve5,
       resolveComponent,
       equal,
@@ -7168,14 +7168,14 @@ var require_dist = __commonJS({
     var formats_1 = require_formats();
     var limit_1 = require_limit();
     var codegen_1 = require_codegen();
-    var fullName = new codegen_1.Name("fullFormats");
+    var fullName2 = new codegen_1.Name("fullFormats");
     var fastName = new codegen_1.Name("fastFormats");
     var formatsPlugin = (ajv, opts = { keywords: true }) => {
       if (Array.isArray(opts)) {
-        addFormats(ajv, opts, formats_1.fullFormats, fullName);
+        addFormats(ajv, opts, formats_1.fullFormats, fullName2);
         return ajv;
       }
-      const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName];
+      const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName2];
       const list = opts.formats || formats_1.formatNames;
       addFormats(ajv, list, formats, exportName);
       if (opts.keywords)
@@ -26745,6 +26745,124 @@ function releaseBrowser() {
 import { createHash as createHash2 } from "node:crypto";
 import { basename as basename4, extname as extname3 } from "node:path";
 
+// mcp-server/src/html/components.ts
+var SIZE_TOLERANCE = 2;
+var MAX_LAYERS = 80;
+var MIN_SCORE = 90;
+var normalize3 = (text2) => text2.replace(/\s+/g, " ").trim().toLowerCase();
+var fullName = (print) => print.setName ? `${print.setName} / ${print.name}` : print.name;
+function textsOf(layer, out = []) {
+  if (layer.type === "TEXT") out.push(layer.characters);
+  else if (layer.type === "FRAME") for (const child of layer.children) textsOf(child, out);
+  return out;
+}
+function sizeOf(layer) {
+  if (layer.type !== "FRAME") return 1;
+  let count = 1;
+  for (const child of layer.children) count += sizeOf(child);
+  return count;
+}
+function fillKey(layer) {
+  const paint = layer.fills?.find((candidate) => candidate.type === "SOLID");
+  if (!paint || paint.type !== "SOLID") return null;
+  const channel = (value) => Math.round(Math.max(0, Math.min(1, value)) * 255);
+  return `${channel(paint.color.r)},${channel(paint.color.g)},${channel(paint.color.b)},${Math.round((paint.color.a ?? 1) * 100)}`;
+}
+function radiusOf(layer) {
+  if (layer.radius === void 0) return null;
+  return typeof layer.radius === "number" ? layer.radius : layer.radius[0];
+}
+function nameAffinity(layer, print) {
+  const left = normalize3(layer.name).replace(/[^a-zа-я0-9]+/gi, "");
+  if (!left || left === "frame" || left === "row" || left === "stack") return 0;
+  const right = normalize3(fullName(print)).replace(/[^a-zа-я0-9]+/gi, "");
+  if (!right) return 0;
+  if (left === right) return 15;
+  return right.includes(left) || left.includes(right) ? 8 : 0;
+}
+function tryMatch(layer, print, texts) {
+  const dw = Math.abs(layer.width - print.width);
+  const dh = Math.abs(layer.height - print.height);
+  if (dw > SIZE_TOLERANCE || dh > SIZE_TOLERANCE) return null;
+  if (texts.length !== print.texts.length) return null;
+  const same = texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters));
+  const fillable = texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters) || !!print.texts[index].property || !!print.texts[index].name);
+  if (!same && !fillable) return null;
+  const layerFill = fillKey(layer);
+  const fillsAgree = layerFill === print.fill;
+  if (layerFill && print.fill && !fillsAgree) return null;
+  const layerRadius = radiusOf(layer);
+  const radiusAgrees = layerRadius === null || print.radius === null || Math.abs(layerRadius - print.radius) <= 0.5;
+  if (!radiusAgrees) return null;
+  let score = 100 - dw * 4 - dh * 4;
+  if (same) score += 40;
+  if (fillsAgree && layerFill) score += 20;
+  if (layerRadius !== null && print.radius !== null) score += 10;
+  score += nameAffinity(layer, print);
+  score += Math.min(print.texts.length * 6 + print.vectors * 4, 24);
+  if (score < MIN_SCORE) return null;
+  const properties = {};
+  const text2 = {};
+  if (!same) {
+    texts.forEach((value, index) => {
+      const slot = print.texts[index];
+      if (normalize3(value) === normalize3(slot.characters)) return;
+      if (slot.property) properties[slot.property] = value;
+      else text2[slot.name] = value;
+    });
+  }
+  return {
+    print,
+    score,
+    instance: {
+      componentId: print.id,
+      componentName: fullName(print),
+      properties: Object.keys(properties).length ? properties : void 0,
+      text: Object.keys(text2).length ? text2 : void 0
+    }
+  };
+}
+function matchComponents(root, catalogue) {
+  const stats = { instances: 0, used: {}, considered: 0 };
+  if (!catalogue.length) return stats;
+  const bySize = /* @__PURE__ */ new Map();
+  for (const print of catalogue) {
+    for (let dx = -SIZE_TOLERANCE; dx <= SIZE_TOLERANCE; dx++) {
+      for (let dy = -SIZE_TOLERANCE; dy <= SIZE_TOLERANCE; dy++) {
+        const key = `${Math.round(print.width + dx)}x${Math.round(print.height + dy)}`;
+        const list = bySize.get(key) ?? [];
+        if (!list.includes(print)) list.push(print);
+        bySize.set(key, list);
+      }
+    }
+  }
+  const visit = (layer, depth) => {
+    if (layer.type !== "FRAME") return;
+    const frame = layer;
+    if (depth > 0 && sizeOf(frame) <= MAX_LAYERS) {
+      const candidates = bySize.get(`${Math.round(frame.width)}x${Math.round(frame.height)}`) ?? [];
+      if (candidates.length) {
+        stats.considered++;
+        const texts = textsOf(frame);
+        let best = null;
+        for (const print of candidates) {
+          const match = tryMatch(frame, print, texts);
+          if (match && (!best || match.score > best.score)) best = match;
+        }
+        if (best) {
+          frame.instance = best.instance;
+          stats.instances++;
+          stats.used[best.instance.componentName] = (stats.used[best.instance.componentName] ?? 0) + 1;
+          return;
+        }
+      }
+    }
+    for (const child of frame.children) visit(child, depth + 1);
+  };
+  visit(root, 0);
+  return stats;
+}
+
 // mcp-server/src/html/css.ts
 var clamp012 = (value) => Math.min(1, Math.max(0, value));
 function splitTopLevel(value, separator) {
@@ -27265,7 +27383,7 @@ function strokeOf(s, z) {
   else if (style === "dotted") stroke.dash = [weight, weight];
   return stroke;
 }
-function radiusOf(s, box, z) {
+function radiusOf2(s, box, z) {
   const corner = (name) => {
     const value = s[`border-${name}-radius`];
     if (!value) return 0;
@@ -27881,7 +27999,7 @@ function imageLayer(ctx, el, z) {
   const fit = el.s["object-fit"];
   const scaleMode = el.raster ? "FILL" : fit === "contain" || fit === "scale-down" ? "FIT" : "FILL";
   const layer = { type: "IMAGE", name, x: 0, y: 0, width, height, asset, scaleMode };
-  const radius = radiusOf(el.s, el.r, z);
+  const radius = radiusOf2(el.s, el.r, z);
   if (radius !== void 0) layer.radius = radius;
   if (el.raster) {
     ctx.stats.rasters++;
@@ -27919,7 +28037,7 @@ function frameFor(ctx, el, z, name) {
   ctx.backgrounds.set(frame, background.vectors);
   const stroke = strokeOf(el.s, z);
   if (stroke) frame.stroke = stroke;
-  const radius = radiusOf(el.s, el.r, z);
+  const radius = radiusOf2(el.s, el.r, z);
   if (radius !== void 0) frame.radius = radius;
   const effects = effectsOf(el.s, z);
   if (effects) frame.effects = effects;
@@ -28222,7 +28340,7 @@ import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
-import { extname, join as join3, normalize as normalize3, sep } from "node:path";
+import { extname, join as join3, normalize as normalize4, sep } from "node:path";
 var MIME = {
   ".html": "text/html; charset=utf-8",
   ".htm": "text/html; charset=utf-8",
@@ -28253,7 +28371,7 @@ var MIME = {
   ".pdf": "application/pdf"
 };
 async function serveDirectory(root) {
-  const base = normalize3(root);
+  const base = normalize4(root);
   const token = randomBytes(8).toString("hex");
   const prefix = `/${token}/`;
   const sockets = /* @__PURE__ */ new Set();
@@ -28271,7 +28389,7 @@ async function serveDirectory(root) {
     } catch {
       return send(400, "bad path");
     }
-    const target = normalize3(join3(base, relativePath));
+    const target = normalize4(join3(base, relativePath));
     if (target !== base && !target.startsWith(base + sep)) return send(403, "forbidden");
     try {
       let file = target;
@@ -28697,7 +28815,7 @@ async function clearPreview(fileId) {
 
 // mcp-server/src/html/zip.ts
 import { mkdir as mkdir3, readFile as readFile6, stat as stat2, writeFile as writeFile3 } from "node:fs/promises";
-import { dirname, join as join5, normalize as normalize4, sep as sep2 } from "node:path";
+import { dirname, join as join5, normalize as normalize5, sep as sep2 } from "node:path";
 import { inflateRawSync } from "node:zlib";
 var EOCD = 101010256;
 var ZIP64_EOCD = 101075792;
@@ -28808,7 +28926,7 @@ function readEntry(data, entry) {
 function safeTarget(root, name) {
   const cleaned = name.replace(/\\/g, "/");
   if (cleaned.startsWith("/") || /^[a-zA-Z]:/.test(cleaned)) return null;
-  const target = normalize4(join5(root, cleaned));
+  const target = normalize5(join5(root, cleaned));
   return target === root || target.startsWith(root + sep2) ? target : null;
 }
 function isJunk(name) {
@@ -28820,7 +28938,7 @@ async function extractZip(archivePath, destination) {
     throw new Error(`${archivePath} is ${Math.round(info.size / 1048576)} MB; archives over 1 GB are not supported.`);
   }
   const data = await readFile6(archivePath);
-  const root = normalize4(destination);
+  const root = normalize5(destination);
   await mkdir3(root, { recursive: true });
   const result = { files: 0, bytes: 0, skipped: [] };
   for (const entry of listEntries(data)) {
@@ -29278,12 +29396,27 @@ async function writeToFigma(screens, options) {
     pageId: canvas.pageId,
     pageName: canvas.pageName,
     pageHeld: canvas.pageCreated ? void 0 : canvas.pageHeld,
+    instances: { count: 0, used: {}, catalogue: 0 },
     sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
     images: { uploaded: figmaHashes.size, failed: failedImages },
     boundColors: 0,
     missingFonts: [],
     warnings: []
   };
+  if (options.useComponents) {
+    try {
+      options.progress(0, screens.length, "Reading the components in this file");
+      const catalogue = await call2("import_components", {}, 18e4);
+      result.instances.catalogue = catalogue.components.length;
+      for (const screen of screens) {
+        const stats = matchComponents(screen.layer, catalogue.components);
+        result.instances.count += stats.instances;
+        for (const [name, count] of Object.entries(stats.used)) result.instances.used[name] = (result.instances.used[name] ?? 0) + count;
+      }
+    } catch (error2) {
+      result.warnings.push(`Components were not used: ${error2 instanceof Error ? error2.message : String(error2)}`);
+    }
+  }
   const missingFonts = /* @__PURE__ */ new Set();
   for (const [index, screen] of screens.entries()) {
     options.progress(index, screens.length, `Building ${screen.spec.name}`);
@@ -30301,6 +30434,7 @@ server.registerTool(
       sections: external_exports.array(sectionSchema).optional().describe('For "build": what to import and how to group it.'),
       target: external_exports.object({ pageId: external_exports.string().optional(), pageName: external_exports.string().optional() }).optional().describe('For "build": an existing page id, or a page name to find or create. Default: a new page named after the source.'),
       bindTokens: external_exports.boolean().optional().describe('For "build": bind colours to matching local variables. Default true.'),
+      components: external_exports.boolean().optional().describe(`For "build": place instances of the file's own components where a layer matches one. Default true.`),
       dryRun: external_exports.boolean().optional().describe('For "build": render and convert, report, write nothing.'),
       operationId: external_exports.string().optional().describe('For "cleanup".')
     }
@@ -30367,6 +30501,7 @@ server.registerTool(
         operationId,
         target: { pageId: params.target?.pageId, pageName },
         bindTokens: params.bindTokens !== false,
+        useComponents: params.components !== false,
         sections,
         call: (command, commandParams, timeout) => call(command, commandParams, timeout),
         progress: report,
@@ -30402,6 +30537,11 @@ server.registerTool(
           {
             imported: true,
             operationId,
+            components: written.instances.catalogue ? {
+              instances: written.instances.count,
+              catalogue: written.instances.catalogue,
+              used: Object.entries(written.instances.used).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => `${name} \xD7${count}`)
+            } : void 0,
             page: {
               id: written.pageId,
               name: written.pageName,

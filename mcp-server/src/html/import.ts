@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 import { basename, extname } from 'node:path';
 
 import type { CanvasIR, FrameIR, NoteIR, SectionIR } from '../../../shared/html-import.js';
+import { ComponentFingerprint, matchComponents } from './components.js';
 import { convertCollection, ConvertStats } from './convert.js';
 import { AssetData, CaptureRequest, DEFAULT_VIEWPORT, RenderSession, Step, Viewport } from './render.js';
 import { findPage, HtmlSource, PageEntry, resolveHtmlSource } from './source.js';
@@ -273,6 +274,8 @@ export interface WriteOptions {
   operationId: string;
   target: { pageId?: string; pageName?: string };
   bindTokens: boolean;
+  /** Build screens out of the file's own components where they fit. */
+  useComponents: boolean;
   sections: SectionSpec[];
   call: Call;
   progress: Progress;
@@ -290,6 +293,8 @@ export interface WriteResult {
   boundColors: number;
   missingFonts: string[];
   warnings: string[];
+  /** Layers built as instances of components the file already had. */
+  instances: { count: number; used: Record<string, number>; catalogue: number };
 }
 
 /**
@@ -407,12 +412,30 @@ export async function writeToFigma(screens: PreparedScreen[], options: WriteOpti
     pageId: canvas.pageId,
     pageName: canvas.pageName,
     pageHeld: canvas.pageCreated ? undefined : canvas.pageHeld,
+    instances: { count: 0, used: {}, catalogue: 0 },
     sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
     images: { uploaded: figmaHashes.size, failed: failedImages },
     boundColors: 0,
     missingFonts: [],
     warnings: [],
   };
+  // 3a. What the file already draws. A screen made of the designer's own
+  // components beats a faithful copy of them.
+  if (options.useComponents) {
+    try {
+      options.progress(0, screens.length, 'Reading the components in this file');
+      const catalogue = await call<{ components: ComponentFingerprint[] }>('import_components', {}, 180_000);
+      result.instances.catalogue = catalogue.components.length;
+      for (const screen of screens) {
+        const stats = matchComponents(screen.layer, catalogue.components);
+        result.instances.count += stats.instances;
+        for (const [name, count] of Object.entries(stats.used)) result.instances.used[name] = (result.instances.used[name] ?? 0) + count;
+      }
+    } catch (error) {
+      result.warnings.push(`Components were not used: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   const missingFonts = new Set<string>();
   for (const [index, screen] of screens.entries()) {
     options.progress(index, screens.length, `Building ${screen.spec.name}`);

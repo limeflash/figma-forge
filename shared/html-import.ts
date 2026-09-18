@@ -261,8 +261,26 @@ export interface LayerBase {
   origin?: string;
 }
 
+/**
+ * A component in the file that already draws this layer. The plugin builds an
+ * instance of it instead of the frame; if that fails, the frame's own layers
+ * are still there to fall back on.
+ */
+export interface InstanceIR {
+  /** Node id of the component — a variant, never the set. */
+  componentId: string;
+  /** For the report: what it matched. */
+  componentName: string;
+  /** Component properties by name: variants, booleans, text. */
+  properties?: Record<string, string | boolean>;
+  /** Text by layer name, for components whose text is not a property. */
+  text?: Record<string, string>;
+}
+
 export interface FrameIR extends LayerBase {
   type: 'FRAME';
+  /** Build this as an instance of a component the file already has. */
+  instance?: InstanceIR;
   fills?: PaintIR[];
   stroke?: StrokeIR;
   /** One radius, or top-left/top-right/bottom-right/bottom-left. */

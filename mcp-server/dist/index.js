@@ -26747,14 +26747,25 @@ import { basename as basename4, extname as extname3 } from "node:path";
 
 // mcp-server/src/html/components.ts
 var SIZE_TOLERANCE = 2;
-var MAX_LAYERS = 80;
+var MAX_LAYERS = 150;
 var MIN_SCORE = 90;
+var RADIUS_TOLERANCE = 2;
+var COLOUR_TOLERANCE = 10;
 var normalize3 = (text2) => text2.replace(/\s+/g, " ").trim().toLowerCase();
 var fullName = (print) => print.setName ? `${print.setName} / ${print.name}` : print.name;
 function textsOf(layer, out = []) {
   if (layer.type === "TEXT") out.push(layer.characters);
   else if (layer.type === "FRAME") for (const child of layer.children) textsOf(child, out);
   return out;
+}
+function contentOf(layer, count = { images: 0, vectors: 0 }) {
+  if (layer.type === "IMAGE") count.images++;
+  else if (layer.type === "SVG") count.vectors++;
+  else if (layer.type === "FRAME") {
+    if (layer.fills?.some((paint) => paint.type === "IMAGE")) count.images++;
+    for (const child of layer.children) contentOf(child, count);
+  }
+  return count;
 }
 function sizeOf(layer) {
   if (layer.type !== "FRAME") return 1;
@@ -26768,6 +26779,18 @@ function fillKey(layer) {
   const channel = (value) => Math.round(Math.max(0, Math.min(1, value)) * 255);
   return `${channel(paint.color.r)},${channel(paint.color.g)},${channel(paint.color.b)},${Math.round((paint.color.a ?? 1) * 100)}`;
 }
+function colourDistance(left, right) {
+  const a = left.split(",").map(Number);
+  const b = right.split(",").map(Number);
+  if (a.length !== 4 || b.length !== 4) return 255;
+  return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]), Math.abs(a[3] - b[3]) * 2.55);
+}
+function radiiAgree(layer, component, width, height) {
+  if (layer === null || component === null) return true;
+  const pill = Math.min(width, height) / 2 - 1;
+  if (layer >= pill && component >= pill) return true;
+  return Math.abs(layer - component) <= RADIUS_TOLERANCE;
+}
 function radiusOf(layer) {
   if (layer.radius === void 0) return null;
   return typeof layer.radius === "number" ? layer.radius : layer.radius[0];
@@ -26780,27 +26803,68 @@ function nameAffinity(layer, print) {
   if (left === right) return 15;
   return right.includes(left) || left.includes(right) ? 8 : 0;
 }
-function tryMatch(layer, print, texts) {
+function tryMatch(layer, print, texts, why) {
+  if (texts.length !== print.texts.length) {
+    why?.(`${fullName(print)}: ${texts.length} \u0442\u0435\u043A\u0441\u0442\u043E\u0432 \u043F\u0440\u043E\u0442\u0438\u0432 ${print.texts.length}`);
+    return null;
+  }
+  const same = texts.length > 0 && texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters));
   const dw = Math.abs(layer.width - print.width);
   const dh = Math.abs(layer.height - print.height);
-  if (dw > SIZE_TOLERANCE || dh > SIZE_TOLERANCE) return null;
-  if (texts.length !== print.texts.length) return null;
-  const same = texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters));
+  const structural = texts.length >= 3;
+  const limitW = same || structural ? Math.max(SIZE_TOLERANCE, print.width * 0.12) : SIZE_TOLERANCE;
+  const limitH = same ? Math.max(SIZE_TOLERANCE, print.height * 0.12) : structural ? 4 : SIZE_TOLERANCE;
+  if (dw > limitW || dh > limitH) {
+    if (same || structural) why?.(`${fullName(print)}: \u0440\u0430\u0437\u043C\u0435\u0440 ${Math.round(layer.width)}\xD7${Math.round(layer.height)} \u043F\u0440\u043E\u0442\u0438\u0432 ${Math.round(print.width)}\xD7${Math.round(print.height)}`);
+    return null;
+  }
+  const depth = sizeOf(layer);
+  if (depth > print.layers * 3 + 6 || print.layers > depth * 3 + 6) {
+    why?.(`${fullName(print)}: ${depth} \u0441\u043B\u043E\u0451\u0432 \u043F\u0440\u043E\u0442\u0438\u0432 ${print.layers}`);
+    return null;
+  }
   const fillable = texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters) || !!print.texts[index].property || !!print.texts[index].name);
   if (!same && !fillable) return null;
+  const content = contentOf(layer);
+  if (content.images > 0) {
+    why?.(`${fullName(print)}: \u0432\u043D\u0443\u0442\u0440\u0438 \u043A\u0430\u0440\u0442\u0438\u043D\u043A\u0430 \u0438\u0437 \u043C\u0430\u043A\u0435\u0442\u0430`);
+    return null;
+  }
+  if (print.texts.length === 0 && nameAffinity(layer, print) === 0) {
+    why?.(`${fullName(print)}: \u0442\u043E\u043B\u044C\u043A\u043E \u0438\u043A\u043E\u043D\u043A\u0430, \u0430 \u0438\u043C\u0435\u043D\u0430 \u043D\u0435 \u0441\u0445\u043E\u0434\u044F\u0442\u0441\u044F`);
+    return null;
+  }
+  if (Math.abs(content.vectors - print.vectors) > 1) {
+    why?.(`${fullName(print)}: ${content.vectors} \u0438\u043A\u043E\u043D\u043E\u043A \u043F\u0440\u043E\u0442\u0438\u0432 ${print.vectors}`);
+    return null;
+  }
   const layerFill = fillKey(layer);
+  if (!layerFill !== !print.fill) {
+    why?.(`${fullName(print)}: ${layerFill ? "\u0437\u0430\u043B\u0438\u0442, \u0430 \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442 \u043D\u0435\u0442" : "\u0431\u0435\u0437 \u0437\u0430\u043B\u0438\u0432\u043A\u0438, \u0430 \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442 \u0437\u0430\u043B\u0438\u0442"}`);
+    return null;
+  }
+  const distance = layerFill && print.fill ? colourDistance(layerFill, print.fill) : 0;
   const fillsAgree = layerFill === print.fill;
-  if (layerFill && print.fill && !fillsAgree) return null;
+  if (layerFill && print.fill && distance > COLOUR_TOLERANCE) {
+    why?.(`${fullName(print)}: \u0437\u0430\u043B\u0438\u0432\u043A\u0430 ${layerFill} \u043F\u0440\u043E\u0442\u0438\u0432 ${print.fill}`);
+    return null;
+  }
   const layerRadius = radiusOf(layer);
-  const radiusAgrees = layerRadius === null || print.radius === null || Math.abs(layerRadius - print.radius) <= 0.5;
-  if (!radiusAgrees) return null;
-  let score = 100 - dw * 4 - dh * 4;
+  const radiusAgrees = radiiAgree(layerRadius, print.radius, layer.width, layer.height);
+  if (!radiusAgrees) {
+    why?.(`${fullName(print)}: \u0440\u0430\u0434\u0438\u0443\u0441 ${layerRadius} \u043F\u0440\u043E\u0442\u0438\u0432 ${print.radius}`);
+    return null;
+  }
+  let score = 100 - dw * 4 - dh * 4 - distance;
   if (same) score += 40;
   if (fillsAgree && layerFill) score += 20;
   if (layerRadius !== null && print.radius !== null) score += 10;
   score += nameAffinity(layer, print);
   score += Math.min(print.texts.length * 6 + print.vectors * 4, 24);
-  if (score < MIN_SCORE) return null;
+  if (score < MIN_SCORE) {
+    why?.(`${fullName(print)}: \u0441\u0447\u0451\u0442 ${Math.round(score)} \u043D\u0438\u0436\u0435 \u043F\u043E\u0440\u043E\u0433\u0430`);
+    return null;
+  }
   const properties = {};
   const text2 = {};
   if (!same) {
@@ -26822,10 +26886,33 @@ function tryMatch(layer, print, texts) {
     }
   };
 }
-function matchComponents(root, catalogue) {
-  const stats = { instances: 0, used: {}, considered: 0 };
+function matchComponents(root, catalogue, debug) {
+  const seenMiss = /* @__PURE__ */ new Set();
+  const stats = { instances: 0, used: {}, considered: 0, nearMisses: [] };
   if (!catalogue.length) return stats;
   const bySize = /* @__PURE__ */ new Map();
+  const byText = /* @__PURE__ */ new Map();
+  const textKey = (values) => values.map(normalize3).join("|");
+  const byShape = /* @__PURE__ */ new Map();
+  const shapeKeys = (slots, width) => {
+    const bucket = Math.round(width / 50);
+    return [`${slots}:${bucket - 1}`, `${slots}:${bucket}`, `${slots}:${bucket + 1}`];
+  };
+  for (const print of catalogue) {
+    const key = textKey(print.texts.map((text2) => text2.characters));
+    if (key.replace(/\|/g, "").length >= 6) {
+      const list = byText.get(key) ?? [];
+      list.push(print);
+      byText.set(key, list);
+    }
+    if (print.texts.length >= 3) {
+      for (const shape of shapeKeys(print.texts.length, print.width)) {
+        const list = byShape.get(shape) ?? [];
+        list.push(print);
+        byShape.set(shape, list);
+      }
+    }
+  }
   for (const print of catalogue) {
     for (let dx = -SIZE_TOLERANCE; dx <= SIZE_TOLERANCE; dx++) {
       for (let dy = -SIZE_TOLERANCE; dy <= SIZE_TOLERANCE; dy++) {
@@ -26840,14 +26927,29 @@ function matchComponents(root, catalogue) {
     if (layer.type !== "FRAME") return;
     const frame = layer;
     if (depth > 0 && sizeOf(frame) <= MAX_LAYERS) {
-      const candidates = bySize.get(`${Math.round(frame.width)}x${Math.round(frame.height)}`) ?? [];
+      const texts = textsOf(frame);
+      const candidates = [
+        .../* @__PURE__ */ new Set([
+          ...bySize.get(`${Math.round(frame.width)}x${Math.round(frame.height)}`) ?? [],
+          ...byText.get(textKey(texts)) ?? [],
+          ...texts.length >= 3 ? byShape.get(`${texts.length}:${Math.round(frame.width / 50)}`) ?? [] : []
+        ])
+      ];
       if (candidates.length) {
         stats.considered++;
-        const texts = textsOf(frame);
         let best = null;
+        const notes = [];
         for (const print of candidates) {
-          const match = tryMatch(frame, print, texts);
+          const match = tryMatch(frame, print, texts, (note) => notes.push(note));
           if (match && (!best || match.score > best.score)) best = match;
+        }
+        if (!best && notes.length) {
+          const line = `${frame.name} ${Math.round(frame.width)}\xD7${Math.round(frame.height)}${texts.length ? ` \xAB${texts[0].slice(0, 28)}\xBB` : ""} \u2192 ${notes[0]}`;
+          debug?.(`${frame.name} ${Math.round(frame.width)}\xD7${Math.round(frame.height)} \xAB${texts.slice(0, 2).join(" / ").slice(0, 40)}\xBB \u2192 ${notes.slice(0, 3).join("; ")}`);
+          if (!seenMiss.has(notes[0]) && stats.nearMisses.length < 12) {
+            seenMiss.add(notes[0]);
+            stats.nearMisses.push(line);
+          }
         }
         if (best) {
           frame.instance = best.instance;
@@ -29396,7 +29498,7 @@ async function writeToFigma(screens, options) {
     pageId: canvas.pageId,
     pageName: canvas.pageName,
     pageHeld: canvas.pageCreated ? void 0 : canvas.pageHeld,
-    instances: { count: 0, used: {}, catalogue: 0 },
+    instances: { count: 0, used: {}, catalogue: 0, nearMisses: [] },
     sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
     images: { uploaded: figmaHashes.size, failed: failedImages },
     boundColors: 0,
@@ -29412,6 +29514,7 @@ async function writeToFigma(screens, options) {
         const stats = matchComponents(screen.layer, catalogue.components);
         result.instances.count += stats.instances;
         for (const [name, count] of Object.entries(stats.used)) result.instances.used[name] = (result.instances.used[name] ?? 0) + count;
+        for (const miss of stats.nearMisses) if (result.instances.nearMisses.length < 12 && !result.instances.nearMisses.includes(miss)) result.instances.nearMisses.push(miss);
       }
     } catch (error2) {
       result.warnings.push(`Components were not used: ${error2 instanceof Error ? error2.message : String(error2)}`);
@@ -30540,7 +30643,10 @@ server.registerTool(
             components: written.instances.catalogue ? {
               instances: written.instances.count,
               catalogue: written.instances.catalogue,
-              used: Object.entries(written.instances.used).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => `${name} \xD7${count}`)
+              used: Object.entries(written.instances.used).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => `${name} \xD7${count}`),
+              // What a component nearly stood for: the library and the
+              // mockup disagreeing by a few pixels is worth knowing.
+              nearMisses: written.instances.nearMisses.length ? written.instances.nearMisses : void 0
             } : void 0,
             page: {
               id: written.pageId,

@@ -1448,6 +1448,9 @@ server.registerTool(
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 20)
                     .map(([name, count]) => `${name} ×${count}`),
+                  // What a component nearly stood for: the library and the
+                  // mockup disagreeing by a few pixels is worth knowing.
+                  nearMisses: written.instances.nearMisses.length ? written.instances.nearMisses : undefined,
                 }
               : undefined,
             page: {

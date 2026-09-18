@@ -4120,7 +4120,7 @@ ${body}
 
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
-  var PLUGIN_BUILT = true ? "2026-09-18T13:51:51.016Z" : "dev";
+  var PLUGIN_BUILT = true ? "2026-09-18T14:05:57.198Z" : "dev";
   var STORAGE_KEYS = {
     port: "figma-forge.port",
     channel: "figma-forge.channel",

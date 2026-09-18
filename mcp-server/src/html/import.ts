@@ -294,7 +294,7 @@ export interface WriteResult {
   missingFonts: string[];
   warnings: string[];
   /** Layers built as instances of components the file already had. */
-  instances: { count: number; used: Record<string, number>; catalogue: number };
+  instances: { count: number; used: Record<string, number>; catalogue: number; nearMisses: string[] };
 }
 
 /**
@@ -412,7 +412,7 @@ export async function writeToFigma(screens: PreparedScreen[], options: WriteOpti
     pageId: canvas.pageId,
     pageName: canvas.pageName,
     pageHeld: canvas.pageCreated ? undefined : canvas.pageHeld,
-    instances: { count: 0, used: {}, catalogue: 0 },
+    instances: { count: 0, used: {}, catalogue: 0, nearMisses: [] },
     sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
     images: { uploaded: figmaHashes.size, failed: failedImages },
     boundColors: 0,
@@ -430,6 +430,7 @@ export async function writeToFigma(screens: PreparedScreen[], options: WriteOpti
         const stats = matchComponents(screen.layer, catalogue.components);
         result.instances.count += stats.instances;
         for (const [name, count] of Object.entries(stats.used)) result.instances.used[name] = (result.instances.used[name] ?? 0) + count;
+        for (const miss of stats.nearMisses) if (result.instances.nearMisses.length < 12 && !result.instances.nearMisses.includes(miss)) result.instances.nearMisses.push(miss);
       }
     } catch (error) {
       result.warnings.push(`Components were not used: ${error instanceof Error ? error.message : String(error)}`);

@@ -73,6 +73,10 @@ const targets = [
       target: 'es2020',
       platform: 'neutral',
       legalComments: 'none',
+      // Figma keeps a plugin's code for the life of a run, so a rebuild only
+      // reaches it when the plugin is started again. The stamp says which
+      // build is actually live.
+      define: { __FF_BUILD__: JSON.stringify(new Date().toISOString()) },
       logLevel: 'info',
     },
   },

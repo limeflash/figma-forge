@@ -327,6 +327,18 @@ function paintOf(paint: PaintIR, ctx: BuildContext): Paint | null {
   };
 }
 
+/**
+ * Figma takes a variable's own alpha the first time a bound paint lands on a
+ * node, and only honours the paint's opacity on a later write. Writing the
+ * same paints twice is what keeps `teal at 20%` a wash instead of a solid.
+ */
+function applyPaints(node: SceneNode | GeometryMixin, slot: 'fills' | 'strokes', paints: Paint[]): void {
+  const target = node as unknown as Record<string, readonly Paint[]>;
+  target[slot] = paints;
+  const translucentBinding = paints.some((paint) => paint.type === 'SOLID' && (paint.opacity ?? 1) < 1 && !!paint.boundVariables?.color);
+  if (translucentBinding) target[slot] = paints;
+}
+
 function paintsOf(paints: PaintIR[] | undefined, ctx: BuildContext, usage: Usage): Paint[] {
   const out: Paint[] = [];
   for (const source of paints ?? []) {
@@ -342,10 +354,18 @@ function paintsOf(paints: PaintIR[] | undefined, ctx: BuildContext, usage: Usage
       const variable = exact ?? opaque;
       if (variable) {
         try {
-          // Figma takes only the RGB from a bound variable, so the paint has to
-          // keep the alpha the page asked for — otherwise a 20% teal wash comes
-          // out solid and swallows whatever sits on it.
-          paint = { ...(figma.variables.setBoundVariableForPaint(solid, 'color', variable) as SolidPaint), opacity: alpha };
+          // A bound paint keeps Figma's own object behind it, and assigning that
+          // object back takes the variable's alpha rather than the one asked
+          // for. Copied field by field, the paint keeps the page's alpha: a 20%
+          // teal wash stays a wash instead of turning solid and swallowing the
+          // icon drawn on it.
+          const linked = figma.variables.setBoundVariableForPaint(solid, 'color', variable) as SolidPaint;
+          paint = {
+            type: 'SOLID',
+            color: { r: linked.color.r, g: linked.color.g, b: linked.color.b },
+            opacity: alpha,
+            boundVariables: { color: linked.boundVariables!.color },
+          };
           ctx.bound++;
         } catch {
           /* an unbindable variable leaves the literal colour in place */
@@ -377,7 +397,7 @@ function effectsOf(effects: EffectIR[] | undefined): Effect[] {
 
 function applyStroke(node: GeometryMixin & IndividualStrokesMixin, stroke: StrokeIR | undefined, ctx: BuildContext): void {
   if (!stroke) return;
-  node.strokes = paintsOf(stroke.paints, ctx, 'STROKE_COLOR');
+  applyPaints(node, 'strokes', paintsOf(stroke.paints, ctx, 'STROKE_COLOR'));
   node.strokeAlign = 'INSIDE';
   if (Array.isArray(stroke.weight)) {
     const [top, right, bottom, left] = stroke.weight;
@@ -474,7 +494,7 @@ async function buildFrame(layer: FrameIR, parent: Container, ctx: BuildContext):
   const frame = figma.createFrame();
   parent.appendChild(frame);
   common(frame, layer);
-  frame.fills = paintsOf(layer.fills, ctx, 'FRAME_FILL');
+  applyPaints(frame, 'fills', paintsOf(layer.fills, ctx, 'FRAME_FILL'));
   frame.clipsContent = !!layer.clip;
   frame.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01));
   applyStroke(frame, layer.stroke, ctx);
@@ -518,7 +538,7 @@ async function applyTextStyle(text: TextNode, style: TextStyleIR, start: number,
     text.letterSpacing = letterSpacing;
     text.textCase = style.textCase ?? 'ORIGINAL';
     text.textDecoration = style.decoration ?? 'NONE';
-    text.fills = paintsOf(style.fills, ctx, 'TEXT_FILL');
+    applyPaints(text, 'fills', paintsOf(style.fills, ctx, 'TEXT_FILL'));
   } else {
     text.setRangeFontName(start, end, choice.font);
     text.setRangeFontSize(start, end, style.size);
@@ -603,7 +623,7 @@ function buildImage(layer: ImageIR, parent: Container, ctx: BuildContext): Scene
   const hash = ctx.images[layer.asset];
   if (hash) fills.push({ type: 'IMAGE', imageHash: hash, scaleMode: layer.scaleMode });
   else ctx.warnings.push(`${layer.name}: image did not upload; the layer is empty.`);
-  rect.fills = fills;
+  applyPaints(rect, 'fills', fills);
   applyStroke(rect, layer.stroke, ctx);
   applyRadius(rect, layer.radius);
   if (layer.effects) rect.effects = effectsOf(layer.effects);

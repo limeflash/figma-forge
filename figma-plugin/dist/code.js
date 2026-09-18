@@ -3459,6 +3459,12 @@ ${body}
       gradientStops: paint.stops.map((stop) => ({ position: stop.position, color: stop.color }))
     };
   }
+  function applyPaints(node, slot, paints) {
+    const target = node;
+    target[slot] = paints;
+    const translucentBinding = paints.some((paint) => paint.type === "SOLID" && (paint.opacity ?? 1) < 1 && !!paint.boundVariables?.color);
+    if (translucentBinding) target[slot] = paints;
+  }
   function paintsOf(paints, ctx, usage) {
     const out = [];
     for (const source of paints ?? []) {
@@ -3472,7 +3478,13 @@ ${body}
         const variable = exact ?? opaque;
         if (variable) {
           try {
-            paint = { ...figma.variables.setBoundVariableForPaint(solid, "color", variable), opacity: alpha };
+            const linked = figma.variables.setBoundVariableForPaint(solid, "color", variable);
+            paint = {
+              type: "SOLID",
+              color: { r: linked.color.r, g: linked.color.g, b: linked.color.b },
+              opacity: alpha,
+              boundVariables: { color: linked.boundVariables.color }
+            };
             ctx.bound++;
           } catch {
           }
@@ -3501,7 +3513,7 @@ ${body}
   }
   function applyStroke(node, stroke, ctx) {
     if (!stroke) return;
-    node.strokes = paintsOf(stroke.paints, ctx, "STROKE_COLOR");
+    applyPaints(node, "strokes", paintsOf(stroke.paints, ctx, "STROKE_COLOR"));
     node.strokeAlign = "INSIDE";
     if (Array.isArray(stroke.weight)) {
       const [top, right, bottom, left] = stroke.weight;
@@ -3579,7 +3591,7 @@ ${body}
     const frame = figma.createFrame();
     parent.appendChild(frame);
     common(frame, layer);
-    frame.fills = paintsOf(layer.fills, ctx, "FRAME_FILL");
+    applyPaints(frame, "fills", paintsOf(layer.fills, ctx, "FRAME_FILL"));
     frame.clipsContent = !!layer.clip;
     frame.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01));
     applyStroke(frame, layer.stroke, ctx);
@@ -3617,7 +3629,7 @@ ${body}
       text.letterSpacing = letterSpacing;
       text.textCase = style.textCase ?? "ORIGINAL";
       text.textDecoration = style.decoration ?? "NONE";
-      text.fills = paintsOf(style.fills, ctx, "TEXT_FILL");
+      applyPaints(text, "fills", paintsOf(style.fills, ctx, "TEXT_FILL"));
     } else {
       text.setRangeFontName(start, end, choice.font);
       text.setRangeFontSize(start, end, style.size);
@@ -3695,7 +3707,7 @@ ${body}
     const hash = ctx.images[layer.asset];
     if (hash) fills.push({ type: "IMAGE", imageHash: hash, scaleMode: layer.scaleMode });
     else ctx.warnings.push(`${layer.name}: image did not upload; the layer is empty.`);
-    rect.fills = fills;
+    applyPaints(rect, "fills", fills);
     applyStroke(rect, layer.stroke, ctx);
     applyRadius(rect, layer.radius);
     if (layer.effects) rect.effects = effectsOf(layer.effects);
@@ -4004,6 +4016,7 @@ ${body}
 
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
+  var PLUGIN_BUILT = true ? "2026-09-18T13:08:48.622Z" : "dev";
   var STORAGE_KEYS = {
     port: "figma-forge.port",
     channel: "figma-forge.channel",
@@ -4021,6 +4034,7 @@ ${body}
     return {
       plugin: "figma-forge",
       pluginVersion: PLUGIN_VERSION,
+      pluginBuilt: PLUGIN_BUILT,
       indexSchemaVersion: INDEX_SCHEMA_VERSION,
       sessionId: `${figma.fileKey ?? "local"}:${sessionNonce}`,
       fileKey: figma.fileKey ?? null,

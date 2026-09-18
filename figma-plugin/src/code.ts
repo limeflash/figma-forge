@@ -31,6 +31,9 @@ import type { CanvasIR, ScreenIR } from '../../shared/html-import';
 import { errorMessage } from './runtime/journal';
 
 const PLUGIN_VERSION = '0.1.0';
+/** When the running bundle was built; replaced at build time. */
+declare const __FF_BUILD__: string;
+const PLUGIN_BUILT = typeof __FF_BUILD__ === 'string' ? __FF_BUILD__ : 'dev';
 
 const STORAGE_KEYS = {
   port: 'figma-forge.port',
@@ -89,6 +92,7 @@ function sessionInfo() {
   return {
     plugin: 'figma-forge',
     pluginVersion: PLUGIN_VERSION,
+    pluginBuilt: PLUGIN_BUILT,
     indexSchemaVersion: INDEX_SCHEMA_VERSION,
     sessionId: `${figma.fileKey ?? 'local'}:${sessionNonce}`,
     fileKey: figma.fileKey ?? null,

@@ -26754,8 +26754,15 @@ var COLOUR_TOLERANCE = 10;
 var normalize3 = (text2) => text2.replace(/\s+/g, " ").trim().toLowerCase();
 var fullName = (print) => print.setName ? `${print.setName} / ${print.name}` : print.name;
 function textsOf(layer, out = []) {
-  if (layer.type === "TEXT") out.push(layer.characters);
-  else if (layer.type === "FRAME") for (const child of layer.children) textsOf(child, out);
+  if (layer.type === "TEXT") {
+    const paint = layer.style.fills.find((candidate) => candidate.type === "SOLID");
+    const channel = (value) => Math.round(Math.max(0, Math.min(1, value)) * 255);
+    out.push({
+      characters: layer.characters,
+      size: Math.round(layer.style.size * 10) / 10,
+      fill: paint && paint.type === "SOLID" ? `${channel(paint.color.r)},${channel(paint.color.g)},${channel(paint.color.b)},${Math.round((paint.color.a ?? 1) * 100)}` : null
+    });
+  } else if (layer.type === "FRAME") for (const child of layer.children) textsOf(child, out);
   return out;
 }
 function contentOf(layer, count = { images: 0, vectors: 0 }) {
@@ -26808,7 +26815,18 @@ function tryMatch(layer, print, texts, why) {
     why?.(`${fullName(print)}: ${texts.length} \u0442\u0435\u043A\u0441\u0442\u043E\u0432 \u043F\u0440\u043E\u0442\u0438\u0432 ${print.texts.length}`);
     return null;
   }
-  const same = texts.length > 0 && texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters));
+  const same = texts.length > 0 && texts.every((line, index) => normalize3(line.characters) === normalize3(print.texts[index].characters));
+  for (const [index, line] of texts.entries()) {
+    const slot = print.texts[index];
+    if (slot.size !== void 0 && Math.abs(slot.size - line.size) > 1) {
+      why?.(`${fullName(print)}: \u043A\u0435\u0433\u043B\u044C ${line.size} \u043F\u0440\u043E\u0442\u0438\u0432 ${slot.size}`);
+      return null;
+    }
+    if (slot.fill && line.fill && colourDistance(line.fill, slot.fill) > 40) {
+      why?.(`${fullName(print)}: \u0446\u0432\u0435\u0442 \u0442\u0435\u043A\u0441\u0442\u0430 ${line.fill} \u043F\u0440\u043E\u0442\u0438\u0432 ${slot.fill}`);
+      return null;
+    }
+  }
   const dw = Math.abs(layer.width - print.width);
   const dh = Math.abs(layer.height - print.height);
   const structural = texts.length >= 3;
@@ -26823,7 +26841,7 @@ function tryMatch(layer, print, texts, why) {
     why?.(`${fullName(print)}: ${depth} \u0441\u043B\u043E\u0451\u0432 \u043F\u0440\u043E\u0442\u0438\u0432 ${print.layers}`);
     return null;
   }
-  const fillable = texts.every((text3, index) => normalize3(text3) === normalize3(print.texts[index].characters) || !!print.texts[index].property || !!print.texts[index].name);
+  const fillable = texts.every((line, index) => normalize3(line.characters) === normalize3(print.texts[index].characters) || !!print.texts[index].property || !!print.texts[index].name);
   if (!same && !fillable) return null;
   const content = contentOf(layer);
   if (content.images > 0) {
@@ -26868,11 +26886,11 @@ function tryMatch(layer, print, texts, why) {
   const properties = {};
   const text2 = {};
   if (!same) {
-    texts.forEach((value, index) => {
+    texts.forEach((line, index) => {
       const slot = print.texts[index];
-      if (normalize3(value) === normalize3(slot.characters)) return;
-      if (slot.property) properties[slot.property] = value;
-      else text2[slot.name] = value;
+      if (normalize3(line.characters) === normalize3(slot.characters)) return;
+      if (slot.property) properties[slot.property] = line.characters;
+      else text2[slot.name] = line.characters;
     });
   }
   return {
@@ -26931,7 +26949,7 @@ function matchComponents(root, catalogue, debug) {
       const candidates = [
         .../* @__PURE__ */ new Set([
           ...bySize.get(`${Math.round(frame.width)}x${Math.round(frame.height)}`) ?? [],
-          ...byText.get(textKey(texts)) ?? [],
+          ...byText.get(textKey(texts.map((line) => line.characters))) ?? [],
           ...texts.length >= 3 ? byShape.get(`${texts.length}:${Math.round(frame.width / 50)}`) ?? [] : []
         ])
       ];
@@ -26944,8 +26962,9 @@ function matchComponents(root, catalogue, debug) {
           if (match && (!best || match.score > best.score)) best = match;
         }
         if (!best && notes.length) {
-          const line = `${frame.name} ${Math.round(frame.width)}\xD7${Math.round(frame.height)}${texts.length ? ` \xAB${texts[0].slice(0, 28)}\xBB` : ""} \u2192 ${notes[0]}`;
-          debug?.(`${frame.name} ${Math.round(frame.width)}\xD7${Math.round(frame.height)} \xAB${texts.slice(0, 2).join(" / ").slice(0, 40)}\xBB \u2192 ${notes.slice(0, 3).join("; ")}`);
+          const first = texts[0]?.characters ?? "";
+          const line = `${frame.name} ${Math.round(frame.width)}\xD7${Math.round(frame.height)}${first ? ` \xAB${first.slice(0, 28)}\xBB` : ""} \u2192 ${notes[0]}`;
+          debug?.(`${line}${notes.length > 1 ? `; ${notes.slice(1, 3).join("; ")}` : ""}`);
           if (!seenMiss.has(notes[0]) && stats.nearMisses.length < 12) {
             seenMiss.add(notes[0]);
             stats.nearMisses.push(line);

@@ -725,7 +725,7 @@ export interface ComponentFingerprint {
   /** Top fill as `r,g,b,a` in 0-255, for a cheap colour comparison. */
   fill: string | null;
   /** Every string the component shows, in reading order. */
-  texts: { name: string; characters: string; property?: string }[];
+  texts: { name: string; characters: string; property?: string; size?: number; fill?: string }[];
   /** Component properties that can be set on an instance. */
   properties: { name: string; type: string; options?: string[] }[];
   layers: number;
@@ -744,11 +744,19 @@ function fingerprint(node: ComponentNode): ComponentFingerprint | null {
   if (inside.length > 400) return null;
   const texts = inside
     .filter((child): child is TextNode => child.type === 'TEXT')
-    .map((text) => ({
-      name: text.name,
-      characters: typeof text.characters === 'string' ? text.characters : '',
-      property: (text.componentPropertyReferences ?? {}).characters ?? undefined,
-    }));
+    .map((text) => {
+      const size = safe(() => text.fontSize) as number | undefined;
+      const paints = safe(() => text.fills) as readonly Paint[] | undefined;
+      return {
+        name: text.name,
+        characters: typeof text.characters === 'string' ? text.characters : '',
+        property: (text.componentPropertyReferences ?? {}).characters ?? undefined,
+        // How the words look says as much as what they say: a grey 14px line
+        // in a summary is not a teal 16px tab with the same number of words.
+        size: typeof size === 'number' ? Math.round(size * 10) / 10 : undefined,
+        fill: paints ? paintKey(paints) ?? undefined : undefined,
+      };
+    });
   const set = node.parent && node.parent.type === 'COMPONENT_SET' ? (node.parent as ComponentSetNode) : null;
   const definitions = set ? set.componentPropertyDefinitions : node.componentPropertyDefinitions;
   const properties = Object.entries(definitions ?? {}).map(([name, definition]) => ({

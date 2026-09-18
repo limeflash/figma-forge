@@ -3790,11 +3790,19 @@ ${body}
   function fingerprint(node) {
     const inside = node.findAll(() => true);
     if (inside.length > 400) return null;
-    const texts = inside.filter((child) => child.type === "TEXT").map((text) => ({
-      name: text.name,
-      characters: typeof text.characters === "string" ? text.characters : "",
-      property: (text.componentPropertyReferences ?? {}).characters ?? void 0
-    }));
+    const texts = inside.filter((child) => child.type === "TEXT").map((text) => {
+      const size = safe(() => text.fontSize);
+      const paints = safe(() => text.fills);
+      return {
+        name: text.name,
+        characters: typeof text.characters === "string" ? text.characters : "",
+        property: (text.componentPropertyReferences ?? {}).characters ?? void 0,
+        // How the words look says as much as what they say: a grey 14px line
+        // in a summary is not a teal 16px tab with the same number of words.
+        size: typeof size === "number" ? Math.round(size * 10) / 10 : void 0,
+        fill: paints ? paintKey(paints) ?? void 0 : void 0
+      };
+    });
     const set = node.parent && node.parent.type === "COMPONENT_SET" ? node.parent : null;
     const definitions = set ? set.componentPropertyDefinitions : node.componentPropertyDefinitions;
     const properties = Object.entries(definitions ?? {}).map(([name, definition]) => ({
@@ -4120,7 +4128,7 @@ ${body}
 
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
-  var PLUGIN_BUILT = true ? "2026-09-18T14:05:57.198Z" : "dev";
+  var PLUGIN_BUILT = true ? "2026-09-18T14:20:54.166Z" : "dev";
   var STORAGE_KEYS = {
     port: "figma-forge.port",
     channel: "figma-forge.channel",

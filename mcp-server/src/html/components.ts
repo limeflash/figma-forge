@@ -24,7 +24,7 @@ export interface ComponentFingerprint {
   height: number;
   radius: number | null;
   fill: string | null;
-  texts: { name: string; characters: string; property?: string }[];
+  texts: { name: string; characters: string; property?: string; size?: number; fill?: string }[];
   properties: { name: string; type: string; options?: string[] }[];
   layers: number;
   vectors: number;
@@ -53,9 +53,22 @@ const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase
 
 const fullName = (print: ComponentFingerprint) => (print.setName ? `${print.setName} / ${print.name}` : print.name);
 
-function textsOf(layer: LayerIR, out: string[] = []): string[] {
-  if (layer.type === 'TEXT') out.push(layer.characters);
-  else if (layer.type === 'FRAME') for (const child of layer.children) textsOf(child, out);
+interface Line {
+  characters: string;
+  size: number;
+  fill: string | null;
+}
+
+function textsOf(layer: LayerIR, out: Line[] = []): Line[] {
+  if (layer.type === 'TEXT') {
+    const paint = layer.style.fills.find((candidate) => candidate.type === 'SOLID');
+    const channel = (value: number) => Math.round(Math.max(0, Math.min(1, value)) * 255);
+    out.push({
+      characters: layer.characters,
+      size: Math.round(layer.style.size * 10) / 10,
+      fill: paint && paint.type === 'SOLID' ? `${channel(paint.color.r)},${channel(paint.color.g)},${channel(paint.color.b)},${Math.round((paint.color.a ?? 1) * 100)}` : null,
+    });
+  } else if (layer.type === 'FRAME') for (const child of layer.children) textsOf(child, out);
   return out;
 }
 
@@ -121,13 +134,27 @@ interface Match {
   instance: InstanceIR;
 }
 
-function tryMatch(layer: FrameIR, print: ComponentFingerprint, texts: string[], why?: (note: string) => void): Match | null {
+function tryMatch(layer: FrameIR, print: ComponentFingerprint, texts: Line[], why?: (note: string) => void): Match | null {
   if (texts.length !== print.texts.length) {
     why?.(`${fullName(print)}: ${texts.length} текстов против ${print.texts.length}`);
     return null;
   }
 
-  const same = texts.length > 0 && texts.every((text, index) => normalize(text) === normalize(print.texts[index].characters));
+  const same = texts.length > 0 && texts.every((line, index) => normalize(line.characters) === normalize(print.texts[index].characters));
+  // The words can differ — that is what text properties are for — but the way
+  // they are set cannot: a grey 14px line in a summary is not a teal 16px tab
+  // that happens to hold the same number of strings.
+  for (const [index, line] of texts.entries()) {
+    const slot = print.texts[index];
+    if (slot.size !== undefined && Math.abs(slot.size - line.size) > 1) {
+      why?.(`${fullName(print)}: кегль ${line.size} против ${slot.size}`);
+      return null;
+    }
+    if (slot.fill && line.fill && colourDistance(line.fill, slot.fill) > 40) {
+      why?.(`${fullName(print)}: цвет текста ${line.fill} против ${slot.fill}`);
+      return null;
+    }
+  }
   // The same words in a box of nearly the same size are the same part: a
   // design system component and the page built from it rarely agree on the
   // last pixel, and a button that grew with its label is still that button.
@@ -151,7 +178,7 @@ function tryMatch(layer: FrameIR, print: ComponentFingerprint, texts: string[], 
   }
   // Different words are only allowed where the component offers a text
   // property or a named layer to put them in.
-  const fillable = texts.every((text, index) => normalize(text) === normalize(print.texts[index].characters) || !!print.texts[index].property || !!print.texts[index].name);
+  const fillable = texts.every((line, index) => normalize(line.characters) === normalize(print.texts[index].characters) || !!print.texts[index].property || !!print.texts[index].name);
   if (!same && !fillable) return null;
 
   const content = contentOf(layer);
@@ -210,11 +237,11 @@ function tryMatch(layer: FrameIR, print: ComponentFingerprint, texts: string[], 
   const properties: Record<string, string | boolean> = {};
   const text: Record<string, string> = {};
   if (!same) {
-    texts.forEach((value, index) => {
+    texts.forEach((line, index) => {
       const slot = print.texts[index];
-      if (normalize(value) === normalize(slot.characters)) return;
-      if (slot.property) properties[slot.property] = value;
-      else text[slot.name] = value;
+      if (normalize(line.characters) === normalize(slot.characters)) return;
+      if (slot.property) properties[slot.property] = line.characters;
+      else text[slot.name] = line.characters;
     });
   }
 
@@ -288,7 +315,7 @@ export function matchComponents(root: FrameIR, catalogue: ComponentFingerprint[]
       const candidates = [
         ...new Set([
           ...(bySize.get(`${Math.round(frame.width)}x${Math.round(frame.height)}`) ?? []),
-          ...(byText.get(textKey(texts)) ?? []),
+          ...(byText.get(textKey(texts.map((line) => line.characters))) ?? []),
           ...(texts.length >= 3 ? byShape.get(`${texts.length}:${Math.round(frame.width / 50)}`) ?? [] : []),
         ]),
       ];
@@ -301,8 +328,9 @@ export function matchComponents(root: FrameIR, catalogue: ComponentFingerprint[]
           if (match && (!best || match.score > best.score)) best = match;
         }
         if (!best && notes.length) {
-          const line = `${frame.name} ${Math.round(frame.width)}×${Math.round(frame.height)}${texts.length ? ` «${texts[0].slice(0, 28)}»` : ''} → ${notes[0]}`;
-          debug?.(`${frame.name} ${Math.round(frame.width)}×${Math.round(frame.height)} «${texts.slice(0, 2).join(' / ').slice(0, 40)}» → ${notes.slice(0, 3).join('; ')}`);
+          const first = texts[0]?.characters ?? '';
+          const line = `${frame.name} ${Math.round(frame.width)}×${Math.round(frame.height)}${first ? ` «${first.slice(0, 28)}»` : ''} → ${notes[0]}`;
+          debug?.(`${line}${notes.length > 1 ? `; ${notes.slice(1, 3).join('; ')}` : ''}`);
           if (!seenMiss.has(notes[0]) && stats.nearMisses.length < 12) {
             seenMiss.add(notes[0]);
             stats.nearMisses.push(line);

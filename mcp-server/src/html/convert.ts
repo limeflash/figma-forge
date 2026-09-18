@@ -605,6 +605,41 @@ const GAP_TOLERANCE = 1.5;
  * belong together and the wide gap becomes the spacing between groups. This is
  * how a designer builds it: spacing between blocks, not padding inside them.
  */
+/** Wraps several items into one frame, laid out like the row they came from. */
+function groupOf(ctx: Context, axis: Axis, group: Item[], options: LinearOptions, depth: number): Item | null {
+  if (group.length === 1) return group[0];
+  const groupBox = union(group.map((item) => item.box));
+  const plan = linear(ctx, axis, groupBox, groupBox, NO_EDGES, group, { ...options, justify: 'normal' }, depth + 1);
+  if (!plan) return null;
+  const frame = transparentFrame(axis === 'x' ? 'Row' : 'Stack', groupBox, plan.children);
+  frame.layout = plan.layout;
+  ctx.stats.frames++;
+  ctx.stats.autoLayout++;
+  ctx.stats.groups++;
+  return {
+    layer: frame,
+    box: groupBox,
+    style: {},
+    inline: false,
+    hugW: axis === 'x' ? plan.hugMain : plan.hugCross,
+    hugH: axis === 'x' ? plan.hugCross : plan.hugMain,
+    positioned: false,
+    zIndex: 0,
+  };
+}
+
+/**
+ * An empty element that only exists to push its neighbours apart — `flex: 1`
+ * with nothing in it. Figma has a setting for that (gap Auto), so the layer
+ * itself is noise.
+ */
+function isFiller(item: Item, axis: Axis): boolean {
+  if (item.layer.type !== 'FRAME') return false;
+  const frame = item.layer as FrameIR;
+  if (frame.children.length || hasVisuals(frame) || frame.radius !== undefined) return false;
+  return size(item.box, other(axis)) < 2 || px(item.style['flex-grow']) > 0;
+}
+
 function groupByGap(ctx: Context, axis: Axis, sorted: Item[], gaps: number[], options: LinearOptions, depth: number): Item[] | null {
   const widest = Math.max(...gaps);
   const groups: Item[][] = [[sorted[0]]];
@@ -616,28 +651,9 @@ function groupByGap(ctx: Context, axis: Axis, sorted: Item[], gaps: number[], op
 
   const out: Item[] = [];
   for (const group of groups) {
-    if (group.length === 1) {
-      out.push(group[0]);
-      continue;
-    }
-    const groupBox = union(group.map((item) => item.box));
-    const plan = linear(ctx, axis, groupBox, groupBox, NO_EDGES, group, { ...options, justify: 'normal' }, depth + 1);
-    if (!plan) return null;
-    const frame = transparentFrame(axis === 'x' ? 'Row' : 'Stack', groupBox, plan.children);
-    frame.layout = plan.layout;
-    ctx.stats.frames++;
-    ctx.stats.autoLayout++;
-    ctx.stats.groups++;
-    out.push({
-      layer: frame,
-      box: groupBox,
-      style: {},
-      inline: false,
-      hugW: axis === 'x' ? plan.hugMain : plan.hugCross,
-      hugH: axis === 'x' ? plan.hugCross : plan.hugMain,
-      positioned: false,
-      zIndex: 0,
-    });
+    const item = groupOf(ctx, axis, group, options, depth);
+    if (!item) return null;
+    out.push(item);
   }
   return out;
 }
@@ -645,6 +661,18 @@ function groupByGap(ctx: Context, axis: Axis, sorted: Item[], gaps: number[], op
 function linear(ctx: Context, axis: Axis, box: Box, content: Box, inset: Edges, items: Item[], options: LinearOptions, depth = 0): Plan | null {
   const cross = other(axis);
   const sorted = [...items].sort((a, b) => start(a.box, axis) - start(b.box, axis));
+
+  // An empty box between two sides is a spacer div. Figma writes that as gap
+  // Auto on the row, so the sides become the row's two items and the spacer
+  // itself goes away.
+  if (depth < 3 && sorted.length > 2) {
+    const at = sorted.findIndex((item) => isFiller(item, axis));
+    if (at > 0 && at < sorted.length - 1 && !sorted.some((item, index) => index !== at && isFiller(item, axis))) {
+      const left = groupOf(ctx, axis, sorted.slice(0, at), options, depth);
+      const right = groupOf(ctx, axis, sorted.slice(at + 1), options, depth);
+      if (left && right) return linear(ctx, axis, box, content, inset, [left, right], { ...options, justify: 'space-between' }, depth + 1);
+    }
+  }
 
   const gaps = sorted.slice(1).map((item, index) => start(item.box, axis) - end(sorted[index].box, axis));
   if (gaps.some((gap) => gap < -EPS) && !gaps.every((gap) => near(gap, gaps[0], 0.5))) return null;
@@ -670,7 +698,11 @@ function linear(ctx: Context, axis: Axis, box: Box, content: Box, inset: Edges, 
     const pushed = large.length === 1 && large[0].extra > 8 && near(leading, 0, 1) && near(trailing, 0, 1);
     if (pushed) {
       // One jump in an otherwise even row is an item pushed away (margin:
-      // auto, or a spacer): a filling spacer keeps it pushed on resize.
+      // auto, or a spacer). Figma says that with one setting — gap Auto — so
+      // the two sides of the jump become the two halves of a space-between
+      // row, and no empty layer is invented to hold them apart.
+      const halves = depth < 3 ? groupByGap(ctx, axis, sorted, gaps, options, depth) : null;
+      if (halves?.length === 2) return linear(ctx, axis, box, content, inset, halves, { ...options, justify: 'space-between' }, depth + 1);
       spacerBefore.set(large[0].index + 1, large[0].extra);
     } else if (large.length && depth < 3) {
       const grouped = groupByGap(ctx, axis, sorted, gaps, options, depth);
@@ -1220,19 +1252,19 @@ function textElement(ctx: Context, el: RawElement, z: number, frame: FrameIR, ha
   if (!made) return null;
   made.layer.origin = `${el.tag}#${el.i}`;
 
-  const bare =
-    !hasVisuals(frame) &&
-    !frame.clip &&
-    !hasBackgrounds &&
-    edgeSum(inset) < 0.5 &&
-    !el.field &&
-    near(made.box[1], el.r[1], 1.5) &&
-    near(made.box[3], height, 1.5);
+  // Half-leading: an element is often a few pixels taller than the line in it.
+  const above = made.box[1] - el.r[1];
+  const below = height - above - made.box[3];
+  const fills = near(made.box[3], height, 1.5) && near(above, 0, 1.5);
+  // A box that only centres its line adds nothing: the line goes to the parent
+  // with its real height, and the row that holds it centres it like any item.
+  const centredLine = made.hug && near(above, below, 1.5) && above < 12;
+  const bare = !hasVisuals(frame) && !frame.clip && !hasBackgrounds && edgeSum(inset) < 0.5 && !el.field && (fills || centredLine);
   if (bare) {
     ctx.stats.frames--;
     const layer = made.layer;
     if (made.hug && px(el.s['flex-grow']) <= 0) {
-      return itemOf(layer, el, true, true, [made.box[0], el.r[1], made.box[2], height]);
+      return itemOf(layer, el, true, true, fills ? [made.box[0], el.r[1], made.box[2], height] : made.box);
     }
     // Keep the element's width: alignment inside it still means something.
     layer.resize = 'HEIGHT';
@@ -1243,18 +1275,18 @@ function textElement(ctx: Context, el: RawElement, z: number, frame: FrameIR, ha
   // A frame around the text: its padding and alignment place the words.
   const leading = made.box[0] - content[0];
   const trailing = content[0] + content[2] - (made.box[0] + made.box[2]);
-  const above = made.box[1] - content[1];
-  const below = content[1] + content[3] - (made.box[1] + made.box[3]);
+  const overLine = made.box[1] - content[1];
+  const underLine = content[1] + content[3] - (made.box[1] + made.box[3]);
   let primary: AutoLayoutIR['primary'] = 'MIN';
   if (made.hug && near(leading, trailing, 1.5) && leading > 1) primary = 'CENTER';
   else if (made.hug && near(trailing, 0, 1) && leading > 1) primary = 'MAX';
   let counter: AutoLayoutIR['counter'] = 'MIN';
-  if (near(above, below, 1.5) && above > 0.5) counter = 'CENTER';
-  else if (near(below, 0, 1) && above > 1) counter = 'MAX';
+  if (near(overLine, underLine, 1.5) && overLine > 0.5) counter = 'CENTER';
+  else if (near(underLine, 0, 1) && overLine > 1) counter = 'MAX';
 
   const padding: [number, number, number, number] = [inset.top, inset.right, inset.bottom, inset.left];
   if (primary === 'MIN' && made.hug && leading > 0.5) padding[3] += leading;
-  if (counter === 'MIN' && above > 0.5) padding[0] += above;
+  if (counter === 'MIN' && overLine > 0.5) padding[0] += overLine;
 
   const text = made.layer;
   text.sizing = made.hug ? { h: 'HUG', v: 'HUG' } : { h: 'FILL', v: 'HUG' };
@@ -1372,6 +1404,37 @@ function convertElement(ctx: Context, el: RawElement, parentZ: number): Item | n
   // A wrapper that adds nothing is noise in the layers panel.
   if (!hasVisuals(frame) && !frame.clip && !positioned.length && flow.length === 1 && frame.children.length === 1 && edgeSum(inset) < 0.5) {
     const only = flow[0];
+    // A box around one line of text says nothing the text cannot say itself:
+    // the width becomes the text layer's own, and where the words sat in it
+    // becomes their alignment.
+    if (
+      only.layer.type === 'TEXT' &&
+      only.layer === frame.children[0] &&
+      near(only.box[1], el.r[1], 0.5) &&
+      near(only.box[3], height, 0.5) &&
+      only.box[2] <= width + 0.5 &&
+      width - only.box[2] > 0.5
+    ) {
+      const text = only.layer;
+      const left = only.box[0] - el.r[0];
+      const slack = width - only.box[2];
+      text.align = near(left, slack / 2, 1) ? 'CENTER' : near(left + only.box[2], width, 1) ? 'RIGHT' : 'LEFT';
+      text.width = width;
+      text.resize = text.resize === 'WIDTH_AND_HEIGHT' ? 'HEIGHT' : text.resize;
+      ctx.stats.frames--;
+      if (plan) ctx.stats.autoLayout--;
+      text.maxWidth ??= frame.maxWidth;
+      text.minWidth ??= frame.minWidth;
+      return {
+        ...only,
+        box: el.r,
+        hugW: false,
+        style: el.s,
+        inline: /^inline/.test(display),
+        positioned: isPositioned(el.s),
+        zIndex: parseInt(el.s['z-index'] ?? '0', 10) || 0,
+      };
+    }
     if (near(only.box[0], el.r[0]) && near(only.box[1], el.r[1]) && near(only.box[2], width) && near(only.box[3], height)) {
       ctx.stats.frames--;
       if (plan) ctx.stats.autoLayout--;

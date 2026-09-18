@@ -27458,6 +27458,33 @@ function setSizing(layer, axis, main, cross) {
 var hugsOn = (item, axis) => axis === "x" ? item.hugW : item.hugH;
 var hugsItsWords = (item) => item.layer.type === "TEXT" && item.layer.resize === "WIDTH_AND_HEIGHT";
 var GAP_TOLERANCE = 1.5;
+function groupOf(ctx, axis, group2, options, depth) {
+  if (group2.length === 1) return group2[0];
+  const groupBox = union2(group2.map((item) => item.box));
+  const plan = linear(ctx, axis, groupBox, groupBox, NO_EDGES, group2, { ...options, justify: "normal" }, depth + 1);
+  if (!plan) return null;
+  const frame = transparentFrame(axis === "x" ? "Row" : "Stack", groupBox, plan.children);
+  frame.layout = plan.layout;
+  ctx.stats.frames++;
+  ctx.stats.autoLayout++;
+  ctx.stats.groups++;
+  return {
+    layer: frame,
+    box: groupBox,
+    style: {},
+    inline: false,
+    hugW: axis === "x" ? plan.hugMain : plan.hugCross,
+    hugH: axis === "x" ? plan.hugCross : plan.hugMain,
+    positioned: false,
+    zIndex: 0
+  };
+}
+function isFiller(item, axis) {
+  if (item.layer.type !== "FRAME") return false;
+  const frame = item.layer;
+  if (frame.children.length || hasVisuals(frame) || frame.radius !== void 0) return false;
+  return size(item.box, other(axis)) < 2 || px(item.style["flex-grow"]) > 0;
+}
 function groupByGap(ctx, axis, sorted, gaps, options, depth) {
   const widest = Math.max(...gaps);
   const groups = [[sorted[0]]];
@@ -27468,34 +27495,23 @@ function groupByGap(ctx, axis, sorted, gaps, options, depth) {
   if (groups.length < 2 || !groups.some((group2) => group2.length > 1)) return null;
   const out = [];
   for (const group2 of groups) {
-    if (group2.length === 1) {
-      out.push(group2[0]);
-      continue;
-    }
-    const groupBox = union2(group2.map((item) => item.box));
-    const plan = linear(ctx, axis, groupBox, groupBox, NO_EDGES, group2, { ...options, justify: "normal" }, depth + 1);
-    if (!plan) return null;
-    const frame = transparentFrame(axis === "x" ? "Row" : "Stack", groupBox, plan.children);
-    frame.layout = plan.layout;
-    ctx.stats.frames++;
-    ctx.stats.autoLayout++;
-    ctx.stats.groups++;
-    out.push({
-      layer: frame,
-      box: groupBox,
-      style: {},
-      inline: false,
-      hugW: axis === "x" ? plan.hugMain : plan.hugCross,
-      hugH: axis === "x" ? plan.hugCross : plan.hugMain,
-      positioned: false,
-      zIndex: 0
-    });
+    const item = groupOf(ctx, axis, group2, options, depth);
+    if (!item) return null;
+    out.push(item);
   }
   return out;
 }
 function linear(ctx, axis, box, content, inset, items, options, depth = 0) {
   const cross = other(axis);
   const sorted = [...items].sort((a, b) => start(a.box, axis) - start(b.box, axis));
+  if (depth < 3 && sorted.length > 2) {
+    const at = sorted.findIndex((item) => isFiller(item, axis));
+    if (at > 0 && at < sorted.length - 1 && !sorted.some((item, index) => index !== at && isFiller(item, axis))) {
+      const left = groupOf(ctx, axis, sorted.slice(0, at), options, depth);
+      const right = groupOf(ctx, axis, sorted.slice(at + 1), options, depth);
+      if (left && right) return linear(ctx, axis, box, content, inset, [left, right], { ...options, justify: "space-between" }, depth + 1);
+    }
+  }
   const gaps = sorted.slice(1).map((item, index) => start(item.box, axis) - end(sorted[index].box, axis));
   if (gaps.some((gap2) => gap2 < -EPS) && !gaps.every((gap2) => near(gap2, gaps[0], 0.5))) return null;
   const contentStart = start(content, axis);
@@ -27516,6 +27532,8 @@ function linear(ctx, axis, box, content, inset, items, options, depth = 0) {
     const large = extras.map((extra, index) => ({ extra, index })).filter(({ extra }) => extra > GAP_TOLERANCE);
     const pushed = large.length === 1 && large[0].extra > 8 && near(leading, 0, 1) && near(trailing, 0, 1);
     if (pushed) {
+      const halves = depth < 3 ? groupByGap(ctx, axis, sorted, gaps, options, depth) : null;
+      if (halves?.length === 2) return linear(ctx, axis, box, content, inset, halves, { ...options, justify: "space-between" }, depth + 1);
       spacerBefore.set(large[0].index + 1, large[0].extra);
     } else if (large.length && depth < 3) {
       const grouped = groupByGap(ctx, axis, sorted, gaps, options, depth);
@@ -27983,12 +28001,16 @@ function textElement(ctx, el, z, frame, hasBackgrounds) {
   }
   if (!made) return null;
   made.layer.origin = `${el.tag}#${el.i}`;
-  const bare = !hasVisuals(frame) && !frame.clip && !hasBackgrounds && edgeSum(inset) < 0.5 && !el.field && near(made.box[1], el.r[1], 1.5) && near(made.box[3], height, 1.5);
+  const above = made.box[1] - el.r[1];
+  const below = height - above - made.box[3];
+  const fills = near(made.box[3], height, 1.5) && near(above, 0, 1.5);
+  const centredLine = made.hug && near(above, below, 1.5) && above < 12;
+  const bare = !hasVisuals(frame) && !frame.clip && !hasBackgrounds && edgeSum(inset) < 0.5 && !el.field && (fills || centredLine);
   if (bare) {
     ctx.stats.frames--;
     const layer = made.layer;
     if (made.hug && px(el.s["flex-grow"]) <= 0) {
-      return itemOf(layer, el, true, true, [made.box[0], el.r[1], made.box[2], height]);
+      return itemOf(layer, el, true, true, fills ? [made.box[0], el.r[1], made.box[2], height] : made.box);
     }
     layer.resize = "HEIGHT";
     layer.width = width;
@@ -27996,17 +28018,17 @@ function textElement(ctx, el, z, frame, hasBackgrounds) {
   }
   const leading = made.box[0] - content[0];
   const trailing = content[0] + content[2] - (made.box[0] + made.box[2]);
-  const above = made.box[1] - content[1];
-  const below = content[1] + content[3] - (made.box[1] + made.box[3]);
+  const overLine = made.box[1] - content[1];
+  const underLine = content[1] + content[3] - (made.box[1] + made.box[3]);
   let primary = "MIN";
   if (made.hug && near(leading, trailing, 1.5) && leading > 1) primary = "CENTER";
   else if (made.hug && near(trailing, 0, 1) && leading > 1) primary = "MAX";
   let counter = "MIN";
-  if (near(above, below, 1.5) && above > 0.5) counter = "CENTER";
-  else if (near(below, 0, 1) && above > 1) counter = "MAX";
+  if (near(overLine, underLine, 1.5) && overLine > 0.5) counter = "CENTER";
+  else if (near(underLine, 0, 1) && overLine > 1) counter = "MAX";
   const padding = [inset.top, inset.right, inset.bottom, inset.left];
   if (primary === "MIN" && made.hug && leading > 0.5) padding[3] += leading;
-  if (counter === "MIN" && above > 0.5) padding[0] += above;
+  if (counter === "MIN" && overLine > 0.5) padding[0] += overLine;
   const text2 = made.layer;
   text2.sizing = made.hug ? { h: "HUG", v: "HUG" } : { h: "FILL", v: "HUG" };
   frame.layout = { mode: "HORIZONTAL", gap: 0, padding: padding.map(round2), primary, counter };
@@ -28105,6 +28127,27 @@ function convertElement(ctx, el, parentZ) {
   addBackgroundVectors(ctx, frame, backgrounds, name);
   if (!hasVisuals(frame) && !frame.clip && !positioned.length && flow.length === 1 && frame.children.length === 1 && edgeSum(inset) < 0.5) {
     const only = flow[0];
+    if (only.layer.type === "TEXT" && only.layer === frame.children[0] && near(only.box[1], el.r[1], 0.5) && near(only.box[3], height, 0.5) && only.box[2] <= width + 0.5 && width - only.box[2] > 0.5) {
+      const text2 = only.layer;
+      const left = only.box[0] - el.r[0];
+      const slack = width - only.box[2];
+      text2.align = near(left, slack / 2, 1) ? "CENTER" : near(left + only.box[2], width, 1) ? "RIGHT" : "LEFT";
+      text2.width = width;
+      text2.resize = text2.resize === "WIDTH_AND_HEIGHT" ? "HEIGHT" : text2.resize;
+      ctx.stats.frames--;
+      if (plan) ctx.stats.autoLayout--;
+      text2.maxWidth ??= frame.maxWidth;
+      text2.minWidth ??= frame.minWidth;
+      return {
+        ...only,
+        box: el.r,
+        hugW: false,
+        style: el.s,
+        inline: /^inline/.test(display),
+        positioned: isPositioned(el.s),
+        zIndex: parseInt(el.s["z-index"] ?? "0", 10) || 0
+      };
+    }
     if (near(only.box[0], el.r[0]) && near(only.box[1], el.r[1]) && near(only.box[2], width) && near(only.box[3], height)) {
       ctx.stats.frames--;
       if (plan) ctx.stats.autoLayout--;

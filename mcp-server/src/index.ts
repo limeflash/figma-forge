@@ -1,10 +1,11 @@
 /**
  * Figma Forge MCP server.
  *
- * Eight tools, split into two lanes. The typed lane (inspect / design_system /
- * apply_plan / verify / recover) is what the bundled skills use: it validates,
- * journals, and verifies. The compatibility lane (execute) exists for the
- * operations no typed vocabulary will ever cover, and defaults to read-only.
+ * The tools split into two lanes. The typed lane (inspect / design_system /
+ * apply_plan / verify / recover, and the imports built on them) is what the
+ * bundled skills use: it validates, journals, and verifies. The compatibility
+ * lane (execute) exists for the operations no typed vocabulary will ever
+ * cover, and defaults to read-only.
  *
  * This process owns durable state — the design-system cache and the write
  * journals — while the Figma plugin owns the document. Neither can lose the
@@ -25,6 +26,9 @@ import { clearGraph, loadGraph, loadVectors, saveGraph, saveVectors, StoredGraph
 import { buildLexicalIndex, fuse, lexicalSearch, screenDocument, vectorSearch } from './graph/search.js';
 import { GraphChunk } from './graph/types.js';
 import { renderPlan, PlanOp, ThumbnailAsset, VariableValue } from './preview/render.js';
+import { BrowserUnavailable } from './html/browser.js';
+import { prepare as prepareHtml, SectionSpec, survey as surveyHtml, writeToFigma } from './html/import.js';
+import type { Step } from './html/render.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join as joinPath } from 'node:path';
 import { dataDirectory as ffDataDirectory } from './store.js';
@@ -1226,6 +1230,244 @@ server.registerTool(
     }
   }
 );
+
+const viewportSchema = z.object({
+  width: z.number().int().min(200).max(4000),
+  height: z.number().int().min(200).max(20000).optional(),
+});
+
+const stepSchema = z.union([
+  z.object({ click: z.string().describe('Visible text, or "css:<selector>" (">>>" enters an iframe).') }).strict(),
+  z.object({ hover: z.string() }).strict(),
+  z.object({ type: z.string(), into: z.string().optional() }).strict(),
+  z.object({ press: z.string().describe('A key name, e.g. "Enter".') }).strict(),
+  z.object({ wait: z.number().describe('Milliseconds, up to 10000.') }).strict(),
+  z.object({ eval: z.string().describe('JavaScript run in the page.') }).strict(),
+  z.object({ reload: z.literal(true).describe('Reload the page — for prototypes that restore their state from storage.') }).strict(),
+  z.object({ viewport: viewportSchema }).strict(),
+  z.object({ scroll: z.number() }).strict(),
+]);
+
+const screenSchema = z.object({
+  name: z.string().describe('Frame name in Figma, e.g. "1b · Промокод: нет такого / Мобайл".'),
+  page: z.string().optional().describe('Page inside a folder or zip; a unique part of its path is enough. May carry ?query#hash.'),
+  selector: z.string().optional().describe('Root element; "a >>> b" selects b inside iframe a. Default: body.'),
+  viewport: viewportSchema.optional(),
+  steps: z.array(stepSchema).optional().describe('Interactions that bring the page into this state, from a fresh load.'),
+  fullHeight: z.boolean().optional().describe('Grow scroll containers and iframes to show everything. Default true.'),
+  frameWidth: z.number().optional().describe('For ">>>" selectors: width to give the innermost iframe (the device).'),
+  exclude: z.array(z.string()).optional().describe('Selectors to leave out, e.g. prototype controls.'),
+  rasterize: z.array(z.string()).optional().describe('Selectors to import as images.'),
+});
+
+const sectionSchema = z.object({
+  name: z.string().describe('Figma section name — a flow or a group of states.'),
+  note: z.string().optional().describe('Description card at the top of the section.'),
+  rows: z
+    .array(
+      z.object({
+        title: z.string().optional().describe('Caption card title for this row, e.g. "1b · Промокод: нет такого".'),
+        note: z.string().optional().describe('Caption card text: what this state is and when it happens.'),
+        screens: z.array(screenSchema).min(1),
+      })
+    )
+    .min(1),
+});
+
+type ProgressExtra = {
+  _meta?: { progressToken?: string | number };
+  sendNotification?: (notification: { method: string; params: Record<string, unknown> }) => Promise<void>;
+};
+
+function progressReporter(extra: ProgressExtra | undefined) {
+  const token = extra?._meta?.progressToken;
+  let last = 0;
+  return (done: number, total: number, message: string) => {
+    if (token === undefined || !extra?.sendNotification) return;
+    const now = Date.now();
+    if (now - last < 250) return;
+    last = now;
+    extra
+      .sendNotification({ method: 'notifications/progress', params: { progressToken: token, progress: done, total, message } })
+      .catch(() => undefined);
+  };
+}
+
+server.registerTool(
+  'figma_forge_import_html',
+  {
+    title: 'Import HTML screens into Figma',
+    description:
+      'Turns finished HTML mockups — Claude Design exports, `.dc.html` sources, project folders or .zip archives, ' +
+      'or any HTML page — into editable Figma screens with auto layout, grouped into sections with captions.\n\n' +
+      'Pages are rendered in a local headless Chromium, so what is imported is what the browser shows, including ' +
+      'states reached by clicking through a prototype.\n\n' +
+      'Actions: "survey" renders one page and reports its screens (with annotated screenshots), the captions ' +
+      'around them, clickable controls, and a ready-to-edit build proposal — always start here. "build" renders ' +
+      'every screen in `sections` and writes them to Figma under one journalled operation (dryRun converts ' +
+      'without writing). "cleanup" removes everything an import created, by operationId.',
+    inputSchema: {
+      action: z.enum(['survey', 'build', 'cleanup']).default('survey'),
+      source: z.string().optional().describe('An .html file, a folder, or a .zip. "~" is expanded.'),
+      page: z.string().optional().describe('For "survey": which page of a folder or zip.'),
+      viewport: viewportSchema.optional().describe('For "survey". Default 1600×1000.'),
+      steps: z.array(stepSchema).optional().describe('For "survey": interactions to perform before looking.'),
+      screenshots: z.boolean().optional().describe('For "survey": return annotated screenshots. Default true.'),
+      sections: z.array(sectionSchema).optional().describe('For "build": what to import and how to group it.'),
+      target: z
+        .object({ pageId: z.string().optional(), pageName: z.string().optional() })
+        .optional()
+        .describe('For "build": an existing page id, or a page name to find or create. Default: a new page named after the source.'),
+      bindTokens: z.boolean().optional().describe('For "build": bind colours to matching local variables. Default true.'),
+      dryRun: z.boolean().optional().describe('For "build": render and convert, report, write nothing.'),
+      operationId: z.string().optional().describe('For "cleanup".'),
+    },
+  },
+  async (params, extra): Promise<ToolResult> => {
+    try {
+      const action = params.action ?? 'survey';
+
+      if (action === 'cleanup') {
+        if (!params.operationId) return failure(new Error('"cleanup" needs the `operationId` of an import.'));
+        const result = await call<{ removed: string[] }>('import_cleanup', { operationId: params.operationId }, 120_000);
+        await updateJournalStatus(params.operationId, 'recovered').catch(() => undefined);
+        return text({ operationId: params.operationId, removed: result.removed.length });
+      }
+
+      if (!params.source) return failure(new Error(`"${action}" needs a \`source\`: an .html file, a folder or a .zip.`));
+
+      if (action === 'survey') {
+        const { report, shots } = await surveyHtml({
+          source: params.source,
+          page: params.page,
+          viewport: params.viewport,
+          steps: params.steps as Step[] | undefined,
+          screenshots: params.screenshots,
+        });
+        report.next =
+          'Review the proposal with the user: section names, row captions, screen names. Drop duplicates and ' +
+          'prototype chrome (use `exclude` for fixed toggles). For states behind clicks, add `steps`. For a device ' +
+          'mock, prefer `innerPage` with a device-width viewport, or the `inner` selector. Then run action "build" ' +
+          'with the edited `sections` — dryRun first for large imports.';
+        const content: ToolResult['content'] = [{ type: 'text', text: JSON.stringify(report, null, 2) }];
+        shots.forEach((shot, index) => {
+          content.push({ type: 'text', text: `Page overview ${index + 1}/${shots.length} — red boxes are the screens found (s1, s2, …).` });
+          content.push({ type: 'image', data: shot.toString('base64'), mimeType: 'image/png' });
+        });
+        return { content };
+      }
+
+      // build
+      const sections = (params.sections ?? []) as SectionSpec[];
+      if (!sections.length) {
+        return failure(new Error('"build" needs `sections`. Run "survey" first and start from its `proposal`.'));
+      }
+      const report = progressReporter(extra as ProgressExtra);
+
+      let info: SessionInfo | null = null;
+      if (!params.dryRun) info = await sessionInfo();
+
+      const started = Date.now();
+      const prepared = await prepareHtml(params.source, sections, report);
+      const renderMs = Date.now() - started;
+      const screenReport = prepared.screens.map((screen) => ({
+        name: screen.spec.name,
+        size: `${Math.round(screen.layer.width)}×${Math.round(screen.layer.height)}`,
+        layers: screen.nodes,
+        autoLayoutFrames: screen.stats.autoLayout,
+        absoluteFrames: screen.stats.absoluteContainers || undefined,
+        rasterized: screen.stats.rasters || undefined,
+        warnings: screen.warnings.length ? screen.warnings.slice(0, 8) : undefined,
+        pageErrors: screen.errors.length ? screen.errors.slice(0, 3) : undefined,
+      }));
+
+      if (params.dryRun) {
+        return text({
+          dryRun: true,
+          screens: screenReport,
+          totalLayers: prepared.screens.reduce((sum, screen) => sum + screen.nodes, 0),
+          renderMs,
+          next: 'Nothing was written. Re-run without dryRun to build these in Figma.',
+        });
+      }
+
+      const operationId = `ff-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+      const pageName = params.target?.pageName ?? (params.target?.pageId ? undefined : prettySourceName(prepared.source.input));
+      const description = `Import HTML: ${prepared.source.display}`;
+      const written = await writeToFigma(prepared.screens, {
+        operationId,
+        target: { pageId: params.target?.pageId, pageName },
+        bindTokens: params.bindTokens !== false,
+        sections,
+        call: (command, commandParams, timeout) => call(command, commandParams, timeout),
+        progress: report,
+        saveJournal: async (entries, created, error) => {
+          await writeJournal({
+            operationId,
+            channel: bridge.channel,
+            fileKey: info?.fileKey ?? null,
+            description,
+            createdAt: started,
+            status: error ? 'failed' : 'applied',
+            error,
+            created,
+            modified: [],
+            quarantined: [],
+            entries,
+          });
+        },
+      });
+      if (info) await markDirty(fileIdentity(info), 'file', written.sections.flatMap((section) => [section.id, ...section.screens.map((screen) => screen.id)]));
+
+      const content: ToolResult['content'] = [];
+      for (const section of written.sections.slice(0, 4)) {
+        try {
+          const shot = await call<{ bytes: string }>('inspect', { scope: 'screenshot', nodeId: section.id }, 120_000);
+          content.push({ type: 'text', text: `${section.name} — ${figmaLink(section.id) ?? `section ${section.id}`}` });
+          content.push({ type: 'image', data: shot.bytes, mimeType: 'image/png' });
+        } catch {
+          /* a missing preview does not undo the import */
+        }
+      }
+      content.unshift({
+        type: 'text',
+        text: JSON.stringify(
+          {
+            imported: true,
+            operationId,
+            page: { id: written.pageId, name: written.pageName },
+            sections: written.sections.map((section) => ({
+              name: section.name,
+              link: figmaLink(section.id),
+              id: section.id,
+              screens: section.screens.map((screen) => ({ name: screen.name, id: screen.id, link: figmaLink(screen.id), size: `${screen.width}×${screen.height}`, layers: screen.nodes })),
+            })),
+            screens: screenReport,
+            images: { uploaded: written.images.uploaded, failed: written.images.failed.length ? written.images.failed : undefined },
+            colorsBoundToVariables: written.boundColors,
+            fontsMissingInFigma: written.missingFonts.length ? written.missingFonts : undefined,
+            figmaWarnings: written.warnings.length ? written.warnings.slice(0, 20) : undefined,
+            ms: Date.now() - started,
+            undo: `figma_forge_recover { operationId: "${operationId}" }`,
+          },
+          null,
+          2
+        ),
+      });
+      return { content };
+    } catch (error) {
+      if (error instanceof BrowserUnavailable) {
+        return { isError: true, content: [{ type: 'text', text: `${error.message}\n\n${error.remedy}` }] };
+      }
+      return failure(error);
+    }
+  }
+);
+
+function prettySourceName(path: string): string {
+  const name = basename(path).replace(/\.(zip|html?)$/i, '').replace(/\.dc$/, '');
+  return name.replace(/\s*\((офлайн|offline|standalone)[^)]*\)\s*/gi, ' ').replace(/\s*\(\d+\)\s*$/, '').trim() || 'Imported HTML';
+}
 
 server.registerTool(
   'figma_forge_modules',

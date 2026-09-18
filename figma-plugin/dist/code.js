@@ -495,13 +495,13 @@
     }
   }
   function rgbToHex(color) {
-    const channel = (v) => {
+    const channel2 = (v) => {
       const n = Math.round(Math.max(0, Math.min(1, v)) * 255);
       return (n < 16 ? "0" : "") + n.toString(16);
     };
     const alpha = color.a;
-    const base = `#${channel(color.r)}${channel(color.g)}${channel(color.b)}`;
-    return alpha === void 0 || alpha >= 1 ? base : base + channel(alpha);
+    const base = `#${channel2(color.r)}${channel2(color.g)}${channel2(color.b)}`;
+    return alpha === void 0 || alpha >= 1 ? base : base + channel2(alpha);
   }
   var variableNames = /* @__PURE__ */ new Map();
   var styleNames = /* @__PURE__ */ new Map();
@@ -901,6 +901,16 @@
         }
         switch (inverse.kind) {
           case "remove":
+            if (node.type === "PAGE") {
+              if (figma.root.children.length < 2) {
+                result.skipped.push({ seq: entry.seq, reason: "a document must keep one page" });
+                continue;
+              }
+              if (figma.currentPage.id === node.id) {
+                const other = figma.root.children.find((page) => page.id !== node.id);
+                if (other) await figma.setCurrentPageAsync(other);
+              }
+            }
             node.remove();
             break;
           case "restore_props":
@@ -982,8 +992,8 @@
   }
   async function loadFontsFor(node) {
     if (!node || node.type !== "TEXT") return;
-    const fonts = node.getRangeAllFontNames(0, Math.max(node.characters.length, 1));
-    await Promise.all(fonts.map((font) => figma.loadFontAsync(font)));
+    const fonts2 = node.getRangeAllFontNames(0, Math.max(node.characters.length, 1));
+    await Promise.all(fonts2.map((font) => figma.loadFontAsync(font)));
   }
   function errorMessage(error) {
     if (error instanceof Error && error.message) return error.message;
@@ -1547,7 +1557,7 @@ ${body}
       grid: (await figma.getLocalGridStylesAsync()).map(toStyleRow)
     };
     const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
-    const collections = localCollections.map((collection) => ({
+    const collections2 = localCollections.map((collection) => ({
       id: collection.id,
       key: collection.key,
       name: collection.name,
@@ -1664,7 +1674,7 @@ ${body}
       scopePageIds: pages.map((page) => page.id),
       components,
       styles,
-      collections,
+      collections: collections2,
       variables,
       libraryCollections,
       remoteComponentsInUse,
@@ -1674,7 +1684,7 @@ ${body}
         textStyles: styles.text.length,
         effectStyles: styles.effect.length,
         gridStyles: styles.grid.length,
-        collections: collections.length,
+        collections: collections2.length,
         variables: variables.length,
         libraryCollections: libraryCollections.length,
         remoteComponentsInUse: remoteComponentsInUse.length
@@ -3247,6 +3257,752 @@ ${body}
     return out;
   }
 
+  // figma-plugin/src/runtime/commands/import-layers.ts
+  var IMPORT_KEY = "ff.import";
+  function importImages(params) {
+    const hashes = {};
+    const failed = [];
+    for (const image of params.images ?? []) {
+      try {
+        hashes[image.id] = figma.createImage(figma.base64Decode(image.data)).hash;
+      } catch (error) {
+        failed.push({ id: image.id, error: errorMessage(error) });
+      }
+    }
+    return { hashes, failed };
+  }
+  var fontIndex = null;
+  var loadedFonts = /* @__PURE__ */ new Map();
+  async function fonts() {
+    if (!fontIndex) {
+      fontIndex = /* @__PURE__ */ new Map();
+      for (const font of await figma.listAvailableFontsAsync()) {
+        const key = font.fontName.family.toLowerCase();
+        const list = fontIndex.get(key) ?? [];
+        list.push(font.fontName);
+        fontIndex.set(key, list);
+      }
+    }
+    return fontIndex;
+  }
+  var GENERIC = {
+    "sans-serif": ["Inter", "Helvetica Neue", "Arial"],
+    "system-ui": ["SF Pro Text", "SF Pro", "Segoe UI", "Roboto", "Inter"],
+    "-apple-system": ["SF Pro Text", "SF Pro", "Inter"],
+    blinkmacsystemfont: ["SF Pro Text", "SF Pro", "Inter"],
+    "ui-sans-serif": ["SF Pro Text", "Inter"],
+    serif: ["Georgia", "Times New Roman", "Noto Serif"],
+    "ui-serif": ["New York", "Georgia", "Times New Roman"],
+    monospace: ["SF Mono", "Menlo", "Roboto Mono", "Courier New"],
+    "ui-monospace": ["SF Mono", "Menlo", "Roboto Mono"],
+    cursive: ["Comic Sans MS"]
+  };
+  var WEIGHT_WORDS = [
+    [/(thin|hairline)/, 100],
+    [/(extra|ultra)[\s-]?light/, 200],
+    [/light/, 300],
+    [/(semi|demi)[\s-]?bold/, 600],
+    [/(extra|ultra)[\s-]?bold/, 800],
+    [/(black|heavy)/, 900],
+    [/bold/, 700],
+    [/medium/, 500]
+  ];
+  function styleWeight(style) {
+    const lower = style.toLowerCase();
+    for (const [pattern, weight] of WEIGHT_WORDS) if (pattern.test(lower)) return weight;
+    return 400;
+  }
+  function pickStyle(styles, weight, italic) {
+    let best = styles[0];
+    let bestScore = Infinity;
+    for (const font of styles) {
+      const style = font.style.toLowerCase();
+      const isItalic = /italic|oblique/.test(style);
+      let score = Math.abs(styleWeight(font.style) - weight);
+      if (isItalic !== italic) score += 1e3;
+      if (/condensed|narrow|compressed|expanded|wide|display|caption|small/.test(style)) score += 60;
+      if (score < bestScore) {
+        best = font;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+  var familyUsage = null;
+  async function familiesInUse(operationId) {
+    if (familyUsage && familyUsage.operationId === operationId) return familyUsage.counts;
+    const counts = /* @__PURE__ */ new Map();
+    const pages = [figma.currentPage, ...figma.root.children.filter((page) => page.id !== figma.currentPage.id)];
+    let sampled = 0;
+    for (const page of pages.slice(0, 4)) {
+      if (sampled >= 600) break;
+      try {
+        await page.loadAsync();
+        for (const node of page.findAllWithCriteria({ types: ["TEXT"] }).slice(0, 300)) {
+          const font = safe(() => node.fontName);
+          if (!font || typeof font === "string" || !font.family) continue;
+          const key = font.family.toLowerCase();
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+          sampled++;
+        }
+      } catch {
+      }
+    }
+    familyUsage = { operationId, counts };
+    return counts;
+  }
+  function familyKey(family) {
+    return family.toLowerCase().replace(/[\s_-]+/g, "").replace(/(vf|variable)$/, "");
+  }
+  async function chooseFont(style, usage) {
+    const index = await fonts();
+    const wanted = style.family.length ? style.family : ["Inter"];
+    for (const family of wanted) {
+      for (const candidate of GENERIC[family.toLowerCase()] ?? [family]) {
+        const target = familyKey(candidate);
+        let best = null;
+        for (const [name, styles] of index) {
+          const key = familyKey(name);
+          const exact = key === target;
+          if (!exact && !key.startsWith(target) && !target.startsWith(key)) continue;
+          const font = pickStyle(styles, style.weight, !!style.italic);
+          const score = Math.abs(styleWeight(font.style) - style.weight) * 10 + (exact ? 0 : 40) + (styles.length < 3 ? 90 : 0) + (/vf|variable/i.test(name) ? 25 : 0) - Math.min(usage.get(name) ?? 0, 50);
+          if (!best || score < best.score) best = { font, score };
+        }
+        if (best) return { font: best.font };
+      }
+    }
+    const inter = index.get("inter") ?? [{ family: "Inter", style: "Regular" }];
+    return { font: pickStyle(inter, style.weight, !!style.italic), missing: wanted[0] };
+  }
+  async function loadFont(font) {
+    const key = `${font.family}::${font.style}`;
+    let pending = loadedFonts.get(key);
+    if (!pending) {
+      pending = figma.loadFontAsync(font);
+      loadedFonts.set(key, pending);
+    }
+    await pending;
+  }
+  var tokenIndex = null;
+  var channel = (value) => Math.round(Math.max(0, Math.min(1, value)) * 255);
+  var colorKey = (color, alpha) => `${channel(color.r)},${channel(color.g)},${channel(color.b)},${Math.round(alpha * 100)}`;
+  var collections = /* @__PURE__ */ new Map();
+  async function collectionOf(variable) {
+    if (!collections.has(variable.variableCollectionId)) {
+      collections.set(variable.variableCollectionId, await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId));
+    }
+    return collections.get(variable.variableCollectionId) ?? null;
+  }
+  async function resolveColor(variable, depth = 0) {
+    if (depth > 6) return null;
+    const collection = await collectionOf(variable);
+    if (!collection) return null;
+    const value = variable.valuesByMode[collection.defaultModeId];
+    if (value && typeof value === "object" && value.type === "VARIABLE_ALIAS") {
+      const target = await figma.variables.getVariableByIdAsync(value.id);
+      return target ? resolveColor(target, depth + 1) : null;
+    }
+    if (value && typeof value === "object" && "r" in value) {
+      const color = value;
+      return { r: color.r, g: color.g, b: color.b, a: color.a ?? 1 };
+    }
+    return null;
+  }
+  async function tokens(operationId) {
+    if (tokenIndex && tokenIndex.operationId === operationId) return tokenIndex.index;
+    collections.clear();
+    const byColor = /* @__PURE__ */ new Map();
+    let variables = [];
+    try {
+      variables = await figma.variables.getLocalVariablesAsync("COLOR");
+    } catch {
+      variables = [];
+    }
+    for (const variable of variables) {
+      const resolved = await resolveColor(variable);
+      if (!resolved) continue;
+      const key = colorKey(resolved, resolved.a);
+      const list = byColor.get(key) ?? [];
+      list.push(variable);
+      byColor.set(key, list);
+    }
+    const rank = (variable) => {
+      const collectionValue = Object.values(variable.valuesByMode)[0];
+      const alias = !!collectionValue && typeof collectionValue === "object" && collectionValue.type === "VARIABLE_ALIAS";
+      return (alias ? 0 : 10) + variable.name.split("/").length;
+    };
+    for (const list of byColor.values()) list.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+    const index = { byColor };
+    tokenIndex = { operationId, index };
+    return index;
+  }
+  function scoped(variable, usage) {
+    const scopes = variable.scopes ?? [];
+    if (!scopes.length || scopes.includes("ALL_SCOPES")) return true;
+    if (usage === "FRAME_FILL" || usage === "SHAPE_FILL") return scopes.includes(usage) || scopes.includes("ALL_FILLS");
+    if (usage === "TEXT_FILL") return scopes.includes("TEXT_FILL") || scopes.includes("ALL_FILLS");
+    return scopes.includes("STROKE_COLOR");
+  }
+  function paintOf(paint, ctx) {
+    if (paint.type === "SOLID") {
+      return { type: "SOLID", color: { r: paint.color.r, g: paint.color.g, b: paint.color.b }, opacity: paint.color.a };
+    }
+    if (paint.type === "IMAGE") {
+      const hash = ctx.images[paint.asset];
+      if (!hash) return null;
+      return { type: "IMAGE", imageHash: hash, scaleMode: paint.scaleMode, opacity: paint.opacity ?? 1 };
+    }
+    return {
+      type: paint.type,
+      gradientTransform: paint.transform,
+      gradientStops: paint.stops.map((stop) => ({ position: stop.position, color: stop.color }))
+    };
+  }
+  function paintsOf(paints, ctx, usage) {
+    const out = [];
+    for (const source of paints ?? []) {
+      let paint = paintOf(source, ctx);
+      if (!paint) continue;
+      if (ctx.tokens && paint.type === "SOLID") {
+        const solid = paint;
+        const alpha = solid.opacity ?? 1;
+        const exact = ctx.tokens.byColor.get(colorKey(solid.color, alpha))?.find((variable2) => scoped(variable2, usage));
+        const opaque = alpha < 1 ? ctx.tokens.byColor.get(colorKey(solid.color, 1))?.find((variable2) => scoped(variable2, usage)) : void 0;
+        const variable = exact ?? opaque;
+        if (variable) {
+          try {
+            paint = figma.variables.setBoundVariableForPaint(solid, "color", variable);
+            if (!exact) paint = { ...paint, opacity: alpha };
+            else paint = { ...paint, opacity: 1 };
+            ctx.bound++;
+          } catch {
+          }
+        }
+      }
+      out.push(paint);
+    }
+    return out;
+  }
+  function effectsOf(effects) {
+    return (effects ?? []).map((effect) => {
+      if ("radius" in effect) {
+        return { type: effect.type, radius: effect.radius, visible: true };
+      }
+      return {
+        type: effect.type,
+        color: effect.color,
+        offset: { x: effect.x, y: effect.y },
+        radius: effect.blur,
+        spread: effect.spread,
+        visible: true,
+        blendMode: "NORMAL",
+        ...effect.type === "DROP_SHADOW" ? { showShadowBehindNode: false } : {}
+      };
+    });
+  }
+  function applyStroke(node, stroke, ctx) {
+    if (!stroke) return;
+    node.strokes = paintsOf(stroke.paints, ctx, "STROKE_COLOR");
+    node.strokeAlign = "INSIDE";
+    if (Array.isArray(stroke.weight)) {
+      const [top, right, bottom, left] = stroke.weight;
+      node.strokeTopWeight = top;
+      node.strokeRightWeight = right;
+      node.strokeBottomWeight = bottom;
+      node.strokeLeftWeight = left;
+    } else {
+      node.strokeWeight = stroke.weight;
+    }
+    if (stroke.dash) node.dashPattern = stroke.dash;
+  }
+  function applyRadius(node, radius) {
+    if (radius === void 0) return;
+    if (Array.isArray(radius)) {
+      [node.topLeftRadius, node.topRightRadius, node.bottomRightRadius, node.bottomLeftRadius] = radius;
+    } else {
+      node.cornerRadius = radius;
+    }
+  }
+  var isAutoLayout = (node) => !!node && "layoutMode" in node && node.layoutMode !== "NONE";
+  function place(node, layer, parent, ctx) {
+    const inAutoLayout = isAutoLayout(parent);
+    if (inAutoLayout && layer.absolute) {
+      node.layoutPositioning = "ABSOLUTE";
+    }
+    if (!inAutoLayout || layer.absolute) {
+      node.x = layer.x;
+      node.y = layer.y;
+    }
+    if (layer.constraints && "constraints" in node) {
+      try {
+        node.constraints = { horizontal: layer.constraints.h, vertical: layer.constraints.v };
+      } catch {
+      }
+    }
+    const selfLayout = isAutoLayout(node);
+    if (!inAutoLayout && !selfLayout) return;
+    const sizing = layer.sizing ?? { h: "FIXED", v: "FIXED" };
+    if (layer.type === "TEXT" && layer.resize === "WIDTH_AND_HEIGHT") {
+      node.layoutSizingHorizontal = "HUG";
+      node.layoutSizingVertical = "HUG";
+      return;
+    }
+    const legal = (value) => {
+      if (value === "FILL") return inAutoLayout && !layer.absolute ? "FILL" : "FIXED";
+      if (value === "HUG") return selfLayout || node.type === "TEXT" ? "HUG" : "FIXED";
+      return "FIXED";
+    };
+    try {
+      node.layoutSizingHorizontal = legal(sizing.h);
+      node.layoutSizingVertical = legal(sizing.v);
+    } catch (error) {
+      ctx.warnings.push(`${layer.name}: sizing ${sizing.h}/${sizing.v} not applied (${errorMessage(error)}).`);
+    }
+    if (layer.minWidth !== void 0 || layer.maxWidth !== void 0) {
+      try {
+        if (layer.minWidth !== void 0) node.minWidth = layer.minWidth;
+        if (layer.maxWidth !== void 0) node.maxWidth = layer.maxWidth;
+      } catch {
+      }
+    }
+  }
+  function common(node, layer) {
+    node.name = layer.name;
+    if (layer.opacity !== void 0) node.opacity = layer.opacity;
+    if (layer.blendMode) {
+      try {
+        node.blendMode = layer.blendMode;
+      } catch {
+      }
+    }
+  }
+  async function buildFrame(layer, parent, ctx) {
+    const frame = figma.createFrame();
+    parent.appendChild(frame);
+    common(frame, layer);
+    frame.fills = paintsOf(layer.fills, ctx, "FRAME_FILL");
+    frame.clipsContent = !!layer.clip;
+    frame.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01));
+    applyStroke(frame, layer.stroke, ctx);
+    applyRadius(frame, layer.radius);
+    if (layer.effects) frame.effects = effectsOf(layer.effects);
+    const layout = layer.layout;
+    if (layout) {
+      frame.layoutMode = layout.mode;
+      frame.strokesIncludedInLayout = false;
+      frame.primaryAxisSizingMode = "FIXED";
+      frame.counterAxisSizingMode = "FIXED";
+      if (layout.wrap) {
+        frame.layoutWrap = "WRAP";
+        frame.counterAxisSpacing = layout.crossGap ?? 0;
+      }
+      [frame.paddingTop, frame.paddingRight, frame.paddingBottom, frame.paddingLeft] = layout.padding;
+      frame.itemSpacing = layout.gap;
+      frame.primaryAxisAlignItems = layout.primary;
+      frame.counterAxisAlignItems = layout.counter === "BASELINE" && layout.mode !== "HORIZONTAL" ? "MIN" : layout.counter;
+    }
+    for (const child of layer.children) await buildLayer(child, frame, ctx);
+    place(frame, layer, parent, ctx);
+    return frame;
+  }
+  async function applyTextStyle(text, style, start, end, ctx, whole) {
+    const choice = await chooseFont(style, ctx.fontUsage);
+    if (choice.missing) ctx.missingFonts.add(choice.missing);
+    await loadFont(choice.font);
+    const lineHeight = style.lineHeight ? { unit: "PIXELS", value: style.lineHeight } : { unit: "AUTO" };
+    const letterSpacing = { unit: "PIXELS", value: style.letterSpacing ?? 0 };
+    if (whole) {
+      text.fontName = choice.font;
+      text.fontSize = style.size;
+      text.lineHeight = lineHeight;
+      text.letterSpacing = letterSpacing;
+      text.textCase = style.textCase ?? "ORIGINAL";
+      text.textDecoration = style.decoration ?? "NONE";
+      text.fills = paintsOf(style.fills, ctx, "TEXT_FILL");
+    } else {
+      text.setRangeFontName(start, end, choice.font);
+      text.setRangeFontSize(start, end, style.size);
+      text.setRangeLineHeight(start, end, lineHeight);
+      text.setRangeLetterSpacing(start, end, letterSpacing);
+      text.setRangeTextCase(start, end, style.textCase ?? "ORIGINAL");
+      text.setRangeTextDecoration(start, end, style.decoration ?? "NONE");
+      text.setRangeFills(start, end, paintsOf(style.fills, ctx, "TEXT_FILL"));
+    }
+    if (style.href && /^https?:/.test(style.href)) {
+      try {
+        text.setRangeHyperlink(start, end, { type: "URL", value: style.href });
+      } catch {
+      }
+    }
+  }
+  async function buildText(layer, parent, ctx) {
+    const text = figma.createText();
+    parent.appendChild(text);
+    const base = await chooseFont(layer.style, ctx.fontUsage);
+    await loadFont(base.font);
+    text.fontName = base.font;
+    text.characters = layer.characters;
+    await applyTextStyle(text, layer.style, 0, layer.characters.length, ctx, true);
+    for (const run of layer.runs ?? []) {
+      if (run.end > run.start && run.end <= layer.characters.length) {
+        await applyTextStyle(text, run.style, run.start, run.end, ctx, false);
+      }
+    }
+    text.textAlignHorizontal = layer.align;
+    if (layer.valign) text.textAlignVertical = layer.valign;
+    if (layer.opacity !== void 0) text.opacity = layer.opacity;
+    if (layer.effects) text.effects = effectsOf(layer.effects);
+    if (layer.resize === "WIDTH_AND_HEIGHT") {
+      text.textAutoResize = "WIDTH_AND_HEIGHT";
+    } else {
+      text.textAutoResize = "NONE";
+      text.resize(Math.max(layer.width, 1), Math.max(layer.height, 1));
+      text.textAutoResize = "HEIGHT";
+    }
+    if (layer.maxLines) {
+      try {
+        text.textTruncation = "ENDING";
+        text.maxLines = layer.maxLines;
+      } catch {
+      }
+    }
+    place(text, layer, parent, ctx);
+    return text;
+  }
+  function buildVector(layer, parent, ctx) {
+    let node;
+    try {
+      node = figma.createNodeFromSvg(layer.svg);
+    } catch (error) {
+      ctx.warnings.push(`${layer.name}: SVG could not be imported (${errorMessage(error)}); an empty frame stands in.`);
+      node = figma.createFrame();
+      node.fills = [];
+    }
+    parent.appendChild(node);
+    node.name = layer.name;
+    if (Math.abs(node.width - layer.width) > 0.5 || Math.abs(node.height - layer.height) > 0.5) {
+      node.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01));
+    }
+    if (layer.opacity !== void 0) node.opacity = layer.opacity;
+    place(node, layer, parent, ctx);
+    return node;
+  }
+  function buildImage(layer, parent, ctx) {
+    const rect = figma.createRectangle();
+    parent.appendChild(rect);
+    common(rect, layer);
+    rect.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01));
+    const fills = paintsOf(layer.fills, ctx, "SHAPE_FILL");
+    const hash = ctx.images[layer.asset];
+    if (hash) fills.push({ type: "IMAGE", imageHash: hash, scaleMode: layer.scaleMode });
+    else ctx.warnings.push(`${layer.name}: image did not upload; the layer is empty.`);
+    rect.fills = fills;
+    applyStroke(rect, layer.stroke, ctx);
+    applyRadius(rect, layer.radius);
+    if (layer.effects) rect.effects = effectsOf(layer.effects);
+    place(rect, layer, parent, ctx);
+    return rect;
+  }
+  async function buildLayer(layer, parent, ctx) {
+    ctx.nodes++;
+    const before = parent.children.length;
+    try {
+      switch (layer.type) {
+        case "FRAME":
+          return await buildFrame(layer, parent, ctx);
+        case "TEXT":
+          return await buildText(layer, parent, ctx);
+        case "SVG":
+          return buildVector(layer, parent, ctx);
+        case "IMAGE":
+          return buildImage(layer, parent, ctx);
+      }
+    } catch (error) {
+      ctx.warnings.push(`${layer.name}${layer.origin ? ` (${layer.origin})` : ""}: ${errorMessage(error)}`);
+      while (parent.children.length > before) parent.children[parent.children.length - 1].remove();
+      const stand = figma.createFrame();
+      parent.appendChild(stand);
+      stand.name = `${layer.name} (failed)`;
+      stand.fills = [];
+      stand.resize(Math.max(layer.width, 0.01), Math.max(layer.height, 0.01));
+      if (!isAutoLayout(parent) || layer.absolute) {
+        stand.x = layer.x;
+        stand.y = layer.y;
+      }
+      return stand;
+    }
+  }
+  function tag(node, operationId, meta) {
+    try {
+      node.setPluginData(DATA_KEYS.operation, operationId);
+      if (meta) node.setPluginData(IMPORT_KEY, JSON.stringify(meta));
+    } catch {
+    }
+  }
+  async function resolvePage2(page, journal) {
+    if (page.id) {
+      const node = await figma.getNodeByIdAsync(page.id);
+      if (!node || node.type !== "PAGE") throw new Error(`${page.id} is not a page.`);
+      await node.loadAsync();
+      return node;
+    }
+    if (page.name) {
+      const existing = figma.root.children.find((candidate) => candidate.name === page.name);
+      if (existing) {
+        await existing.loadAsync();
+        return existing;
+      }
+      const created = figma.createPage();
+      created.name = page.name;
+      journal.recordCreate("import_html", created);
+      return created;
+    }
+    return figma.currentPage;
+  }
+  var NOTE = {
+    width: 880,
+    padding: 28,
+    gap: 10,
+    title: { size: 30, lineHeight: 38, color: { r: 0.1, g: 0.1, b: 0.12 } },
+    body: { size: 18, lineHeight: 27, color: { r: 0.4, g: 0.42, b: 0.46 } }
+  };
+  async function buildNote(parent, note, operationId) {
+    const regular = { family: "Inter", style: "Regular" };
+    const bold = { family: "Inter", style: "Semi Bold" };
+    await Promise.all([loadFont(regular), loadFont(bold)]);
+    const card = figma.createFrame();
+    parent.appendChild(card);
+    card.name = note.title ? `Note \xB7 ${note.title.slice(0, 40)}` : "Note";
+    card.layoutMode = "VERTICAL";
+    card.itemSpacing = NOTE.gap;
+    card.paddingTop = card.paddingBottom = NOTE.padding;
+    card.paddingLeft = card.paddingRight = NOTE.padding + 4;
+    card.cornerRadius = 20;
+    card.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+    card.strokes = [{ type: "SOLID", color: { r: 0.88, g: 0.89, b: 0.91 } }];
+    card.strokeWeight = 1;
+    card.strokeAlign = "INSIDE";
+    card.resize(note.width || NOTE.width, 100);
+    card.primaryAxisSizingMode = "AUTO";
+    card.counterAxisSizingMode = "FIXED";
+    card.x = note.x;
+    card.y = note.y;
+    const addText = (characters, font, spec) => {
+      const text = figma.createText();
+      card.appendChild(text);
+      text.fontName = font;
+      text.characters = characters;
+      text.fontSize = spec.size;
+      text.lineHeight = { unit: "PIXELS", value: spec.lineHeight };
+      text.fills = [{ type: "SOLID", color: spec.color }];
+      text.layoutSizingHorizontal = "FILL";
+      text.textAutoResize = "HEIGHT";
+    };
+    if (note.title) addText(note.title, bold, NOTE.title);
+    if (note.body) addText(note.body, regular, NOTE.body);
+    tag(card, operationId);
+    return card;
+  }
+  async function importCanvas(params) {
+    const journal = new Journal(params.operationId);
+    const page = await resolvePage2(params.page ?? {}, journal);
+    const sections = {};
+    const notes = {};
+    for (const spec of params.sections) {
+      const section = figma.createSection();
+      page.appendChild(section);
+      section.name = spec.name;
+      section.x = spec.x;
+      section.y = spec.y;
+      section.resizeWithoutConstraints(Math.max(spec.width, 100), Math.max(spec.height, 100));
+      journal.recordCreate("import_html", section);
+      tag(section, params.operationId);
+      sections[spec.key] = section.id;
+      for (const note of spec.notes) {
+        const card = await buildNote(section, note, params.operationId);
+        notes[note.key] = card.id;
+      }
+    }
+    return { pageId: page.id, pageName: page.name, sections, notes, journal: journal.toArray() };
+  }
+  async function importScreen(params) {
+    const journal = new Journal(params.operationId);
+    const parent = await figma.getNodeByIdAsync(params.parentId);
+    if (!parent || !("appendChild" in parent)) throw new Error(`${params.parentId} cannot hold a screen.`);
+    const ctx = {
+      operationId: params.operationId,
+      fontUsage: await familiesInUse(params.operationId),
+      images: params.images ?? {},
+      bindTokens: params.bindTokens !== false,
+      tokens: params.bindTokens === false ? null : await tokens(params.operationId),
+      warnings: [],
+      missingFonts: /* @__PURE__ */ new Set(),
+      nodes: 0,
+      bound: 0
+    };
+    if (ctx.tokens && !ctx.tokens.byColor.size) ctx.tokens = null;
+    const layer = { ...params.layer, x: params.x, y: params.y, absolute: void 0 };
+    const screen = await buildLayer(layer, parent, ctx);
+    screen.x = params.x;
+    screen.y = params.y;
+    journal.recordCreate("import_html", screen);
+    tag(screen, params.operationId, params.meta);
+    return {
+      nodeId: screen.id,
+      name: screen.name,
+      nodes: ctx.nodes,
+      width: screen.width,
+      height: screen.height,
+      bound: ctx.bound,
+      missingFonts: [...ctx.missingFonts],
+      warnings: ctx.warnings.slice(0, 40),
+      journal: journal.toArray()
+    };
+  }
+  var GAP = {
+    /** Between sections on the page. */
+    section: 400,
+    /** Inside a section, around everything. */
+    padding: 120,
+    /** Between a caption card and the screens it describes. */
+    caption: 48,
+    /** Between screens of one state. */
+    screen: 120,
+    /** Between states placed side by side, and between their lines. */
+    block: 200,
+    line: 220,
+    /** Frame titles are drawn above frames; leave them room. */
+    title: 36,
+    /** How wide a section grows before its states wrap onto a new line. */
+    width: 5200
+  };
+  function measureBlock(caption, screens) {
+    const top = caption ? caption.height + GAP.caption : 0;
+    const places = [];
+    let x = 0;
+    let y = top + GAP.title;
+    let lineHeight = 0;
+    let width = 0;
+    for (const screen of screens) {
+      if (x > 0 && x + screen.width > GAP.width) {
+        y += lineHeight + GAP.line;
+        x = 0;
+        lineHeight = 0;
+      }
+      places.push({ node: screen, x, y });
+      x += screen.width + GAP.screen;
+      lineHeight = Math.max(lineHeight, screen.height);
+      width = Math.max(width, x - GAP.screen);
+    }
+    return {
+      caption,
+      screens,
+      width: Math.max(width, caption ? caption.width : 0),
+      height: y + lineHeight,
+      places
+    };
+  }
+  async function importArrange(params) {
+    const page = await figma.getNodeByIdAsync(params.pageId);
+    if (!page || page.type !== "PAGE") throw new Error(`${params.pageId} is not a page.`);
+    await page.loadAsync();
+    const ours = new Set(params.sections.map((section) => section.id));
+    let originX = 0;
+    let originY = 0;
+    const others = page.children.filter((child) => !ours.has(child.id));
+    if (others.length) {
+      originX = Math.max(...others.map((child) => child.x + child.width)) + GAP.section;
+      originY = Math.min(...others.map((child) => child.y));
+    }
+    const get = async (id) => id ? await figma.getNodeByIdAsync(id) : null;
+    const out = [];
+    let cursor = originX;
+    for (const spec of params.sections) {
+      const section = await get(spec.id);
+      if (!section) continue;
+      const blocks = [];
+      for (const row of spec.rows) {
+        const caption = await get(row.noteId);
+        const screens = (await Promise.all(row.screenIds.map(get))).filter((node) => !!node);
+        if (caption || screens.length) blocks.push(measureBlock(caption, screens));
+      }
+      let y = GAP.padding;
+      let right = GAP.padding;
+      const header = await get(spec.noteId);
+      if (header) {
+        header.x = GAP.padding;
+        header.y = y;
+        y += header.height + GAP.block;
+        right = Math.max(right, header.x + header.width);
+      }
+      let x = GAP.padding;
+      let lineHeight = 0;
+      for (const block of blocks) {
+        if (x > GAP.padding && x + block.width > GAP.padding + GAP.width) {
+          y += lineHeight + GAP.line;
+          x = GAP.padding;
+          lineHeight = 0;
+        }
+        if (block.caption) {
+          block.caption.x = x;
+          block.caption.y = y;
+        }
+        for (const place2 of block.places) {
+          place2.node.x = x + place2.x;
+          place2.node.y = y + place2.y;
+        }
+        right = Math.max(right, x + block.width);
+        x += block.width + GAP.block;
+        lineHeight = Math.max(lineHeight, block.height);
+      }
+      y += lineHeight;
+      const width = right + GAP.padding;
+      const height = Math.max(y + GAP.padding, GAP.padding * 2);
+      section.x = cursor;
+      section.y = originY;
+      section.resizeWithoutConstraints(width, height);
+      out.push({ id: section.id, x: section.x, y: section.y, width, height });
+      cursor += width + GAP.section;
+    }
+    if (params.focus !== false) {
+      const nodes = (await Promise.all(out.map((section) => figma.getNodeByIdAsync(section.id)))).filter(Boolean);
+      if (nodes.length) {
+        if (figma.currentPage.id !== page.id) await figma.setCurrentPageAsync(page);
+        figma.viewport.scrollAndZoomIntoView(nodes);
+      }
+    }
+    return { sections: out };
+  }
+  async function importCleanup(params) {
+    const removed = [];
+    await figma.loadAllPagesAsync();
+    for (const page of [...figma.root.children]) {
+      for (const child of [...page.children]) {
+        if (child.getPluginData(DATA_KEYS.operation) === params.operationId) {
+          removed.push(child.id);
+          child.remove();
+        } else if (child.type === "SECTION") {
+          for (const inner of [...child.children]) {
+            if (inner.getPluginData(DATA_KEYS.operation) === params.operationId) {
+              removed.push(inner.id);
+              inner.remove();
+            }
+          }
+        }
+      }
+      if (page.getPluginData(DATA_KEYS.operation) === params.operationId && page.children.length === 0 && figma.root.children.length > 1) {
+        if (figma.currentPage.id === page.id) {
+          const other = figma.root.children.find((candidate) => candidate.id !== page.id);
+          if (other) await figma.setCurrentPageAsync(other);
+        }
+        removed.push(page.id);
+        page.remove();
+      }
+    }
+    return { removed };
+  }
+
   // figma-plugin/src/code.ts
   var PLUGIN_VERSION = "0.1.0";
   var STORAGE_KEYS = {
@@ -3291,6 +4047,11 @@ ${body}
     build_graph: (params) => buildGraph(params),
     thumbnails: (params) => exportThumbnails(params),
     resolve_variables: (params) => resolveVariables(params),
+    import_images: (params) => importImages(params),
+    import_canvas: (params) => importCanvas(params),
+    import_screen: (params) => importScreen(params),
+    import_arrange: (params) => importArrange(params),
+    import_cleanup: (params) => importCleanup(params),
     execute: (params) => execute(params),
     modules: (params) => {
       const action = params.action ?? "list";
@@ -3362,7 +4123,7 @@ ${body}
     if (!message || typeof message !== "object") return;
     switch (message.type) {
       case "ui-ready": {
-        const [port, channel, autoConnect] = await Promise.all([
+        const [port, channel2, autoConnect] = await Promise.all([
           figma.clientStorage.getAsync(STORAGE_KEYS.port),
           figma.clientStorage.getAsync(STORAGE_KEYS.channel),
           figma.clientStorage.getAsync(STORAGE_KEYS.autoConnect)
@@ -3370,7 +4131,7 @@ ${body}
         figma.ui.postMessage({
           type: "restore",
           port: port ?? "3055",
-          channel: channel ?? "",
+          channel: channel2 ?? "",
           autoConnect: autoConnect !== false,
           session: sessionInfo()
         });

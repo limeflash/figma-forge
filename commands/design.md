@@ -14,6 +14,9 @@ wrong result lands in the user's document. So draft, render, agree, then apply.
 mockup and try to convert it: that produces detached rectangles where component
 instances belong, which defeats the entire point of this plugin.
 
+If the user already has *finished* HTML mockups (Claude Design exports, a
+handoff), this is the wrong command — use `/figma-forge:import-html`.
+
 ## 1. Find the precedent
 
 Nothing here is designed from nothing. Find how this product already solves

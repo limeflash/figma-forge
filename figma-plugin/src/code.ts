@@ -18,6 +18,16 @@ import { recover, RecoverParams } from './runtime/commands/recover';
 import { importTokens, ImportTokensParams } from './runtime/commands/import-tokens';
 import { buildGraph, GraphParams } from './runtime/commands/graph';
 import { exportThumbnails, resolveVariables, ThumbnailParams } from './runtime/commands/thumbnails';
+import {
+  ArrangeParams,
+  importArrange,
+  importCanvas,
+  importCleanup,
+  importImages,
+  ImportImagesParams,
+  importScreen,
+} from './runtime/commands/import-layers';
+import type { CanvasIR, ScreenIR } from '../../shared/html-import';
 import { errorMessage } from './runtime/journal';
 
 const PLUGIN_VERSION = '0.1.0';
@@ -117,6 +127,16 @@ const handlers: Record<string, Handler> = {
   thumbnails: (params) => exportThumbnails(params as unknown as ThumbnailParams),
 
   resolve_variables: (params) => resolveVariables(params as { ids: string[]; modeId?: string }),
+
+  import_images: (params) => importImages(params as unknown as ImportImagesParams),
+
+  import_canvas: (params) => importCanvas(params as unknown as CanvasIR),
+
+  import_screen: (params) => importScreen(params as unknown as ScreenIR),
+
+  import_arrange: (params) => importArrange(params as unknown as ArrangeParams),
+
+  import_cleanup: (params) => importCleanup(params as { operationId: string }),
 
   execute: (params) => execute(params as unknown as ExecParams),
 

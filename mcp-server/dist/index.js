@@ -1473,12 +1473,12 @@ var require_applicability = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = void 0;
     function schemaHasRulesForType({ schema, self }, type) {
-      const group = self.RULES.types[type];
-      return group && group !== true && shouldUseGroup(schema, group);
+      const group2 = self.RULES.types[type];
+      return group2 && group2 !== true && shouldUseGroup(schema, group2);
     }
     exports.schemaHasRulesForType = schemaHasRulesForType;
-    function shouldUseGroup(schema, group) {
-      return group.rules.some((rule) => shouldUseRule(schema, rule));
+    function shouldUseGroup(schema, group2) {
+      return group2.rules.some((rule) => shouldUseRule(schema, rule));
     }
     exports.shouldUseGroup = shouldUseGroup;
     function shouldUseRule(schema, rule) {
@@ -2239,8 +2239,8 @@ var require_resolve = __commonJS({
       }
       return count;
     }
-    function getFullPath(resolver, id = "", normalize3) {
-      if (normalize3 !== false)
+    function getFullPath(resolver, id = "", normalize5) {
+      if (normalize5 !== false)
         id = normalizeId(id);
       const p = resolver.parse(id);
       return _getFullPath(resolver, p);
@@ -2508,36 +2508,36 @@ var require_validate = __commonJS({
       if (!opts.jtd)
         checkStrictTypes(it, types);
       gen.block(() => {
-        for (const group of RULES.rules)
-          groupKeywords(group);
+        for (const group2 of RULES.rules)
+          groupKeywords(group2);
         groupKeywords(RULES.post);
       });
-      function groupKeywords(group) {
-        if (!(0, applicability_1.shouldUseGroup)(schema, group))
+      function groupKeywords(group2) {
+        if (!(0, applicability_1.shouldUseGroup)(schema, group2))
           return;
-        if (group.type) {
-          gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
-          iterateKeywords(it, group);
-          if (types.length === 1 && types[0] === group.type && typeErrors) {
+        if (group2.type) {
+          gen.if((0, dataType_2.checkDataType)(group2.type, data, opts.strictNumbers));
+          iterateKeywords(it, group2);
+          if (types.length === 1 && types[0] === group2.type && typeErrors) {
             gen.else();
             (0, dataType_2.reportTypeError)(it);
           }
           gen.endIf();
         } else {
-          iterateKeywords(it, group);
+          iterateKeywords(it, group2);
         }
         if (!allErrors)
           gen.if((0, codegen_1._)`${names_1.default.errors} === ${errsCount || 0}`);
       }
     }
-    function iterateKeywords(it, group) {
+    function iterateKeywords(it, group2) {
       const { gen, schema, opts: { useDefaults } } = it;
       if (useDefaults)
-        (0, defaults_1.assignDefaults)(it, group.type);
+        (0, defaults_1.assignDefaults)(it, group2.type);
       gen.block(() => {
-        for (const rule of group.rules) {
+        for (const rule of group2.rules) {
           if ((0, applicability_1.shouldUseRule)(schema, rule)) {
-            keywordCode(it, rule.keyword, rule.definition, group.type);
+            keywordCode(it, rule.keyword, rule.definition, group2.type);
           }
         }
       });
@@ -2988,7 +2988,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve4.call(this, root, ref);
+      let _sch = resolve5.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3015,7 +3015,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve4(root, ref) {
+    function resolve5(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3835,7 +3835,7 @@ var require_fast_uri = __commonJS({
       }
       return decodedScheme;
     }
-    function normalize3(uri, options) {
+    function normalize5(uri, options) {
       if (typeof uri === "string") {
         uri = /** @type {T} */
         normalizeString(uri, options);
@@ -3845,7 +3845,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve4(baseURI, relativeURI, options) {
+    function resolve5(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -3878,49 +3878,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative2, options, skipNormalization) {
+    function resolveComponent(base, relative3, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse3(serialize(base, options), options);
-        relative2 = parse3(serialize(relative2, options), options);
+        relative3 = parse3(serialize(relative3, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative2.scheme) {
-        target.scheme = relative2.scheme;
-        target.userinfo = relative2.userinfo;
-        target.host = relative2.host;
-        target.port = relative2.port;
-        target.path = removeDotSegments(relative2.path || "");
-        target.query = relative2.query;
+      if (!options.tolerant && relative3.scheme) {
+        target.scheme = relative3.scheme;
+        target.userinfo = relative3.userinfo;
+        target.host = relative3.host;
+        target.port = relative3.port;
+        target.path = removeDotSegments(relative3.path || "");
+        target.query = relative3.query;
       } else {
-        if (relative2.userinfo !== void 0 || relative2.host !== void 0 || relative2.port !== void 0) {
-          target.userinfo = relative2.userinfo;
-          target.host = relative2.host;
-          target.port = relative2.port;
-          target.path = removeDotSegments(relative2.path || "");
-          target.query = relative2.query;
+        if (relative3.userinfo !== void 0 || relative3.host !== void 0 || relative3.port !== void 0) {
+          target.userinfo = relative3.userinfo;
+          target.host = relative3.host;
+          target.port = relative3.port;
+          target.path = removeDotSegments(relative3.path || "");
+          target.query = relative3.query;
         } else {
-          if (!relative2.path) {
+          if (!relative3.path) {
             target.path = base.path;
-            if (relative2.query !== void 0) {
-              target.query = relative2.query;
+            if (relative3.query !== void 0) {
+              target.query = relative3.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative2.path[0] === "/") {
-              target.path = removeDotSegments(relative2.path);
+            if (relative3.path[0] === "/") {
+              target.path = removeDotSegments(relative3.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative2.path;
+                target.path = "/" + relative3.path;
               } else if (!base.path) {
-                target.path = relative2.path;
+                target.path = relative3.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative2.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative3.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative2.query;
+            target.query = relative3.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -3928,7 +3928,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative2.fragment;
+      target.fragment = relative3.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -4212,8 +4212,8 @@ var require_fast_uri = __commonJS({
     }
     var fastUri = {
       SCHEMES,
-      normalize: normalize3,
-      resolve: resolve4,
+      normalize: normalize5,
+      resolve: resolve5,
       resolveComponent,
       equal,
       serialize,
@@ -4611,10 +4611,10 @@ var require_core = __commonJS({
         const { RULES } = this;
         delete RULES.keywords[keyword];
         delete RULES.all[keyword];
-        for (const group of RULES.rules) {
-          const i = group.rules.findIndex((rule) => rule.keyword === keyword);
+        for (const group2 of RULES.rules) {
+          const i = group2.rules.findIndex((rule) => rule.keyword === keyword);
           if (i >= 0)
-            group.rules.splice(i, 1);
+            group2.rules.splice(i, 1);
         }
         return this;
       }
@@ -9296,53 +9296,53 @@ var require_extension = __commonJS({
       let inQuotes = false;
       let extensionName;
       let paramName;
-      let start = -1;
+      let start2 = -1;
       let code = -1;
-      let end = -1;
+      let end2 = -1;
       let i = 0;
       for (; i < header.length; i++) {
         code = header.charCodeAt(i);
         if (extensionName === void 0) {
-          if (end === -1 && tokenChars[code] === 1) {
-            if (start === -1) start = i;
+          if (end2 === -1 && tokenChars[code] === 1) {
+            if (start2 === -1) start2 = i;
           } else if (i !== 0 && (code === 32 || code === 9)) {
-            if (end === -1 && start !== -1) end = i;
+            if (end2 === -1 && start2 !== -1) end2 = i;
           } else if (code === 59 || code === 44) {
-            if (start === -1) {
+            if (start2 === -1) {
               throw new SyntaxError(`Unexpected character at index ${i}`);
             }
-            if (end === -1) end = i;
-            const name = header.slice(start, end);
+            if (end2 === -1) end2 = i;
+            const name = header.slice(start2, end2);
             if (code === 44) {
               push(offers, name, params);
               params = /* @__PURE__ */ Object.create(null);
             } else {
               extensionName = name;
             }
-            start = end = -1;
+            start2 = end2 = -1;
           } else {
             throw new SyntaxError(`Unexpected character at index ${i}`);
           }
         } else if (paramName === void 0) {
-          if (end === -1 && tokenChars[code] === 1) {
-            if (start === -1) start = i;
+          if (end2 === -1 && tokenChars[code] === 1) {
+            if (start2 === -1) start2 = i;
           } else if (code === 32 || code === 9) {
-            if (end === -1 && start !== -1) end = i;
+            if (end2 === -1 && start2 !== -1) end2 = i;
           } else if (code === 59 || code === 44) {
-            if (start === -1) {
+            if (start2 === -1) {
               throw new SyntaxError(`Unexpected character at index ${i}`);
             }
-            if (end === -1) end = i;
-            push(params, header.slice(start, end), true);
+            if (end2 === -1) end2 = i;
+            push(params, header.slice(start2, end2), true);
             if (code === 44) {
               push(offers, extensionName, params);
               params = /* @__PURE__ */ Object.create(null);
               extensionName = void 0;
             }
-            start = end = -1;
-          } else if (code === 61 && start !== -1 && end === -1) {
-            paramName = header.slice(start, i);
-            start = end = -1;
+            start2 = end2 = -1;
+          } else if (code === 61 && start2 !== -1 && end2 === -1) {
+            paramName = header.slice(start2, i);
+            start2 = end2 = -1;
           } else {
             throw new SyntaxError(`Unexpected character at index ${i}`);
           }
@@ -9351,15 +9351,15 @@ var require_extension = __commonJS({
             if (tokenChars[code] !== 1) {
               throw new SyntaxError(`Unexpected character at index ${i}`);
             }
-            if (start === -1) start = i;
+            if (start2 === -1) start2 = i;
             else if (!mustUnescape) mustUnescape = true;
             isEscaping = false;
           } else if (inQuotes) {
             if (tokenChars[code] === 1) {
-              if (start === -1) start = i;
-            } else if (code === 34 && start !== -1) {
+              if (start2 === -1) start2 = i;
+            } else if (code === 34 && start2 !== -1) {
               inQuotes = false;
-              end = i;
+              end2 = i;
             } else if (code === 92) {
               isEscaping = true;
             } else {
@@ -9367,16 +9367,16 @@ var require_extension = __commonJS({
             }
           } else if (code === 34 && header.charCodeAt(i - 1) === 61) {
             inQuotes = true;
-          } else if (end === -1 && tokenChars[code] === 1) {
-            if (start === -1) start = i;
-          } else if (start !== -1 && (code === 32 || code === 9)) {
-            if (end === -1) end = i;
+          } else if (end2 === -1 && tokenChars[code] === 1) {
+            if (start2 === -1) start2 = i;
+          } else if (start2 !== -1 && (code === 32 || code === 9)) {
+            if (end2 === -1) end2 = i;
           } else if (code === 59 || code === 44) {
-            if (start === -1) {
+            if (start2 === -1) {
               throw new SyntaxError(`Unexpected character at index ${i}`);
             }
-            if (end === -1) end = i;
-            let value = header.slice(start, end);
+            if (end2 === -1) end2 = i;
+            let value = header.slice(start2, end2);
             if (mustUnescape) {
               value = value.replace(/\\/g, "");
               mustUnescape = false;
@@ -9388,17 +9388,17 @@ var require_extension = __commonJS({
               extensionName = void 0;
             }
             paramName = void 0;
-            start = end = -1;
+            start2 = end2 = -1;
           } else {
             throw new SyntaxError(`Unexpected character at index ${i}`);
           }
         }
       }
-      if (start === -1 || inQuotes || code === 32 || code === 9) {
+      if (start2 === -1 || inQuotes || code === 32 || code === 9) {
         throw new SyntaxError("Unexpected end of input");
       }
-      if (end === -1) end = i;
-      const token = header.slice(start, end);
+      if (end2 === -1) end2 = i;
+      const token = header.slice(start2, end2);
       if (extensionName === void 0) {
         push(offers, token, params);
       } else {
@@ -9441,7 +9441,7 @@ var require_websocket = __commonJS({
     var http = __require("http");
     var net = __require("net");
     var tls = __require("tls");
-    var { randomBytes, createHash } = __require("crypto");
+    var { randomBytes: randomBytes2, createHash: createHash3 } = __require("crypto");
     var { Duplex, Readable } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -9979,7 +9979,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes(16).toString("base64");
+      const key = randomBytes2(16).toString("base64");
       const request = isSecure ? https.request : http.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -10109,7 +10109,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest = createHash("sha1").update(key + GUID).digest("base64");
+        const digest = createHash3("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -10390,7 +10390,7 @@ var require_stream = __commonJS({
       };
       duplex._final = function(callback) {
         if (ws.readyState === ws.CONNECTING) {
-          ws.once("open", function open() {
+          ws.once("open", function open2() {
             duplex._final(callback);
           });
           return;
@@ -10411,7 +10411,7 @@ var require_stream = __commonJS({
       };
       duplex._write = function(chunk, encoding, callback) {
         if (ws.readyState === ws.CONNECTING) {
-          ws.once("open", function open() {
+          ws.once("open", function open2() {
             duplex._write(chunk, encoding, callback);
           });
           return;
@@ -10433,34 +10433,34 @@ var require_subprotocol = __commonJS({
     var { tokenChars } = require_validation2();
     function parse3(header) {
       const protocols = /* @__PURE__ */ new Set();
-      let start = -1;
-      let end = -1;
+      let start2 = -1;
+      let end2 = -1;
       let i = 0;
       for (i; i < header.length; i++) {
         const code = header.charCodeAt(i);
-        if (end === -1 && tokenChars[code] === 1) {
-          if (start === -1) start = i;
+        if (end2 === -1 && tokenChars[code] === 1) {
+          if (start2 === -1) start2 = i;
         } else if (i !== 0 && (code === 32 || code === 9)) {
-          if (end === -1 && start !== -1) end = i;
+          if (end2 === -1 && start2 !== -1) end2 = i;
         } else if (code === 44) {
-          if (start === -1) {
+          if (start2 === -1) {
             throw new SyntaxError(`Unexpected character at index ${i}`);
           }
-          if (end === -1) end = i;
-          const protocol2 = header.slice(start, end);
+          if (end2 === -1) end2 = i;
+          const protocol2 = header.slice(start2, end2);
           if (protocols.has(protocol2)) {
             throw new SyntaxError(`The "${protocol2}" subprotocol is duplicated`);
           }
           protocols.add(protocol2);
-          start = end = -1;
+          start2 = end2 = -1;
         } else {
           throw new SyntaxError(`Unexpected character at index ${i}`);
         }
       }
-      if (start === -1 || end !== -1) {
+      if (start2 === -1 || end2 !== -1) {
         throw new SyntaxError("Unexpected end of input");
       }
-      const protocol = header.slice(start, i);
+      const protocol = header.slice(start2, i);
       if (protocols.has(protocol)) {
         throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
       }
@@ -10478,7 +10478,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter = __require("events");
     var http = __require("http");
     var { Duplex } = __require("stream");
-    var { createHash } = __require("crypto");
+    var { createHash: createHash3 } = __require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -10785,7 +10785,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest = createHash("sha1").update(key + GUID).digest("base64");
+        const digest = createHash3("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -14122,8 +14122,8 @@ var ZodSet = class _ZodSet extends ZodType {
       maxSize: { value: maxSize, message: errorUtil.toString(message) }
     });
   }
-  size(size, message) {
-    return this.min(size, message).max(size, message);
+  size(size2, message) {
+    return this.min(size2, message).max(size2, message);
   }
   nonempty(message) {
     return this.min(1, message);
@@ -15069,9 +15069,9 @@ function nullish(input) {
   return input === null || input === void 0;
 }
 function cleanRegex(source) {
-  const start = source.startsWith("^") ? 1 : 0;
-  const end = source.endsWith("$") ? source.length - 1 : source.length;
-  return source.slice(start, end);
+  const start2 = source.startsWith("^") ? 1 : 0;
+  const end2 = source.endsWith("$") ? source.length - 1 : source.length;
+  return source.slice(start2, end2);
 }
 function floatSafeRemainder2(val, step) {
   const valDecCount = (val.toString().split(".")[1] || "").length;
@@ -19298,7 +19298,7 @@ var ZodObject2 = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
   inst.extend = (incoming) => {
     return util_exports.extend(inst, incoming);
   };
-  inst.merge = (other) => util_exports.merge(inst, other);
+  inst.merge = (other2) => util_exports.merge(inst, other2);
   inst.pick = (mask) => util_exports.pick(inst, mask);
   inst.omit = (mask) => util_exports.omit(inst, mask);
   inst.partial = (...args) => util_exports.partial(ZodOptional2, inst, args[0]);
@@ -22980,7 +22980,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
+        await new Promise((resolve5) => setTimeout(resolve5, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -22997,7 +22997,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve4, reject) => {
+    return new Promise((resolve5, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -23075,7 +23075,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve4(parseResult.data);
+            resolve5(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -23336,12 +23336,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve4, reject) => {
+    return new Promise((resolve5, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve4, interval);
+      const timeoutId = setTimeout(resolve5, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -24432,7 +24432,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
+      await new Promise((resolve5) => setTimeout(resolve5, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -25096,19 +25096,19 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve4) => {
+    return new Promise((resolve5) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve4();
+        resolve5();
       } else {
-        this._stdout.once("drain", resolve4);
+        this._stdout.once("drain", resolve5);
       }
     });
   }
 };
 
 // mcp-server/src/index.ts
-import { basename as basename3, dirname, join as join3 } from "node:path";
+import { basename as basename5, dirname as dirname3, join as join7 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // mcp-server/src/bridge.ts
@@ -25147,6 +25147,12 @@ var Bridge = class {
   connecting = null;
   pending = /* @__PURE__ */ new Map();
   nextId = 1;
+  /**
+   * The bridge broadcasts a response to every agent on the channel, so two
+   * Claude Code sessions numbering requests from 1 would resolve each other's
+   * calls. A per-process prefix keeps the ids apart.
+   */
+  idPrefix = `a${Math.random().toString(36).slice(2, 7)}-`;
   joined = false;
   figmaPeers = 0;
   lastError = null;
@@ -25196,7 +25202,7 @@ var Bridge = class {
       }
     });
     child.unref();
-    for (let attempt = 0; attempt < 40; attempt++) {
+    for (let attempt2 = 0; attempt2 < 40; attempt2++) {
       await delay(125);
       const health = await this.health();
       if (health) return { running: true, started: true, health };
@@ -25207,7 +25213,7 @@ var Bridge = class {
     if (this.socket && this.socket.readyState === import_websocket.default.OPEN && this.joined) return;
     if (this.connecting) return this.connecting;
     this.closedIntentionally = false;
-    this.connecting = new Promise((resolve4, reject) => {
+    this.connecting = new Promise((resolve5, reject) => {
       const socket = new import_websocket.default(`ws://${this.options.host}:${this.options.port}`);
       this.socket = socket;
       const settleTimer = setTimeout(() => {
@@ -25230,7 +25236,7 @@ var Bridge = class {
             const peers = message.peers;
             this.figmaPeers = peers?.figma ?? 0;
             clearTimeout(settleTimer);
-            resolve4();
+            resolve5();
           } else if (message.event === "peer-joined" || message.event === "peer-left") {
             const peers = message.peers;
             this.figmaPeers = peers?.figma ?? 0;
@@ -25294,9 +25300,9 @@ var Bridge = class {
     if (!this.socket || this.socket.readyState !== import_websocket.default.OPEN) {
       throw new BridgeError("BRIDGE_CLOSED", "The bridge connection is not open.");
     }
-    const id = `a${this.nextId++}`;
+    const id = `${this.idPrefix}${this.nextId++}`;
     const limit = timeoutMs ?? this.options.requestTimeoutMs;
-    return new Promise((resolve4, reject) => {
+    return new Promise((resolve5, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(
@@ -25306,7 +25312,7 @@ var Bridge = class {
           )
         );
       }, limit);
-      this.pending.set(id, { resolve: resolve4, reject, timer, command });
+      this.pending.set(id, { resolve: resolve5, reject, timer, command });
       this.socket.send(JSON.stringify({ type: "request", channel: this.options.channel, id, command, params }));
     });
   }
@@ -25404,8 +25410,8 @@ function search(index, query, options = {}) {
     }
   }
   if (kinds.has("style")) {
-    for (const group of Object.keys(index.styles ?? {})) {
-      for (const style of index.styles[group] ?? []) {
+    for (const group2 of Object.keys(index.styles ?? {})) {
+      for (const style of index.styles[group2] ?? []) {
         const scored = style.key === trimmed ? { score: 1e3, why: "exact style key" } : scoreName(trimmed, queryTokens, style.name);
         if (!scored) continue;
         hits.push({
@@ -25414,9 +25420,9 @@ function search(index, query, options = {}) {
           name: style.name,
           key: style.key,
           id: style.id,
-          type: group,
+          type: group2,
           why: scored.why,
-          detail: { styleKey: style.key, styleId: style.id, styleKind: group, remote: style.remote, preview: style.preview }
+          detail: { styleKey: style.key, styleId: style.id, styleKind: group2, remote: style.remote, preview: style.preview }
         });
       }
     }
@@ -25498,7 +25504,7 @@ function overview(index) {
       })),
       topLevelNames: [...sets, ...singles].slice(0, 40).map((component) => component.name)
     },
-    styles: Object.fromEntries(Object.keys(index.styles ?? {}).map((group) => [group, (index.styles[group] ?? []).length])),
+    styles: Object.fromEntries(Object.keys(index.styles ?? {}).map((group2) => [group2, (index.styles[group2] ?? []).length])),
     variableCollections: collections,
     libraries: (index.libraryCollections ?? []).map((collection) => ({
       name: collection.name,
@@ -25543,12 +25549,12 @@ function oklchToLinear(l, c, hDegrees) {
   ];
 }
 var IN_GAMUT_EPSILON = 1e-5;
-function inGamut(linear) {
-  return linear.every((channel) => channel >= -IN_GAMUT_EPSILON && channel <= 1 + IN_GAMUT_EPSILON);
+function inGamut(linear2) {
+  return linear2.every((channel) => channel >= -IN_GAMUT_EPSILON && channel <= 1 + IN_GAMUT_EPSILON);
 }
 function oklchToRgb(l, c, hDegrees) {
-  let linear = oklchToLinear(l, c, hDegrees);
-  if (!inGamut(linear)) {
+  let linear2 = oklchToLinear(l, c, hDegrees);
+  if (!inGamut(linear2)) {
     let low = 0;
     let high = c;
     for (let i = 0; i < 24; i++) {
@@ -25556,12 +25562,12 @@ function oklchToRgb(l, c, hDegrees) {
       if (inGamut(oklchToLinear(l, mid, hDegrees))) low = mid;
       else high = mid;
     }
-    linear = oklchToLinear(l, low, hDegrees);
+    linear2 = oklchToLinear(l, low, hDegrees);
   }
   return {
-    r: clamp01(encodeGamma(clamp01(linear[0]))),
-    g: clamp01(encodeGamma(clamp01(linear[1]))),
-    b: clamp01(encodeGamma(clamp01(linear[2])))
+    r: clamp01(encodeGamma(clamp01(linear2[0]))),
+    g: clamp01(encodeGamma(clamp01(linear2[1]))),
+    b: clamp01(encodeGamma(clamp01(linear2[2])))
   };
 }
 function hslToRgb(h, s, l) {
@@ -25673,8 +25679,8 @@ function inferValue(raw, options = {}) {
   if (!value) return { unsupported: "empty value" };
   const reference = VAR_REFERENCE.exec(value);
   if (reference) return { type: "COLOR", value: { alias: reference[1] } };
-  const color = parseColor(value);
-  if (color) return { type: "COLOR", value: color };
+  const color2 = parseColor(value);
+  if (color2) return { type: "COLOR", value: color2 };
   const length = LENGTH.exec(value);
   if (length) {
     const numeric = parseFloat(length[1]);
@@ -25761,11 +25767,11 @@ function scanBlocks(source) {
       stack.push({ prelude, start: i + 1 });
       preludeStart = i + 1;
     } else if (char === "}") {
-      const open = stack.pop();
-      if (!open) continue;
+      const open2 = stack.pop();
+      if (!open2) continue;
       blocks.push({
-        prelude: open.prelude,
-        body: source.slice(open.start, i),
+        prelude: open2.prelude,
+        body: source.slice(open2.start, i),
         ancestors: stack.map((entry) => entry.prelude)
       });
       preludeStart = i + 1;
@@ -25962,14 +25968,14 @@ A v3 config is executed to read its theme, so it must import cleanly from its ow
   const extend2 = theme.extend ?? {};
   const groups = options.groups ?? DEFAULT_GROUPS;
   const flat = /* @__PURE__ */ new Map();
-  for (const group of groups) {
-    for (const layer of [theme[group], extend2[group]]) {
+  for (const group2 of groups) {
+    for (const layer of [theme[group2], extend2[group2]]) {
       if (layer === void 0) continue;
       if (typeof layer === "function") {
-        warnings.push(`theme.${group} is a function and was skipped \u2014 its value depends on Tailwind's own resolver.`);
+        warnings.push(`theme.${group2} is a function and was skipped \u2014 its value depends on Tailwind's own resolver.`);
         continue;
       }
-      flatten(layer, [group], flat);
+      flatten(layer, [group2], flat);
     }
   }
   if (flat.size === 0) {
@@ -26010,7 +26016,7 @@ A v3 config is executed to read its theme, so it must import cleanly from its ow
   };
 }
 function tailwindClassHint(dotted) {
-  const [group, ...rest] = dotted.split(".");
+  const [group2, ...rest] = dotted.split(".");
   const suffix = rest.join("-");
   const prefixes = {
     colors: "bg|text|border",
@@ -26023,8 +26029,8 @@ function tailwindClassHint(dotted) {
     maxWidth: "max-w",
     minWidth: "min-w"
   };
-  const prefix = prefixes[group];
-  return prefix ? `${prefix}-${suffix}` : `${group}.${suffix}`;
+  const prefix = prefixes[group2];
+  return prefix ? `${prefix}-${suffix}` : `${group2}.${suffix}`;
 }
 
 // mcp-server/src/import/storybook.ts
@@ -26365,14 +26371,14 @@ function vectorSearch(vectors, query, limit) {
 function fuse(lexical, vector, limit, k = 60) {
   const rows = /* @__PURE__ */ new Map();
   const record2 = (list, field) => {
-    list.forEach((entry, rank) => {
+    list.forEach((entry, rank2) => {
       const row = rows.get(entry.index) ?? { index: entry.index, score: 0, lexicalRank: null, vectorRank: null, lexicalScore: null, vectorScore: null };
-      row.score += 1 / (k + rank + 1);
+      row.score += 1 / (k + rank2 + 1);
       if (field === "lexical") {
-        row.lexicalRank = rank + 1;
+        row.lexicalRank = rank2 + 1;
         row.lexicalScore = entry.score;
       } else {
-        row.vectorRank = rank + 1;
+        row.vectorRank = rank2 + 1;
         row.vectorScore = entry.score;
       }
       rows.set(entry.index, row);
@@ -26383,16 +26389,2135 @@ function fuse(lexical, vector, limit, k = 60) {
   return [...rows.values()].sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
+// mcp-server/src/html/browser.ts
+import { spawn as spawn2 } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
+import { mkdtemp, rm as rm2 } from "node:fs/promises";
+import { homedir as homedir2, platform, tmpdir } from "node:os";
+import { delimiter, join as join2 } from "node:path";
+var BrowserUnavailable = class extends Error {
+  remedy;
+  constructor(message, remedy) {
+    super(message);
+    this.name = "BrowserUnavailable";
+    this.remedy = remedy;
+  }
+};
+function macCandidates() {
+  const apps = [
+    ["Google Chrome", "Google Chrome"],
+    ["Chromium", "Chromium"],
+    ["Microsoft Edge", "Microsoft Edge"],
+    ["Brave Browser", "Brave Browser"],
+    ["Google Chrome Canary", "Google Chrome Canary"],
+    ["Vivaldi", "Vivaldi"]
+  ];
+  const roots = ["/Applications", join2(homedir2(), "Applications")];
+  return roots.flatMap((root) => apps.map(([app, binary]) => join2(root, `${app}.app`, "Contents", "MacOS", binary)));
+}
+function windowsCandidates() {
+  const roots = [process.env["PROGRAMFILES"], process.env["PROGRAMFILES(X86)"], process.env["LOCALAPPDATA"]].filter(
+    (root) => !!root
+  );
+  const relative3 = [
+    "Google\\Chrome\\Application\\chrome.exe",
+    "Chromium\\Application\\chrome.exe",
+    "Microsoft\\Edge\\Application\\msedge.exe",
+    "BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+  ];
+  return roots.flatMap((root) => relative3.map((path) => join2(root, path)));
+}
+function pathCandidates() {
+  const names = ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "brave-browser"];
+  const dirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  return dirs.flatMap((dir) => names.map((name) => join2(dir, name)));
+}
+function playwrightCandidates() {
+  const cache = platform() === "darwin" ? join2(homedir2(), "Library", "Caches", "ms-playwright") : platform() === "win32" ? join2(process.env.LOCALAPPDATA ?? "", "ms-playwright") : join2(homedir2(), ".cache", "ms-playwright");
+  if (!existsSync(cache)) return [];
+  const out = [];
+  for (const dir of readdirSync(cache).filter((name) => name.startsWith("chromium")).sort().reverse()) {
+    out.push(
+      join2(cache, dir, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"),
+      join2(cache, dir, "chrome-mac-arm64", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"),
+      join2(cache, dir, "chrome-linux", "chrome"),
+      join2(cache, dir, "chrome-win", "chrome.exe")
+    );
+  }
+  return out;
+}
+function findBrowser() {
+  const explicit = process.env.FIGMA_FORGE_BROWSER;
+  if (explicit && explicit.trim() && !explicit.includes("${")) return existsSync(explicit) ? explicit : null;
+  const os = platform();
+  const candidates = [
+    ...os === "darwin" ? macCandidates() : os === "win32" ? windowsCandidates() : [],
+    ...pathCandidates(),
+    ...playwrightCandidates()
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+var Connection = class {
+  socket;
+  nextId = 1;
+  pending = /* @__PURE__ */ new Map();
+  listeners = /* @__PURE__ */ new Map();
+  closed = false;
+  constructor(socket) {
+    this.socket = socket;
+    socket.on("message", (raw) => {
+      let message;
+      try {
+        message = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
+      if (message.id !== void 0) {
+        const pending = this.pending.get(message.id);
+        if (!pending) return;
+        this.pending.delete(message.id);
+        if (message.error) pending.reject(new Error(`${pending.method}: ${message.error.message}`));
+        else pending.resolve(message.result);
+        return;
+      }
+      if (message.method) {
+        for (const listener of this.listeners.get(message.method) ?? []) listener(message.params ?? {}, message.sessionId);
+      }
+    });
+    socket.on("close", () => {
+      this.closed = true;
+      for (const pending of this.pending.values()) pending.reject(new Error(`The browser closed during ${pending.method}.`));
+      this.pending.clear();
+    });
+  }
+  send(method, params = {}, sessionId) {
+    if (this.closed) return Promise.reject(new Error("The browser connection is closed."));
+    const id = this.nextId++;
+    return new Promise((resolve5, reject) => {
+      this.pending.set(id, { resolve: resolve5, reject, method });
+      this.socket.send(JSON.stringify({ id, method, params, sessionId }));
+    });
+  }
+  on(method, listener) {
+    let set = this.listeners.get(method);
+    if (!set) {
+      set = /* @__PURE__ */ new Set();
+      this.listeners.set(method, set);
+    }
+    set.add(listener);
+    return () => set.delete(listener);
+  }
+  close() {
+    this.socket.close();
+  }
+};
+var Page = class {
+  connection;
+  sessionId;
+  targetId;
+  errors = [];
+  constructor(connection, targetId, sessionId) {
+    this.connection = connection;
+    this.targetId = targetId;
+    this.sessionId = sessionId;
+    connection.on("Runtime.exceptionThrown", (params, session) => {
+      if (session !== sessionId) return;
+      const details = params.exceptionDetails;
+      const text2 = details?.exception?.description ?? details?.text ?? "exception";
+      if (this.errors.length < 20) this.errors.push(text2.split("\n")[0].slice(0, 300));
+    });
+  }
+  send(method, params = {}) {
+    return this.connection.send(method, params, this.sessionId);
+  }
+  waitForEvent(method, timeoutMs, predicate = () => true) {
+    return new Promise((resolve5) => {
+      const timer = setTimeout(() => {
+        off();
+        resolve5(false);
+      }, timeoutMs);
+      const off = this.connection.on(method, (params, session) => {
+        if (session !== this.sessionId || !predicate(params)) return;
+        clearTimeout(timer);
+        off();
+        resolve5(true);
+      });
+    });
+  }
+  async init() {
+    await this.send("Page.enable");
+    await this.send("Runtime.enable");
+    await this.send("Page.setLifecycleEventsEnabled", { enabled: true });
+  }
+  async setViewport(width, height) {
+    await this.send("Emulation.setDeviceMetricsOverride", {
+      width: Math.round(width),
+      height: Math.round(height),
+      deviceScaleFactor: 1,
+      mobile: false
+    });
+  }
+  /** Navigates and waits for load plus a quiet network, whichever comes last. */
+  async goto(url, timeoutMs = 3e4) {
+    this.errors.length = 0;
+    const loaded = this.waitForEvent("Page.loadEventFired", timeoutMs);
+    const idle = this.waitForEvent("Page.lifecycleEvent", timeoutMs, (params) => params.name === "networkAlmostIdle");
+    const result = await this.send("Page.navigate", { url });
+    if (result.errorText) throw new Error(`Could not open ${url}: ${result.errorText}`);
+    if (!await loaded) throw new Error(`The page did not finish loading within ${timeoutMs / 1e3}s.`);
+    await Promise.race([idle, new Promise((resolve5) => setTimeout(resolve5, 5e3))]);
+  }
+  /** Reloads and waits for the new document, keeping injected scripts. */
+  async reload(timeoutMs = 3e4) {
+    const loaded = this.waitForEvent("Page.loadEventFired", timeoutMs);
+    await this.send("Page.reload", {});
+    if (!await loaded) throw new Error(`The page did not reload within ${timeoutMs / 1e3}s.`);
+  }
+  async evaluate(expression, timeoutMs = 6e4) {
+    const result = await this.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true, timeout: timeoutMs });
+    if (result.exceptionDetails) {
+      const details = result.exceptionDetails;
+      throw new Error(`In page: ${details.exception?.description ?? details.text ?? "script failed"}`);
+    }
+    return result.result.value;
+  }
+  /** Calls a global function the injected script defined, with JSON arguments. */
+  async call(name, ...args) {
+    return await this.evaluate(`${name}(...${JSON.stringify(args)})`);
+  }
+  async screenshot(clip, scale) {
+    const result = await this.send("Page.captureScreenshot", {
+      format: "png",
+      clip: { ...clip, scale },
+      captureBeyondViewport: true,
+      fromSurface: true
+    });
+    return Buffer.from(result.data, "base64");
+  }
+  async transparentBackground(on) {
+    await this.send("Emulation.setDefaultBackgroundColorOverride", on ? { color: { r: 0, g: 0, b: 0, a: 0 } } : {});
+  }
+  async mouse(type, x, y) {
+    await this.send("Input.dispatchMouseEvent", {
+      type,
+      x,
+      y,
+      button: type === "mouseMoved" ? "none" : "left",
+      clickCount: type === "mouseMoved" ? 0 : 1
+    });
+  }
+  async click(x, y) {
+    await this.mouse("mouseMoved", x, y);
+    await this.mouse("mousePressed", x, y);
+    await this.mouse("mouseReleased", x, y);
+  }
+  async insertText(text2) {
+    await this.send("Input.insertText", { text: text2 });
+  }
+  async close() {
+    await this.connection.send("Target.closeTarget", { targetId: this.targetId }).catch(() => void 0);
+  }
+};
+var Browser = class _Browser {
+  executable;
+  child;
+  connection;
+  profile;
+  constructor(executable, child, connection, profile) {
+    this.executable = executable;
+    this.child = child;
+    this.connection = connection;
+    this.profile = profile;
+  }
+  get alive() {
+    return !this.connection.closed && this.child.exitCode === null;
+  }
+  static async launch() {
+    const executable = findBrowser();
+    if (!executable) {
+      throw new BrowserUnavailable(
+        "No Chromium-based browser was found to render the HTML.",
+        "Install Google Chrome, Microsoft Edge, Brave or Chromium \u2014 or point FIGMA_FORGE_BROWSER at one."
+      );
+    }
+    const profile = await mkdtemp(join2(tmpdir(), "figma-forge-browser-"));
+    const child = spawn2(
+      executable,
+      [
+        "--headless=new",
+        "--disable-gpu",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--hide-scrollbars",
+        "--mute-audio",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-sync",
+        "--disable-translate",
+        "--disable-features=Translate,MediaRouter",
+        "--password-store=basic",
+        "--use-mock-keychain",
+        "--font-render-hinting=none",
+        `--user-data-dir=${profile}`,
+        "--remote-debugging-port=0",
+        "about:blank"
+      ],
+      { stdio: ["ignore", "ignore", "pipe"] }
+    );
+    let stderr = "";
+    const endpoint = await new Promise((resolve5, reject) => {
+      const timer = setTimeout(() => reject(new Error(`${executable} did not start: ${stderr.slice(-400)}`)), 2e4);
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk.toString();
+        const match = /DevTools listening on (ws:\/\/\S+)/.exec(stderr);
+        if (match) {
+          clearTimeout(timer);
+          resolve5(match[1]);
+        }
+      });
+      child.once("exit", (code) => {
+        clearTimeout(timer);
+        reject(new Error(`${executable} exited with code ${code}: ${stderr.slice(-400)}`));
+      });
+    });
+    child.stderr.on("data", () => void 0);
+    const socket = new import_websocket.default(endpoint, { maxPayload: 512 * 1024 * 1024 });
+    await new Promise((resolve5, reject) => {
+      socket.once("open", () => resolve5());
+      socket.once("error", reject);
+    });
+    const browser = new _Browser(executable, child, new Connection(socket), profile);
+    const kill = () => {
+      try {
+        child.kill();
+      } catch {
+      }
+    };
+    process.once("exit", kill);
+    child.once("exit", () => process.removeListener("exit", kill));
+    return browser;
+  }
+  async newPage(width, height) {
+    const { targetId } = await this.connection.send("Target.createTarget", { url: "about:blank" });
+    const { sessionId } = await this.connection.send("Target.attachToTarget", { targetId, flatten: true });
+    const page = new Page(this.connection, targetId, sessionId);
+    await page.init();
+    await page.setViewport(width, height);
+    return page;
+  }
+  async close() {
+    await this.connection.send("Browser.close").catch(() => void 0);
+    this.connection.close();
+    await new Promise((resolve5) => setTimeout(resolve5, 200));
+    if (this.child.exitCode === null) this.child.kill();
+    await rm2(this.profile, { recursive: true, force: true }).catch(() => void 0);
+  }
+};
+var shared = null;
+var idleTimer = null;
+var IDLE_MS = 3 * 60 * 1e3;
+async function acquireBrowser() {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+  if (shared) {
+    const existing = await shared.catch(() => null);
+    if (existing && existing.alive) return existing;
+    shared = null;
+  }
+  shared = Browser.launch();
+  return await shared;
+}
+function releaseBrowser() {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(async () => {
+    const current = shared;
+    shared = null;
+    idleTimer = null;
+    const browser = await current?.catch(() => null);
+    await browser?.close();
+  }, IDLE_MS);
+  idleTimer.unref();
+}
+
+// mcp-server/src/html/import.ts
+import { createHash as createHash2 } from "node:crypto";
+import { basename as basename4, extname as extname3 } from "node:path";
+
+// mcp-server/src/html/css.ts
+var clamp012 = (value) => Math.min(1, Math.max(0, value));
+function splitTopLevel(value, separator) {
+  const out = [];
+  let depth = 0;
+  let quote = null;
+  let current = "";
+  for (const char of value) {
+    if (quote) {
+      if (char === quote) quote = null;
+      current += char;
+      continue;
+    }
+    if (char === '"' || char === "'") quote = char;
+    else if (char === "(") depth++;
+    else if (char === ")") depth--;
+    if (depth === 0 && (separator === " " ? /\s/.test(char) : char === separator)) {
+      if (current.trim()) out.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) out.push(current.trim());
+  return out;
+}
+function px(value, fallback = 0) {
+  if (!value) return fallback;
+  const number3 = parseFloat(value);
+  return Number.isFinite(number3) ? number3 : fallback;
+}
+var encode = (linear2) => linear2 <= 31308e-7 ? 12.92 * linear2 : 1.055 * Math.pow(Math.max(linear2, 0), 1 / 2.4) - 0.055;
+var decode = (channel) => channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+function numbers(body) {
+  const [main, alphaPart] = body.split("/");
+  const parts = main.trim().split(/[\s,]+/).filter(Boolean).map((token) => {
+    if (token === "none") return 0;
+    const numeric = parseFloat(token);
+    return token.endsWith("%") ? numeric / 100 : numeric;
+  });
+  if (parts.some((part) => !Number.isFinite(part))) return null;
+  let alpha = 1;
+  if (alphaPart !== void 0) {
+    const token = alphaPart.trim();
+    alpha = token.endsWith("%") ? parseFloat(token) / 100 : parseFloat(token);
+    if (!Number.isFinite(alpha)) alpha = 1;
+  }
+  return { parts, alpha: clamp012(alpha) };
+}
+function labToRgb(l, a, b) {
+  const fy = (l + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - b / 200;
+  const e = 216 / 24389;
+  const k = 24389 / 27;
+  const x = (fx ** 3 > e ? fx ** 3 : (116 * fx - 16) / k) * 0.96422;
+  const y = l > k * e ? fy ** 3 : l / k;
+  const z = (fz ** 3 > e ? fz ** 3 : (116 * fz - 16) / k) * 0.82521;
+  const x65 = 0.9555766 * x - 0.0230393 * y + 0.0631636 * z;
+  const y65 = -0.0282895 * x + 1.0099416 * y + 0.0210077 * z;
+  const z65 = 0.0122982 * x - 0.020483 * y + 1.3299098 * z;
+  return [
+    3.2404542 * x65 - 1.5371385 * y65 - 0.4985314 * z65,
+    -0.969266 * x65 + 1.8760108 * y65 + 0.041556 * z65,
+    0.0556434 * x65 - 0.2040259 * y65 + 1.0572252 * z65
+  ];
+}
+function oklabToLinear(l, a, b) {
+  const l_ = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m_ = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s_ = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [
+    4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
+    -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
+    -0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_
+  ];
+}
+var fromLinear = ([r, g, b], alpha) => ({
+  r: clamp012(encode(r)),
+  g: clamp012(encode(g)),
+  b: clamp012(encode(b)),
+  a: alpha
+});
+function color(value) {
+  if (!value) return null;
+  const text2 = value.trim().toLowerCase();
+  if (!text2 || text2 === "none" || text2 === "currentcolor") return null;
+  if (text2 === "transparent") return { r: 0, g: 0, b: 0, a: 0 };
+  const call2 = /^([a-z-]+)\((.*)\)$/.exec(text2);
+  if (call2) {
+    const [, fn, body] = call2;
+    if (fn === "color") {
+      const [space, ...rest] = body.trim().split(/\s+/);
+      const parsed2 = numbers(rest.join(" "));
+      if (!parsed2 || parsed2.parts.length < 3) return null;
+      const [r, g, b] = parsed2.parts;
+      if (space === "srgb") return { r: clamp012(r), g: clamp012(g), b: clamp012(b), a: parsed2.alpha };
+      if (space === "srgb-linear") return fromLinear([r, g, b], parsed2.alpha);
+      if (space === "display-p3") {
+        const [lr, lg, lb] = [decode(r), decode(g), decode(b)];
+        return fromLinear(
+          [
+            1.2249401 * lr - 0.2249404 * lg,
+            -0.0420569 * lr + 1.0420571 * lg,
+            -0.0196376 * lr - 0.0786361 * lg + 1.0982735 * lb
+          ],
+          parsed2.alpha
+        );
+      }
+      return null;
+    }
+    if (fn === "oklab" || fn === "oklch" || fn === "lab" || fn === "lch") {
+      const parsed2 = numbers(body);
+      if (!parsed2 || parsed2.parts.length < 3) return null;
+      let [l, x, y] = parsed2.parts;
+      if (fn === "lab" || fn === "lch") {
+        if (body.trim().split(/\s+/)[0].endsWith("%")) l *= 100;
+      }
+      if (fn === "oklch" || fn === "lch") {
+        const hue = y * Math.PI / 180;
+        [x, y] = [x * Math.cos(hue), x * Math.sin(hue)];
+      }
+      if (fn === "oklab" || fn === "oklch") {
+        if (fn === "oklch") {
+          const rgb = oklchToRgb(l, Math.hypot(x, y), Math.atan2(y, x) * 180 / Math.PI);
+          return { ...rgb, a: parsed2.alpha };
+        }
+        return fromLinear(oklabToLinear(l, x, y), parsed2.alpha);
+      }
+      return fromLinear(labToRgb(l, x, y), parsed2.alpha);
+    }
+    if (fn === "hwb") {
+      const parsed2 = numbers(body);
+      if (!parsed2 || parsed2.parts.length < 3) return null;
+      const [h, w, bl] = parsed2.parts;
+      const base = parseColor(`hsl(${h} 100% 50%)`);
+      if (!base) return null;
+      const scale = 1 - w - bl;
+      const mix = (channel) => clamp012(channel * scale + w);
+      return { r: mix(base.r), g: mix(base.g), b: mix(base.b), a: parsed2.alpha };
+    }
+  }
+  const parsed = parseColor(text2);
+  if (!parsed) return null;
+  return { r: parsed.r, g: parsed.g, b: parsed.b, a: parsed.a ?? 1 };
+}
+function solid(value, opacity = 1) {
+  const parsed = color(value);
+  if (!parsed || parsed.a * opacity < 2e-3) return null;
+  return { type: "SOLID", color: { ...parsed, a: parsed.a * opacity } };
+}
+var COLOR_TOKEN = /^(#|rgb|hsl|hwb|lab|lch|oklab|oklch|color\(|[a-z]+$)/i;
+function shadows(value) {
+  if (!value || value === "none") return [];
+  const out = [];
+  for (const layer of splitTopLevel(value, ",")) {
+    const tokens = splitTopLevel(layer, " ");
+    let inset = false;
+    let parsedColor = null;
+    const lengths = [];
+    for (const token of tokens) {
+      if (token === "inset") inset = true;
+      else if (/^-?[\d.]+(px)?$/.test(token)) lengths.push(parseFloat(token));
+      else if (COLOR_TOKEN.test(token)) parsedColor = color(token) ?? parsedColor;
+    }
+    if (lengths.length < 2) continue;
+    const shadow = {
+      inset,
+      x: lengths[0],
+      y: lengths[1],
+      blur: lengths[2] ?? 0,
+      spread: lengths[3] ?? 0,
+      color: parsedColor ?? { r: 0, g: 0, b: 0, a: 1 }
+    };
+    if (shadow.color.a < 2e-3) continue;
+    out.push(shadow);
+  }
+  return out;
+}
+function parseStops(parts, length) {
+  const stops = [];
+  for (const part of parts) {
+    const tokens = splitTopLevel(part, " ");
+    const colorToken = tokens.find((token) => !/^-?[\d.]+(px|%)?$/.test(token));
+    if (!colorToken) continue;
+    const parsed = color(colorToken);
+    if (!parsed) return null;
+    const positions = tokens.filter((token) => token !== colorToken).map((token) => token.endsWith("%") ? parseFloat(token) / 100 : length > 0 ? parseFloat(token) / length : 0);
+    if (!positions.length) stops.push({ color: parsed, position: null });
+    for (const position2 of positions) stops.push({ color: parsed, position: position2 });
+  }
+  if (stops.length < 2) return null;
+  if (stops[0].position === null) stops[0].position = 0;
+  if (stops[stops.length - 1].position === null) stops[stops.length - 1].position = 1;
+  for (let index = 1; index < stops.length; index++) {
+    if (stops[index].position !== null) {
+      stops[index].position = Math.max(stops[index].position, stops[index - 1].position);
+      continue;
+    }
+    let next = index;
+    while (stops[next].position === null) next++;
+    const from = stops[index - 1].position;
+    const to = stops[next].position;
+    const count = next - index + 1;
+    for (let fill = index; fill < next; fill++) {
+      stops[fill].position = from + (to - from) * (fill - index + 1) / count;
+    }
+  }
+  return stops.map((stop) => ({ color: stop.color, position: clamp012(stop.position) }));
+}
+var CORNERS = {
+  top: [0, -1],
+  bottom: [0, 1],
+  left: [-1, 0],
+  right: [1, 0]
+};
+function linearAngle(prefix, width, height) {
+  const trimmed = prefix.trim();
+  const angle = /^(-?[\d.]+)(deg|rad|turn|grad)$/.exec(trimmed);
+  if (angle) {
+    const value = parseFloat(angle[1]);
+    return angle[2] === "deg" ? value : angle[2] === "rad" ? value * 180 / Math.PI : angle[2] === "turn" ? value * 360 : value * 0.9;
+  }
+  if (!trimmed.startsWith("to ")) return null;
+  const words = trimmed.slice(3).split(/\s+/);
+  let dx = 0;
+  let dy = 0;
+  for (const word of words) {
+    const vector = CORNERS[word];
+    if (!vector) return null;
+    dx += vector[0];
+    dy += vector[1];
+  }
+  if (dx !== 0 && dy !== 0) {
+    return Math.atan2(dx * height, -dy * width) * 180 / Math.PI;
+  }
+  return Math.atan2(dx, -dy) * 180 / Math.PI;
+}
+function linearTransform(degrees, width, height) {
+  const theta = degrees * Math.PI / 180;
+  const sin = Math.sin(theta);
+  const cos = Math.cos(theta);
+  const length = Math.abs(width * sin) + Math.abs(height * cos) || 1;
+  const a = width * sin / length;
+  const b = -height * cos / length;
+  const d = width * cos / length;
+  const e = height * sin / length;
+  return [
+    [a, b, 0.5 - (a + b) / 2],
+    [d, e, 0.5 - (d + e) / 2]
+  ];
+}
+function position(token, size2) {
+  if (!token) return size2 / 2;
+  if (token === "left" || token === "top") return 0;
+  if (token === "right" || token === "bottom") return size2;
+  if (token === "center") return size2 / 2;
+  if (token.endsWith("%")) return parseFloat(token) / 100 * size2;
+  return parseFloat(token) || 0;
+}
+function radialGeometry(prefix, width, height) {
+  const [shapePart, atPart] = prefix.split(/\bat\b/).map((part) => part.trim());
+  const at = (atPart ?? "").split(/\s+/).filter(Boolean);
+  let cx = position(at[0], width);
+  let cy = position(at[1] ?? (at[0] === "top" || at[0] === "bottom" ? void 0 : "center"), height);
+  if (at[0] === "top" || at[0] === "bottom") {
+    cy = position(at[0], height);
+    cx = position(at[1], width);
+  }
+  const words = (shapePart ?? "").split(/\s+/).filter(Boolean);
+  const circle = words.includes("circle");
+  const lengths = words.filter((word) => /^[\d.]+(px|%)$/.test(word));
+  const keyword = words.find((word) => /(closest|farthest)-(side|corner)/.test(word)) ?? "farthest-corner";
+  if (lengths.length) {
+    const rx = lengths[0].endsWith("%") ? parseFloat(lengths[0]) / 100 * width : parseFloat(lengths[0]);
+    const ry = lengths[1] ? lengths[1].endsWith("%") ? parseFloat(lengths[1]) / 100 * height : parseFloat(lengths[1]) : rx;
+    return { cx, cy, rx, ry: circle ? rx : ry };
+  }
+  const sideX = keyword.startsWith("closest") ? Math.min(cx, width - cx) : Math.max(cx, width - cx);
+  const sideY = keyword.startsWith("closest") ? Math.min(cy, height - cy) : Math.max(cy, height - cy);
+  if (circle) {
+    const r = keyword.endsWith("corner") ? Math.hypot(sideX, sideY) : Math.min(sideX, sideY);
+    return { cx, cy, rx: r, ry: r };
+  }
+  const factor = keyword.endsWith("corner") ? Math.SQRT2 : 1;
+  return { cx, cy, rx: sideX * factor, ry: sideY * factor };
+}
+function gradient(layer, width, height) {
+  const call2 = /^(linear|radial)-gradient\((.*)\)$/s.exec(layer.trim());
+  if (!call2) return null;
+  const [, kind, body] = call2;
+  const parts = splitTopLevel(body, ",");
+  if (!parts.length) return null;
+  if (kind === "linear") {
+    let degrees = linearAngle(parts[0], width, height);
+    const stopParts = degrees === null ? parts : parts.slice(1);
+    if (degrees === null) degrees = 180;
+    const theta = degrees * Math.PI / 180;
+    const length = Math.abs(width * Math.sin(theta)) + Math.abs(height * Math.cos(theta));
+    const stops2 = parseStops(stopParts, length);
+    if (!stops2) return null;
+    return { type: "GRADIENT_LINEAR", transform: linearTransform(degrees, width, height), stops: stops2 };
+  }
+  const first = parts[0];
+  const hasPrefix = /\b(circle|ellipse|at|closest|farthest)\b/.test(first) || /^[\d.]+(px|%)(\s|$)/.test(first);
+  const geometry = radialGeometry(hasPrefix ? first : "", width, height);
+  const stops = parseStops(hasPrefix ? parts.slice(1) : parts, Math.max(geometry.rx, 1));
+  if (!stops) return null;
+  const rx = Math.max(geometry.rx / (width || 1), 1e-4);
+  const ry = Math.max(geometry.ry / (height || 1), 1e-4);
+  const cx = geometry.cx / (width || 1);
+  const cy = geometry.cy / (height || 1);
+  const a = 0.5 / rx;
+  const e = 0.5 / ry;
+  return {
+    type: "GRADIENT_RADIAL",
+    transform: [
+      [a, 0, 0.5 - cx * a],
+      [0, e, 0.5 - cy * e]
+    ],
+    stops
+  };
+}
+function fontFamilies(value) {
+  if (!value) return [];
+  return splitTopLevel(value, ",").map((family) => family.replace(/^["']|["']$/g, "").trim()).filter(Boolean);
+}
+function urls(value) {
+  const out = [];
+  const pattern = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/g;
+  let match;
+  while (match = pattern.exec(value)) out.push((match[1] ?? match[2] ?? match[3] ?? "").trim());
+  return out;
+}
+
+// mcp-server/src/html/convert.ts
+var EPS = 0.75;
+var near = (a, b, tolerance = EPS) => Math.abs(a - b) <= tolerance;
+var round2 = (value) => Math.round(value * 100) / 100;
+var paintsPositioned = (item) => !item.positioned && (item.style.position === "relative" || item.style.position === "sticky");
+var NO_EDGES = { top: 0, right: 0, bottom: 0, left: 0 };
+function borders(s, z) {
+  const side = (name) => s[`border-${name}-style`] && s[`border-${name}-style`] !== "none" ? px(s[`border-${name}-width`]) * z : 0;
+  return { top: side("top"), right: side("right"), bottom: side("bottom"), left: side("left") };
+}
+function insets(s, z) {
+  const b = borders(s, z);
+  return {
+    top: b.top + px(s["padding-top"]) * z,
+    right: b.right + px(s["padding-right"]) * z,
+    bottom: b.bottom + px(s["padding-bottom"]) * z,
+    left: b.left + px(s["padding-left"]) * z
+  };
+}
+var edgeSum = (edges) => edges.top + edges.right + edges.bottom + edges.left;
+function contentBox(box, inset) {
+  return [box[0] + inset.left, box[1] + inset.top, Math.max(0, box[2] - inset.left - inset.right), Math.max(0, box[3] - inset.top - inset.bottom)];
+}
+function union2(boxes) {
+  const left = Math.min(...boxes.map((b) => b[0]));
+  const top = Math.min(...boxes.map((b) => b[1]));
+  const right = Math.max(...boxes.map((b) => b[0] + b[2]));
+  const bottom = Math.max(...boxes.map((b) => b[1] + b[3]));
+  return [left, top, right - left, bottom - top];
+}
+var isPositioned = (s) => s.position === "absolute" || s.position === "fixed";
+var start = (box, axis) => axis === "x" ? box[0] : box[1];
+var size = (box, axis) => axis === "x" ? box[2] : box[3];
+var end = (box, axis) => start(box, axis) + size(box, axis);
+var other = (axis) => axis === "x" ? "y" : "x";
+var TAG_NAMES = {
+  header: "Header",
+  nav: "Nav",
+  footer: "Footer",
+  main: "Main",
+  aside: "Aside",
+  section: "Section",
+  article: "Article",
+  form: "Form",
+  button: "Button",
+  label: "Label",
+  ul: "List",
+  ol: "List",
+  input: "Input",
+  textarea: "Textarea",
+  select: "Select",
+  img: "Image",
+  picture: "Image",
+  table: "Table",
+  tr: "Row",
+  hr: "Divider",
+  dialog: "Dialog",
+  canvas: "Canvas",
+  video: "Video",
+  iframe: "Embed"
+};
+var MACHINE_NAME = /^(css|sc|jsx|svelte|emotion|tw)-|^[a-z]{1,2}\d|^_|^[a-z0-9]{7,}$|\d{3,}/i;
+function nameFor(el) {
+  const a = el.a;
+  if (a?.label) return a.label;
+  if (a?.ariaLabel) return a.ariaLabel;
+  if (el.pseudo) return `::${el.pseudo}`;
+  if (TAG_NAMES[el.tag]) return TAG_NAMES[el.tag];
+  const human = [a?.id, ...a?.className?.split(/\s+/) ?? []].find(
+    (token) => !!token && /^[a-zA-Z][\w-]{2,40}$/.test(token) && !MACHINE_NAME.test(token)
+  );
+  if (human) return human;
+  if (el.tag === "a") return "Link";
+  if (el.tag === "li") return "List item";
+  if (el.s.cursor === "pointer") return "Button";
+  return "Frame";
+}
+function svgSize(markup) {
+  const width = /<svg[^>]*\bwidth="([\d.]+)(?:px)?"/i.exec(markup);
+  const height = /<svg[^>]*\bheight="([\d.]+)(?:px)?"/i.exec(markup);
+  if (width && height) return [parseFloat(width[1]), parseFloat(height[1])];
+  const viewBox = /<svg[^>]*\bviewBox="([-\d.\s]+)"/i.exec(markup);
+  if (viewBox) {
+    const parts = viewBox[1].trim().split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) return [parts[2], parts[3]];
+  }
+  return null;
+}
+function backgroundRect(intrinsic, s, box, index, z) {
+  const sizeValue = (splitTopLevel(s["background-size"] ?? "auto", ",")[index] ?? "auto").trim();
+  const [boxWidth, boxHeight] = [box[2], box[3]];
+  let width;
+  let height;
+  if (sizeValue === "cover" || sizeValue === "contain") {
+    const ratios = [boxWidth / intrinsic[0], boxHeight / intrinsic[1]];
+    const scale = sizeValue === "cover" ? Math.max(...ratios) : Math.min(...ratios);
+    width = intrinsic[0] * scale;
+    height = intrinsic[1] * scale;
+  } else {
+    const parts = sizeValue.split(/\s+/);
+    const resolve5 = (token, extent, fallback) => !token || token === "auto" ? fallback : token.endsWith("%") ? parseFloat(token) / 100 * extent : parseFloat(token) * z;
+    width = resolve5(parts[0], boxWidth, intrinsic[0] * z);
+    height = resolve5(parts[1], boxHeight, width / intrinsic[0] * intrinsic[1]);
+  }
+  const position2 = (splitTopLevel(s["background-position"] ?? "50% 50%", ",")[index] ?? "50% 50%").trim().split(/\s+/);
+  const offset = (token, extent, drawn) => {
+    if (!token || token === "center") return (extent - drawn) / 2;
+    if (token === "left" || token === "top") return 0;
+    if (token === "right" || token === "bottom") return extent - drawn;
+    if (token.endsWith("%")) return parseFloat(token) / 100 * (extent - drawn);
+    return parseFloat(token) * z;
+  };
+  return [round2(offset(position2[0], boxWidth, width)), round2(offset(position2[1], boxHeight, height)), round2(width), round2(height)];
+}
+function backgroundFills(ctx, s, box, label, z) {
+  const fills = [];
+  const vectors = [];
+  const base = solid(s["background-color"]);
+  if (base) fills.push(base);
+  const image = s["background-image"];
+  if (!image || image === "none") return { fills, vectors };
+  const layers = splitTopLevel(image, ",");
+  const sizes = splitTopLevel(s["background-size"] ?? "auto", ",");
+  layers.forEach((layer, index) => {
+    if (layer.startsWith("url(")) {
+      const src = urls(layer)[0];
+      const asset = src ? ctx.assetSources.get(src) : void 0;
+      const data = asset ? ctx.assets.get(asset) : void 0;
+      if (!asset || !data || data.kind === "missing") {
+        ctx.warnings.push(`${label}: background image ${src?.slice(0, 60) ?? ""} is missing.`);
+        return;
+      }
+      if (data.kind === "svg") {
+        const intrinsic = svgSize(data.text);
+        if (!intrinsic) {
+          ctx.warnings.push(`${label}: background SVG has no size and was dropped.`);
+          return;
+        }
+        vectors.push({ svg: data.text, rect: backgroundRect(intrinsic, s, box, index, z) });
+        return;
+      }
+      const sizeValue = sizes[index] ?? "auto";
+      const repeats = !/no-repeat/.test(s["background-repeat"] ?? "repeat");
+      const scaleMode = sizeValue === "contain" ? "FIT" : sizeValue === "cover" || /100%/.test(sizeValue) || !repeats ? "FILL" : "TILE";
+      fills.push({ type: "IMAGE", asset, scaleMode });
+      return;
+    }
+    const paint = gradient(layer, box[2], box[3]);
+    if (paint) fills.push(paint);
+    else ctx.warnings.push(`${label}: background ${layer.slice(0, 50)} is not supported and was dropped.`);
+  });
+  fills.reverse();
+  if (base) {
+    fills.splice(fills.indexOf(base), 1);
+    fills.unshift(base);
+  }
+  return { fills, vectors };
+}
+function isRing(shadow) {
+  return shadow.inset && !shadow.x && !shadow.y && !shadow.blur && shadow.spread > 0;
+}
+function ring(s) {
+  const b = borders(s, 1);
+  if ([b.top, b.right, b.bottom, b.left].some((width) => width > 0)) return void 0;
+  return shadows(s["box-shadow"]).find(isRing);
+}
+function strokeOf(s, z) {
+  const b = borders(s, z);
+  const widths = [b.top, b.right, b.bottom, b.left];
+  if (widths.every((width) => width <= 0)) {
+    const inset = ring(s);
+    return inset ? { paints: [{ type: "SOLID", color: inset.color }], weight: round2(inset.spread * z) } : void 0;
+  }
+  const sides = ["top", "right", "bottom", "left"];
+  const main = sides[widths.indexOf(Math.max(...widths))];
+  const paint = solid(s[`border-${main}-color`]);
+  if (!paint) return void 0;
+  const uniform = widths.every((width) => near(width, widths[0], 0.01));
+  const stroke = { paints: [paint], weight: uniform ? widths[0] : widths };
+  const weight = Math.max(...widths, 1);
+  const style = s[`border-${main}-style`];
+  if (style === "dashed") stroke.dash = [weight * 3, weight * 2];
+  else if (style === "dotted") stroke.dash = [weight, weight];
+  return stroke;
+}
+function radiusOf(s, box, z) {
+  const corner = (name) => {
+    const value = s[`border-${name}-radius`];
+    if (!value) return 0;
+    const [horizontal, vertical = horizontal] = value.split(/\s+/);
+    const resolve5 = (token, extent) => token.endsWith("%") ? parseFloat(token) / 100 * extent : parseFloat(token) * z;
+    return Math.min(resolve5(horizontal, box[2]), resolve5(vertical, box[3]));
+  };
+  const limit = Math.min(box[2], box[3]) / 2;
+  const radii = [corner("top-left"), corner("top-right"), corner("bottom-right"), corner("bottom-left")].map(
+    (r) => round2(Math.max(0, Math.min(r || 0, limit)))
+  );
+  if (radii.every((r) => r <= 0)) return void 0;
+  return radii.every((r) => r === radii[0]) ? radii[0] : radii;
+}
+function effectsOf(s, z) {
+  const effects = [];
+  let asStroke = ring(s) !== void 0;
+  for (const shadow of shadows(s["box-shadow"])) {
+    if (asStroke && isRing(shadow)) {
+      asStroke = false;
+      continue;
+    }
+    effects.push({
+      type: shadow.inset ? "INNER_SHADOW" : "DROP_SHADOW",
+      color: shadow.color,
+      x: shadow.x * z,
+      y: shadow.y * z,
+      blur: shadow.blur * z,
+      spread: shadow.spread * z
+    });
+  }
+  const blur = /blur\(([\d.]+)px\)/.exec(s.filter ?? "");
+  if (blur) effects.push({ type: "LAYER_BLUR", radius: parseFloat(blur[1]) * 2 * z });
+  const backdrop = /blur\(([\d.]+)px\)/.exec(s["backdrop-filter"] ?? "");
+  if (backdrop) effects.push({ type: "BACKGROUND_BLUR", radius: parseFloat(backdrop[1]) * 2 * z });
+  return effects.length ? effects : void 0;
+}
+var BLEND_MODES = {
+  multiply: "MULTIPLY",
+  screen: "SCREEN",
+  overlay: "OVERLAY",
+  darken: "DARKEN",
+  lighten: "LIGHTEN",
+  "color-dodge": "COLOR_DODGE",
+  "color-burn": "COLOR_BURN",
+  "hard-light": "HARD_LIGHT",
+  "soft-light": "SOFT_LIGHT",
+  difference: "DIFFERENCE",
+  exclusion: "EXCLUSION",
+  hue: "HUE",
+  saturation: "SATURATION",
+  color: "COLOR",
+  luminosity: "LUMINOSITY"
+};
+function hasVisuals(frame) {
+  return !!(frame.fills?.length || frame.stroke || frame.effects?.length || frame.opacity !== void 0 || frame.blendMode);
+}
+function textStyle(ctx, index, z, lineHeightFallback) {
+  const s = ctx.styles[index] ?? {};
+  const fillSource = s["-webkit-text-fill-color"] && (color(s["-webkit-text-fill-color"])?.a ?? 0) > 0 ? s["-webkit-text-fill-color"] : s.color;
+  const style = {
+    family: fontFamilies(s["font-family"]),
+    weight: parseInt(s["font-weight"] ?? "400", 10) || 400,
+    size: round2(px(s["font-size"], 16) * z),
+    fills: [solid(fillSource ?? "rgb(0, 0, 0)") ?? { type: "SOLID", color: { r: 0, g: 0, b: 0, a: 0 } }]
+  };
+  if (/italic|oblique/.test(s["font-style"] ?? "")) style.italic = true;
+  const lineHeight = s["line-height"];
+  if (lineHeight && lineHeight !== "normal") style.lineHeight = round2(px(lineHeight) * z);
+  else if (lineHeightFallback) style.lineHeight = round2(lineHeightFallback);
+  const spacing = px(s["letter-spacing"]) * z;
+  if (spacing) style.letterSpacing = round2(spacing);
+  const decoration = s["text-decoration-line"] ?? "";
+  if (decoration.includes("underline")) style.decoration = "UNDERLINE";
+  else if (decoration.includes("line-through")) style.decoration = "STRIKETHROUGH";
+  const transform2 = s["text-transform"];
+  if (transform2 === "uppercase") style.textCase = "UPPER";
+  else if (transform2 === "lowercase") style.textCase = "LOWER";
+  else if (transform2 === "capitalize") style.textCase = "TITLE";
+  return style;
+}
+var sameStyle = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function assembleText(runs) {
+  const chars = [];
+  runs.forEach((run, index) => {
+    const preserve = run.ws === "pre" || run.ws === "pre-wrap" || run.ws === "break-spaces";
+    let text2;
+    if (run.br) text2 = "\n";
+    else if (preserve) text2 = run.text.replace(/\t/g, "    ");
+    else if (run.ws === "pre-line") text2 = run.text.replace(/[ \t]+/g, " ");
+    else text2 = run.text.replace(/[\t\n\r\f ]+/g, " ");
+    text2 = text2.replace(/​/g, "");
+    for (const ch of text2) {
+      const collapsible = !preserve && ch === " ";
+      const previous = chars[chars.length - 1];
+      if (collapsible && (!previous || previous.ch === " " && previous.collapsible || previous.ch === "\n")) continue;
+      chars.push({ ch, run: index, collapsible });
+    }
+  });
+  for (let index = chars.length - 1; index >= 0; index--) {
+    if (chars[index].collapsible && (index === chars.length - 1 || chars[index + 1].ch === "\n")) chars.splice(index, 1);
+  }
+  let characters = "";
+  const pieces = [];
+  for (const entry of chars) {
+    const last = pieces[pieces.length - 1];
+    if (last && last.runIndex === entry.run) last.end += entry.ch.length;
+    else pieces.push({ start: characters.length, end: characters.length + entry.ch.length, runIndex: entry.run });
+    characters += entry.ch;
+  }
+  return { characters, pieces: pieces.map((piece) => ({ start: piece.start, end: piece.end, run: runs[piece.runIndex] })) };
+}
+function alignOf(value, direction) {
+  switch (value) {
+    case "center":
+    case "-webkit-center":
+      return "CENTER";
+    case "right":
+    case "-webkit-right":
+      return "RIGHT";
+    case "end":
+      return direction === "rtl" ? "LEFT" : "RIGHT";
+    case "justify":
+      return "JUSTIFIED";
+    default:
+      return "LEFT";
+  }
+}
+function makeText(ctx, source, available, z, width = "auto") {
+  const { characters, pieces } = assembleText(source.runs);
+  if (!characters.replace(/\n/g, "").trim() && !characters.includes("\n")) return null;
+  const lines = source.lines.length ? source.lines : [available];
+  const words = union2(lines);
+  const baseMap = ctx.styles[source.base] ?? {};
+  const measuredLine = words[3] / lines.length;
+  const base = textStyle(ctx, source.base, z, baseMap["line-height"] === "normal" ? measuredLine : void 0);
+  const runs = [];
+  for (const piece of pieces) {
+    const style = textStyle(ctx, piece.run.style, z, base.lineHeight);
+    if (piece.run.href) style.href = piece.run.href;
+    if (sameStyle(style, base)) continue;
+    const last = runs[runs.length - 1];
+    if (last && last.end === piece.start && sameStyle(last.style, style)) last.end = piece.end;
+    else runs.push({ start: piece.start, end: piece.end, style });
+  }
+  if (runs.length === 1 && runs[0].start === 0 && runs[0].end === characters.length) {
+    Object.assign(base, runs[0].style);
+    runs.length = 0;
+  }
+  const truncate = baseMap["text-overflow"] === "ellipsis" && !!baseMap["overflow-x"] && baseMap["overflow-x"] !== "visible";
+  const clamp = parseInt(baseMap["-webkit-line-clamp"] ?? "", 10);
+  const singleLine = lines.length <= 1 && !characters.includes("\n");
+  const hug = width !== "fixed" && !truncate && singleLine && (width === "content" || available[2] - words[2] <= 8);
+  const box = hug ? words : [available[0], words[1], available[2], words[3]];
+  const layer = {
+    type: "TEXT",
+    name: characters.slice(0, 40),
+    x: 0,
+    y: 0,
+    width: box[2],
+    height: box[3],
+    characters,
+    style: base,
+    resize: hug ? "WIDTH_AND_HEIGHT" : "HEIGHT",
+    align: alignOf(baseMap["text-align"], baseMap.direction)
+  };
+  if (truncate) layer.maxLines = 1;
+  else if (clamp > 0) layer.maxLines = clamp;
+  if (runs.length) layer.runs = runs;
+  const textShadows = shadows(baseMap["text-shadow"]);
+  if (textShadows.length) {
+    layer.effects = textShadows.map((shadow) => ({
+      type: "DROP_SHADOW",
+      color: shadow.color,
+      x: shadow.x * z,
+      y: shadow.y * z,
+      blur: shadow.blur * z,
+      spread: 0
+    }));
+  }
+  ctx.stats.texts++;
+  return { layer, box, hug };
+}
+function transparentFrame(name, box, children) {
+  return { type: "FRAME", name, x: 0, y: 0, width: box[2], height: box[3], children };
+}
+function setSizing(layer, axis, main, cross) {
+  layer.sizing = axis === "x" ? { h: main, v: cross } : { h: cross, v: main };
+}
+var hugsOn = (item, axis) => axis === "x" ? item.hugW : item.hugH;
+var hugsItsWords = (item) => item.layer.type === "TEXT" && item.layer.resize === "WIDTH_AND_HEIGHT";
+var GAP_TOLERANCE = 1.5;
+function groupByGap(ctx, axis, sorted, gaps, options, depth) {
+  const widest = Math.max(...gaps);
+  const groups = [[sorted[0]]];
+  gaps.forEach((gap, index) => {
+    if (gap >= widest - GAP_TOLERANCE) groups.push([sorted[index + 1]]);
+    else groups[groups.length - 1].push(sorted[index + 1]);
+  });
+  if (groups.length < 2 || !groups.some((group2) => group2.length > 1)) return null;
+  const out = [];
+  for (const group2 of groups) {
+    if (group2.length === 1) {
+      out.push(group2[0]);
+      continue;
+    }
+    const groupBox = union2(group2.map((item) => item.box));
+    const plan = linear(ctx, axis, groupBox, groupBox, NO_EDGES, group2, { ...options, justify: "normal" }, depth + 1);
+    if (!plan) return null;
+    const frame = transparentFrame(axis === "x" ? "Row" : "Stack", groupBox, plan.children);
+    frame.layout = plan.layout;
+    ctx.stats.frames++;
+    ctx.stats.autoLayout++;
+    ctx.stats.groups++;
+    out.push({
+      layer: frame,
+      box: groupBox,
+      style: {},
+      inline: false,
+      hugW: axis === "x" ? plan.hugMain : plan.hugCross,
+      hugH: axis === "x" ? plan.hugCross : plan.hugMain,
+      positioned: false,
+      zIndex: 0
+    });
+  }
+  return out;
+}
+function linear(ctx, axis, box, content, inset, items, options, depth = 0) {
+  const cross = other(axis);
+  const sorted = [...items].sort((a, b) => start(a.box, axis) - start(b.box, axis));
+  const gaps = sorted.slice(1).map((item, index) => start(item.box, axis) - end(sorted[index].box, axis));
+  if (gaps.some((gap2) => gap2 < -EPS) && !gaps.every((gap2) => near(gap2, gaps[0], 0.5))) return null;
+  const contentStart = start(content, axis);
+  const contentEnd = end(content, axis);
+  const leading = start(sorted[0].box, axis) - contentStart;
+  const trailing = contentEnd - end(sorted[sorted.length - 1].box, axis);
+  const spread = gaps.length ? Math.max(...gaps) - Math.min(...gaps) : 0;
+  const even = spread <= GAP_TOLERANCE;
+  const base = !gaps.length ? 0 : even ? gaps.reduce((sum, gap2) => sum + gap2, 0) / gaps.length : Math.min(...gaps);
+  const extras = even ? gaps.map(() => 0) : gaps.map((gap2) => gap2 - base);
+  let primary = "MIN";
+  const spacerBefore = /* @__PURE__ */ new Map();
+  const padBefore = /* @__PURE__ */ new Map();
+  const distributed = /^space-(between|around|evenly)$/.test(options.justify);
+  if (sorted.length > 1 && distributed && even && near(leading, 0, 1) && near(trailing, 0, 1)) {
+    primary = "SPACE_BETWEEN";
+  } else {
+    const large = extras.map((extra, index) => ({ extra, index })).filter(({ extra }) => extra > GAP_TOLERANCE);
+    const pushed = large.length === 1 && large[0].extra > 8 && near(leading, 0, 1) && near(trailing, 0, 1);
+    if (pushed) {
+      spacerBefore.set(large[0].index + 1, large[0].extra);
+    } else if (large.length && depth < 3) {
+      const grouped = groupByGap(ctx, axis, sorted, gaps, options, depth);
+      if (grouped) return linear(ctx, axis, box, content, inset, grouped, options, depth + 1);
+      for (const { extra, index } of large) padBefore.set(index + 1, extra);
+    } else {
+      for (const { extra, index } of large) padBefore.set(index + 1, extra);
+    }
+    if (!spacerBefore.size) {
+      if (near(leading, trailing, 1) && leading > EPS) primary = "CENTER";
+      else if (near(trailing, 0) && leading > EPS) primary = "MAX";
+    }
+  }
+  const leadPadding = primary === "MIN" && leading > EPS ? leading : 0;
+  const crossStart = start(content, cross);
+  const crossSize = size(content, cross);
+  const alignItems = options.alignItems;
+  let counter = "MIN";
+  if (alignItems === "center") counter = "CENTER";
+  else if (/^(flex-end|end|self-end)$/.test(alignItems)) counter = "MAX";
+  else if (/baseline/.test(alignItems) && options.allowBaseline && axis === "x") counter = "BASELINE";
+  if (counter === "MIN" && sorted.length > 0) {
+    const centred = sorted.filter((item) => near(start(item.box, cross) - crossStart, (crossSize - size(item.box, cross)) / 2, 1) && !near(size(item.box, cross), crossSize));
+    if (centred.length && centred.length === sorted.filter((item) => !near(size(item.box, cross), crossSize)).length && !alignItems.startsWith("flex-start") && alignItems !== "start") {
+      counter = "CENTER";
+    }
+  }
+  const children = [];
+  let mainTotal = 0;
+  let crossMax = 0;
+  let anyFillMain = false;
+  let anyFillCross = false;
+  let flowCount = 0;
+  sorted.forEach((item, index) => {
+    const offset = start(item.box, cross) - crossStart;
+    const extent = size(item.box, cross);
+    const selfAlign = item.style["align-self"] && item.style["align-self"] !== "auto" ? item.style["align-self"] : alignItems;
+    const stretches = selfAlign === "stretch" || selfAlign === "normal" && options.stretchByDefault;
+    const wordSized = hugsItsWords(item);
+    let crossSizing = hugsOn(item, cross) ? "HUG" : "FIXED";
+    let fits;
+    if (!wordSized && (stretches || item.flexibleText) && near(extent, crossSize) && near(offset, 0)) {
+      crossSizing = "FILL";
+      fits = true;
+    } else if (counter === "BASELINE") {
+      fits = true;
+    } else if (counter === "CENTER") {
+      fits = near(offset, (crossSize - extent) / 2, 1);
+    } else if (counter === "MAX") {
+      fits = near(offset, crossSize - extent, 1);
+    } else {
+      fits = near(offset, 0);
+    }
+    let mainSizing = hugsOn(item, axis) ? "HUG" : "FIXED";
+    if (px(item.style["flex-grow"]) > 0 && !wordSized) mainSizing = "FILL";
+    const spacer = spacerBefore.get(index);
+    if (spacer !== void 0) {
+      const spacerLayer = transparentFrame("Spacer", axis === "x" ? [0, 0, spacer, 0.01] : [0, 0, 0.01, spacer], []);
+      setSizing(spacerLayer, axis, "FILL", "FIXED");
+      children.push(spacerLayer);
+      mainTotal += spacer;
+      flowCount++;
+      anyFillMain = true;
+    }
+    const lead = padBefore.get(index) ?? 0;
+    let layer = item.layer;
+    setSizing(layer, axis, mainSizing, crossSizing);
+    let mainExtent = size(item.box, axis);
+    let crossExtent = extent;
+    if (!fits && offset < -EPS && offset >= -4) {
+      fits = true;
+    }
+    if (lead > 0 || !fits) {
+      if (!fits && offset < -EPS) {
+        item.layer.absolute = true;
+        item.layer.x = round2(item.box[0] - box[0]);
+        item.layer.y = round2(item.box[1] - box[1]);
+        item.layer.sizing = { h: "FIXED", v: "FIXED" };
+        const holder = transparentFrame("Spacer", axis === "x" ? [0, 0, size(item.box, axis), 0.01] : [0, 0, 0.01, size(item.box, axis)], []);
+        setSizing(holder, axis, "FIXED", "FIXED");
+        children.push(holder, item.layer);
+        mainTotal += size(item.box, axis) + lead;
+        flowCount++;
+        return;
+      }
+      const crossLead = fits ? 0 : offset;
+      const padding2 = axis === "x" ? [crossLead, 0, 0, lead] : [lead, 0, 0, crossLead];
+      const wrapperBox = axis === "x" ? [0, 0, lead + mainExtent, crossLead + extent] : [0, 0, crossLead + extent, lead + mainExtent];
+      const wrapper = transparentFrame("Offset", wrapperBox, [layer]);
+      wrapper.layout = { mode: axis === "x" ? "HORIZONTAL" : "VERTICAL", gap: 0, padding: padding2, primary: "MIN", counter: "MIN" };
+      setSizing(wrapper, axis, mainSizing === "FILL" ? "FILL" : "HUG", crossSizing === "FILL" ? "FILL" : "HUG");
+      ctx.stats.wrappers++;
+      layer = wrapper;
+      mainExtent += lead;
+      crossExtent += crossLead;
+    }
+    children.push(layer);
+    mainTotal += mainExtent;
+    crossMax = Math.max(crossMax, crossExtent);
+    anyFillMain ||= mainSizing === "FILL";
+    anyFillCross ||= crossSizing === "FILL";
+    flowCount++;
+  });
+  const gap = primary === "SPACE_BETWEEN" ? Math.max(0, base) : base;
+  const padding = [inset.top, inset.right, inset.bottom, inset.left];
+  if (leadPadding) padding[axis === "x" ? 3 : 0] += leadPadding;
+  const mainPadding = axis === "x" ? padding[1] + padding[3] : padding[0] + padding[2];
+  const crossPadding = axis === "x" ? padding[0] + padding[2] : padding[1] + padding[3];
+  const hugMainSize = mainPadding + mainTotal + gap * Math.max(0, flowCount - 1);
+  const hugCrossSize = crossPadding + crossMax;
+  return {
+    layout: {
+      mode: axis === "x" ? "HORIZONTAL" : "VERTICAL",
+      gap: round2(gap),
+      padding: padding.map(round2),
+      primary,
+      counter
+    },
+    children,
+    hugMain: !anyFillMain && primary !== "SPACE_BETWEEN" && near(hugMainSize, size(box, axis), 1),
+    hugCross: !anyFillCross && near(hugCrossSize, size(box, cross), 1)
+  };
+}
+function clusterLines(items, axis) {
+  const cross = other(axis);
+  const sorted = [...items].sort((a, b) => start(a.box, cross) - start(b.box, cross));
+  const lines = [];
+  for (const item of sorted) {
+    const from = start(item.box, cross);
+    const to = end(item.box, cross);
+    const line = lines.find((candidate) => Math.min(candidate.to, to) - Math.max(candidate.from, from) > Math.min(candidate.to - candidate.from, to - from) * 0.5);
+    if (line) {
+      line.from = Math.min(line.from, from);
+      line.to = Math.max(line.to, to);
+      line.items.push(item);
+    } else {
+      lines.push({ from, to, items: [item] });
+    }
+  }
+  return lines.sort((a, b) => a.from - b.from).map((line) => line.items);
+}
+function wrapped(box, content, inset, lines, justify) {
+  const rows = lines.map((line) => [...line].sort((a, b) => a.box[0] - b.box[0]));
+  const gaps = rows.flatMap((row) => row.slice(1).map((item, index) => item.box[0] - (row[index].box[0] + row[index].box[2])));
+  const gap = gaps.length ? Math.min(...gaps) : 0;
+  if (gap < -EPS || gaps.some((value) => value - gap > 1)) return null;
+  const tops = rows.map((row) => Math.min(...row.map((item) => item.box[1])));
+  const bottoms = rows.map((row) => Math.max(...row.map((item) => item.box[1] + item.box[3])));
+  const rowGaps = tops.slice(1).map((top, index) => top - bottoms[index]);
+  const crossGap = rowGaps.length ? Math.min(...rowGaps) : 0;
+  if (crossGap < -EPS || rowGaps.some((value) => value - crossGap > 1)) return null;
+  const width = content[2];
+  for (let index = 0; index < rows.length; index++) {
+    const used = rows[index].reduce((sum, item) => sum + item.box[2], 0) + gap * (rows[index].length - 1);
+    if (used > width + 1) return null;
+    const next = rows[index + 1]?.[0];
+    if (next && used + gap + next.box[2] <= width - 1) return null;
+  }
+  const primary = justify === "center" ? "CENTER" : /^(flex-end|end|right)$/.test(justify) ? "MAX" : "MIN";
+  if (primary === "MIN" && rows.some((row) => !near(row[0].box[0], content[0], 1))) return null;
+  const children = [];
+  for (const row of rows) {
+    for (const item of row) {
+      setSizing(item.layer, "x", item.hugW || hugsItsWords(item) ? "HUG" : "FIXED", item.hugH ? "HUG" : "FIXED");
+      children.push(item.layer);
+    }
+  }
+  return {
+    layout: {
+      mode: "HORIZONTAL",
+      wrap: true,
+      gap: round2(gap),
+      crossGap: round2(crossGap),
+      padding: [inset.top, inset.right, inset.bottom, inset.left].map(round2),
+      primary,
+      counter: "MIN"
+    },
+    children,
+    hugMain: false,
+    hugCross: near(inset.top + inset.bottom + (bottoms[bottoms.length - 1] - tops[0]), box[3], 1)
+  };
+}
+function group(ctx, name, box, items, build) {
+  const plan = build(box);
+  const frame = transparentFrame(name, box, []);
+  if (plan) {
+    frame.layout = plan.layout;
+    frame.children = plan.children;
+    ctx.stats.autoLayout++;
+  } else {
+    ctx.stats.absoluteContainers++;
+    frame.children = items.map((item) => place(item, box));
+  }
+  ctx.stats.frames++;
+  return {
+    layer: frame,
+    box,
+    style: {},
+    inline: false,
+    hugW: false,
+    hugH: !!plan && plan.layout.mode === "HORIZONTAL" ? plan.hugCross : false,
+    positioned: false,
+    zIndex: 0
+  };
+}
+function contains(layer, target) {
+  return layer.type === "FRAME" && layer.children.some((child) => child === target || contains(child, target));
+}
+function place(item, parent) {
+  item.layer.x = round2(item.box[0] - parent[0]);
+  item.layer.y = round2(item.box[1] - parent[1]);
+  item.layer.sizing = void 0;
+  return item.layer;
+}
+function flexPlan(ctx, el, content, inset, flow) {
+  const axis = (el.s["flex-direction"] ?? "row").startsWith("row") ? "x" : "y";
+  const justify = el.s["justify-content"] ?? "normal";
+  if ((el.s["flex-wrap"] ?? "nowrap") !== "nowrap") {
+    const lines = clusterLines(flow, axis);
+    if (lines.length > 1) return axis === "x" ? wrapped(el.r, content, inset, lines, justify) : null;
+  }
+  return linear(ctx, axis, el.r, content, inset, flow, {
+    justify,
+    alignItems: el.s["align-items"] ?? "normal",
+    stretchByDefault: true,
+    allowBaseline: true
+  });
+}
+function gridPlan(ctx, el, content, inset, flow) {
+  const rows = clusterLines(flow, "x");
+  const justify = el.s["justify-content"] ?? "normal";
+  const alignItems = el.s["align-items"] ?? "normal";
+  if (rows.length === 1) {
+    return linear(ctx, "x", el.r, content, inset, flow, { justify, alignItems, stretchByDefault: true, allowBaseline: false });
+  }
+  if (rows.every((row) => row.length === 1)) {
+    return linear(ctx, "y", el.r, content, inset, flow, {
+      justify: el.s["align-content"] ?? "normal",
+      alignItems: el.s["justify-items"] ?? "normal",
+      stretchByDefault: true,
+      allowBaseline: false
+    });
+  }
+  if (flow.every((item) => near(item.box[2], flow[0].box[2], 1))) {
+    const plan = wrapped(el.r, content, inset, rows, justify);
+    if (plan) return plan;
+  }
+  const rowBoxes = rows.map((row) => union2(row.map((item) => item.box)));
+  for (let index = 1; index < rowBoxes.length; index++) {
+    if (rowBoxes[index][1] < rowBoxes[index - 1][1] + rowBoxes[index - 1][3] - EPS) return null;
+  }
+  const rowItems = rows.map((row, index) => {
+    const rowBox = [content[0], rowBoxes[index][1], content[2], rowBoxes[index][3]];
+    return group(
+      ctx,
+      "Row",
+      rowBox,
+      row,
+      (groupBox) => linear(ctx, "x", groupBox, groupBox, NO_EDGES, row, { justify, alignItems, stretchByDefault: true, allowBaseline: false })
+    );
+  });
+  for (const item of rowItems) item.flexibleText = true;
+  return linear(ctx, "y", el.r, content, inset, rowItems, { justify: "normal", alignItems: "stretch", stretchByDefault: true, allowBaseline: false });
+}
+function flowPlan(ctx, el, content, inset, flow) {
+  if (flow.some((item) => item.style.float && item.style.float !== "none")) return null;
+  const textAlign = el.s["text-align"];
+  const inlineJustify = textAlign === "center" ? "center" : textAlign === "right" || textAlign === "end" ? "flex-end" : "normal";
+  const inlineOptions = { justify: inlineJustify, alignItems: "baseline", stretchByDefault: false, allowBaseline: true };
+  const blockOptions = { justify: "normal", alignItems: "normal", stretchByDefault: true, allowBaseline: false };
+  if (flow.every((item) => !item.inline)) return linear(ctx, "y", el.r, content, inset, flow, blockOptions);
+  if (flow.every((item) => item.inline)) {
+    const lines = clusterLines(flow, "x");
+    return lines.length === 1 ? linear(ctx, "x", el.r, content, inset, flow, inlineOptions) : wrapped(el.r, content, inset, lines, inlineJustify);
+  }
+  const groups = [];
+  let run = [];
+  const flush = () => {
+    if (run.length === 1) groups.push({ ...run[0], inline: false });
+    else if (run.length > 1) {
+      const words = union2(run.map((item) => item.box));
+      const lineBox = [content[0], words[1], content[2], words[3]];
+      const members = run;
+      groups.push(
+        group(ctx, "Line", lineBox, members, (groupBox) => {
+          const lines = clusterLines(members, "x");
+          return lines.length === 1 ? linear(ctx, "x", groupBox, groupBox, NO_EDGES, members, inlineOptions) : wrapped(groupBox, groupBox, NO_EDGES, lines, inlineJustify);
+        })
+      );
+    }
+    run = [];
+  };
+  for (const item of [...flow].sort((a, b) => a.box[1] - b.box[1] || a.box[0] - b.box[0])) {
+    if (item.inline) run.push(item);
+    else {
+      flush();
+      groups.push(item);
+    }
+  }
+  flush();
+  return linear(ctx, "y", el.r, content, inset, groups, blockOptions);
+}
+function itemOf(layer, el, hugW, hugH, box = el.r) {
+  return {
+    layer,
+    box,
+    style: el.s,
+    inline: /^inline/.test(el.s.display ?? ""),
+    hugW,
+    hugH,
+    positioned: isPositioned(el.s),
+    zIndex: parseInt(el.s["z-index"] ?? "0", 10) || 0
+  };
+}
+function withSvgSize(svg, width, height) {
+  return svg.replace(/<svg\b([^>]*)>/i, (_, attrs) => {
+    let next = attrs.replace(/\s(width|height)="[^"]*"/g, "");
+    if (!/viewBox=/i.test(next)) next += ` viewBox="0 0 ${width} ${height}"`;
+    if (!/xmlns=/.test(next)) next += ' xmlns="http://www.w3.org/2000/svg"';
+    return `<svg${next} width="${width}" height="${height}">`;
+  });
+}
+function imageLayer(ctx, el, z) {
+  const asset = el.img.asset;
+  const data = ctx.assets.get(asset);
+  const [, , width, height] = el.r;
+  const name = el.a?.alt || el.a?.label || (el.raster ? `${nameFor(el)} (raster)` : "Image");
+  if (!data || data.kind === "missing") {
+    ctx.warnings.push(`${name}: image unavailable (${data?.kind === "missing" ? data.reason : "not fetched"}); an empty frame stands in.`);
+    return null;
+  }
+  if (data.kind === "svg" && !el.raster) {
+    ctx.stats.vectors++;
+    const vector = { type: "SVG", name: el.a?.alt || "Vector", x: 0, y: 0, width, height, svg: withSvgSize(data.text, width, height) };
+    return vector;
+  }
+  const fit = el.s["object-fit"];
+  const scaleMode = el.raster ? "FILL" : fit === "contain" || fit === "scale-down" ? "FIT" : "FILL";
+  const layer = { type: "IMAGE", name, x: 0, y: 0, width, height, asset, scaleMode };
+  if (el.raster) {
+    ctx.stats.rasters++;
+    ctx.warnings.push(`${nameFor(el)}: rasterized (${el.raster}).`);
+    return layer;
+  }
+  const radius = radiusOf(el.s, el.r, z);
+  if (radius !== void 0) layer.radius = radius;
+  const stroke = strokeOf(el.s, z);
+  if (stroke) layer.stroke = stroke;
+  const effects = effectsOf(el.s, z);
+  if (effects) layer.effects = effects;
+  const background = solid(el.s["background-color"]);
+  if (background) layer.fills = [background];
+  ctx.stats.images++;
+  return layer;
+}
+function convertNode(ctx, node, z, content) {
+  if (node.k === "tx") return anonymousText(ctx, node, z, content);
+  return convertElement(ctx, node, z);
+}
+function anonymousText(ctx, node, z, content) {
+  const words = union2(node.para.lines);
+  const available = node.block ? [content[0], words[1], content[2], words[3]] : words;
+  const made = makeText(ctx, node.para, available, z, node.block ? "auto" : "content");
+  if (!made) return null;
+  if (node.block && !made.hug) {
+    return { layer: made.layer, box: available, style: {}, inline: false, hugW: false, hugH: true, positioned: false, zIndex: 0, flexibleText: true };
+  }
+  return { layer: made.layer, box: made.box, style: {}, inline: !node.block, hugW: true, hugH: true, positioned: false, zIndex: 0 };
+}
+function frameFor(ctx, el, z, name) {
+  const [, , width, height] = el.r;
+  const frame = { type: "FRAME", name, x: 0, y: 0, width, height, children: [], origin: `${el.tag}#${el.i}` };
+  const background = backgroundFills(ctx, el.s, el.r, name, z);
+  if (background.fills.length) frame.fills = background.fills;
+  ctx.backgrounds.set(frame, background.vectors);
+  const stroke = strokeOf(el.s, z);
+  if (stroke) frame.stroke = stroke;
+  const radius = radiusOf(el.s, el.r, z);
+  if (radius !== void 0) frame.radius = radius;
+  const effects = effectsOf(el.s, z);
+  if (effects) frame.effects = effects;
+  const opacity = el.s.opacity !== void 0 ? parseFloat(el.s.opacity) : 1;
+  if (opacity < 1) frame.opacity = round2(opacity);
+  const blend = BLEND_MODES[el.s["mix-blend-mode"] ?? ""];
+  if (blend) frame.blendMode = blend;
+  if ((el.s["overflow-x"] ?? "visible") !== "visible" || (el.s["overflow-y"] ?? "visible") !== "visible" || el.s["clip-path"]?.startsWith("inset")) {
+    frame.clip = true;
+  }
+  const maxWidth = el.s["max-width"];
+  if (maxWidth?.endsWith("px")) frame.maxWidth = px(maxWidth) * z;
+  const minWidth = el.s["min-width"];
+  if (minWidth?.endsWith("px") && px(minWidth) > 0) frame.minWidth = px(minWidth) * z;
+  ctx.stats.frames++;
+  return frame;
+}
+function addBackgroundVectors(ctx, frame, vectors, name) {
+  if (!vectors.length) return frame;
+  const [only] = vectors;
+  const covers = vectors.length === 1 && !frame.children.length && !frame.fills?.length && !frame.stroke && !frame.effects?.length && near(only.rect[0], 0, 1) && near(only.rect[1], 0, 1) && near(only.rect[2], frame.width, 1) && near(only.rect[3], frame.height, 1);
+  if (covers) {
+    ctx.stats.frames--;
+    ctx.stats.vectors++;
+    return {
+      type: "SVG",
+      name,
+      x: frame.x,
+      y: frame.y,
+      width: frame.width,
+      height: frame.height,
+      svg: withSvgSize(only.svg, frame.width, frame.height),
+      sizing: frame.sizing
+    };
+  }
+  const children = vectors.map(({ svg, rect }) => {
+    ctx.stats.vectors++;
+    const width = Math.max(rect[2], 0.01);
+    const height = Math.max(rect[3], 0.01);
+    return {
+      type: "SVG",
+      name: "Background",
+      x: rect[0],
+      y: rect[1],
+      width,
+      height,
+      svg: withSvgSize(svg, width, height),
+      ...frame.layout ? { absolute: true, sizing: { h: "FIXED", v: "FIXED" } } : {}
+    };
+  });
+  frame.children = [...children, ...frame.children];
+  return frame;
+}
+function textElement(ctx, el, z, frame, hasBackgrounds) {
+  const inset = insets(el.s, z);
+  const content = contentBox(el.r, inset);
+  const [, , width, height] = el.r;
+  let made;
+  if (el.field) {
+    const fieldStyle = ctx.styles[el.field.style] ?? {};
+    const lineHeight = fieldStyle["line-height"] && fieldStyle["line-height"] !== "normal" ? px(fieldStyle["line-height"]) * z : px(fieldStyle["font-size"], 16) * z * 1.25;
+    const top = el.tag === "textarea" ? content[1] : content[1] + Math.max(0, (content[3] - lineHeight) / 2);
+    made = makeText(ctx, { runs: [{ text: el.field.text, style: el.field.style, ws: "pre" }], base: el.field.style, lines: [[content[0], top, content[2], lineHeight]] }, content, z, "fixed");
+  } else {
+    const display = el.s.display ?? "block";
+    const column = (el.s["flex-direction"] ?? "row").startsWith("column");
+    const alignItems = el.s["align-items"] ?? "normal";
+    const contentSized = /flex/.test(display) && (!column || !/^(normal|stretch)$/.test(alignItems));
+    made = makeText(ctx, { runs: el.para.runs, base: el.para.base, lines: el.para.lines }, content, z, contentSized ? "content" : "auto");
+  }
+  if (!made) return null;
+  made.layer.origin = `${el.tag}#${el.i}`;
+  const bare = !hasVisuals(frame) && !frame.clip && !hasBackgrounds && edgeSum(inset) < 0.5 && !el.field && near(made.box[1], el.r[1], 1.5) && near(made.box[3], height, 1.5);
+  if (bare) {
+    ctx.stats.frames--;
+    const layer = made.layer;
+    if (made.hug && px(el.s["flex-grow"]) <= 0) {
+      return itemOf(layer, el, true, true, [made.box[0], el.r[1], made.box[2], height]);
+    }
+    layer.resize = "HEIGHT";
+    layer.width = width;
+    return { ...itemOf(layer, el, false, true), flexibleText: true };
+  }
+  const leading = made.box[0] - content[0];
+  const trailing = content[0] + content[2] - (made.box[0] + made.box[2]);
+  const above = made.box[1] - content[1];
+  const below = content[1] + content[3] - (made.box[1] + made.box[3]);
+  let primary = "MIN";
+  if (made.hug && near(leading, trailing, 1.5) && leading > 1) primary = "CENTER";
+  else if (made.hug && near(trailing, 0, 1) && leading > 1) primary = "MAX";
+  let counter = "MIN";
+  if (near(above, below, 1.5) && above > 0.5) counter = "CENTER";
+  else if (near(below, 0, 1) && above > 1) counter = "MAX";
+  const padding = [inset.top, inset.right, inset.bottom, inset.left];
+  if (primary === "MIN" && made.hug && leading > 0.5) padding[3] += leading;
+  if (counter === "MIN" && above > 0.5) padding[0] += above;
+  const text2 = made.layer;
+  text2.sizing = made.hug ? { h: "HUG", v: "HUG" } : { h: "FILL", v: "HUG" };
+  frame.layout = { mode: "HORIZONTAL", gap: 0, padding: padding.map(round2), primary, counter };
+  frame.children = [text2];
+  ctx.stats.autoLayout++;
+  const hugW = made.hug && near(padding[1] + padding[3] + made.box[2], width, 1.5);
+  const hugH = near(padding[0] + padding[2] + made.box[3], height, 1.5);
+  return itemOf(frame, el, hugW, hugH);
+}
+function convertElement(ctx, el, parentZ) {
+  const z = el.z ?? parentZ;
+  const [, , width, height] = el.r;
+  const name = nameFor(el);
+  if (el.hidden) {
+    if (width < 0.5 && height < 0.5 || isPositioned(el.s)) return null;
+    return itemOf(transparentFrame(`${name} (hidden)`, el.r, []), el, false, false);
+  }
+  if (el.svg) {
+    ctx.stats.vectors++;
+    const vector = { type: "SVG", name: el.a?.ariaLabel ?? (width <= 48 && height <= 48 ? "Icon" : "Vector"), x: 0, y: 0, width, height, svg: el.svg };
+    return itemOf(vector, el, false, false);
+  }
+  if (el.img) {
+    const layer = imageLayer(ctx, el, z);
+    return itemOf(layer ?? transparentFrame(name, el.r, []), el, false, false);
+  }
+  const frame = frameFor(ctx, el, z, name);
+  const backgrounds = ctx.backgrounds.get(frame) ?? [];
+  if (el.para || el.field) {
+    const item = textElement(ctx, el, z, frame, backgrounds.length > 0);
+    if (!item) return itemOf(frame, el, false, false);
+    if (item.layer === frame) addBackgroundVectors(ctx, frame, backgrounds, name);
+    return item;
+  }
+  const inset = insets(el.s, z);
+  const content = contentBox(el.r, inset);
+  const items = [];
+  for (const child of el.c ?? []) {
+    const item = convertNode(ctx, child, z, content);
+    if (item) items.push(item);
+  }
+  if (!items.length) {
+    const layer = addBackgroundVectors(ctx, frame, backgrounds, name);
+    if (layer !== frame) return itemOf(layer, el, false, false);
+    if (!hasVisuals(frame) && !backgrounds.length && name === "Frame") frame.name = "Spacer";
+    return itemOf(frame, el, false, false);
+  }
+  const flow = items.filter((item) => !item.positioned);
+  const positioned = items.filter((item) => item.positioned);
+  const display = el.s.display ?? "block";
+  let plan = null;
+  if (flow.length) {
+    if (/flex/.test(display)) plan = flexPlan(ctx, el, content, inset, flow);
+    else if (/grid/.test(display)) plan = gridPlan(ctx, el, content, inset, flow);
+    else plan = flowPlan(ctx, el, content, inset, flow);
+  }
+  let hugW = false;
+  let hugH = false;
+  if (plan) {
+    frame.layout = plan.layout;
+    frame.children = plan.children;
+    const horizontal = plan.layout.mode === "HORIZONTAL";
+    hugW = horizontal ? plan.hugMain : plan.hugCross;
+    hugH = horizontal ? plan.hugCross : plan.hugMain;
+    ctx.stats.autoLayout++;
+    if (frame.name === "Frame") {
+      const card = !!frame.fills?.length && frame.radius !== void 0 && edgeSum(inset) > 0;
+      frame.name = card ? "Card" : horizontal ? "Row" : "Stack";
+    }
+  } else if (flow.length) {
+    ctx.stats.absoluteContainers++;
+    frame.children = flow.map((item) => place(item, el.r));
+  }
+  const layerOf = (item) => frame.children.find((child) => child === item.layer || contains(child, item.layer));
+  for (const item of [...positioned].sort((a, b) => a.zIndex - b.zIndex)) {
+    const layer = place(item, el.r);
+    if (frame.layout) {
+      layer.absolute = true;
+      layer.sizing = { h: "FIXED", v: "FIXED" };
+    }
+    const s = item.style;
+    layer.constraints = {
+      h: s.right !== void 0 && s.left === void 0 ? "MAX" : s.left !== void 0 && s.right !== void 0 ? "STRETCH" : "MIN",
+      v: s.bottom !== void 0 && s.top === void 0 ? "MAX" : s.top !== void 0 && s.bottom !== void 0 ? "STRETCH" : "MIN"
+    };
+    if (item.zIndex < 0) {
+      frame.children.unshift(layer);
+      continue;
+    }
+    const later = item.zIndex === 0 ? items.slice(items.indexOf(item) + 1).find((other2) => paintsPositioned(other2) && other2.zIndex === 0) : void 0;
+    const anchor = later ? layerOf(later) : void 0;
+    const at = anchor ? frame.children.indexOf(anchor) : -1;
+    if (at >= 0) frame.children.splice(at, 0, layer);
+    else frame.children.push(layer);
+  }
+  addBackgroundVectors(ctx, frame, backgrounds, name);
+  if (!hasVisuals(frame) && !frame.clip && !positioned.length && flow.length === 1 && frame.children.length === 1 && edgeSum(inset) < 0.5) {
+    const only = flow[0];
+    if (near(only.box[0], el.r[0]) && near(only.box[1], el.r[1]) && near(only.box[2], width) && near(only.box[3], height)) {
+      ctx.stats.frames--;
+      if (plan) ctx.stats.autoLayout--;
+      if (name !== "Frame" && only.layer.type === "FRAME" && only.layer.name === "Frame") only.layer.name = name;
+      only.layer.maxWidth ??= frame.maxWidth;
+      only.layer.minWidth ??= frame.minWidth;
+      only.layer.absolute = void 0;
+      only.layer.constraints = void 0;
+      return { ...only, style: el.s, inline: /^inline/.test(display), positioned: isPositioned(el.s), zIndex: parseInt(el.s["z-index"] ?? "0", 10) || 0 };
+    }
+  }
+  return itemOf(frame, el, hugW, hugH);
+}
+function finalize(layer) {
+  layer.x = round2(layer.x);
+  layer.y = round2(layer.y);
+  layer.width = round2(Math.max(layer.width, 0.01));
+  layer.height = round2(Math.max(layer.height, 0.01));
+  let count = 1;
+  if (layer.type === "FRAME") for (const child of layer.children) count += finalize(child);
+  return count;
+}
+function convertCollection(collection, assets, options) {
+  const ctx = {
+    styles: collection.textStyles,
+    assets,
+    assetSources: new Map(collection.assets.filter((asset) => asset.kind !== "raster").map((asset) => [asset.src, asset.id])),
+    warnings: [],
+    stats: { frames: 0, texts: 0, vectors: 0, images: 0, rasters: 0, autoLayout: 0, absoluteContainers: 0, wrappers: 0, groups: 0 },
+    backgrounds: /* @__PURE__ */ new Map()
+  };
+  const item = convertElement(ctx, collection.root, 1);
+  let root;
+  if (!item) {
+    root = transparentFrame(options.name, collection.root.r, []);
+  } else if (item.layer.type === "FRAME") {
+    root = item.layer;
+  } else {
+    root = transparentFrame(options.name, item.box, [item.layer]);
+    root.layout = { mode: "VERTICAL", gap: 0, padding: [0, 0, 0, 0], primary: "MIN", counter: "MIN" };
+    item.layer.sizing = { h: "FILL", v: "HUG" };
+    ctx.stats.frames++;
+  }
+  root.name = options.name;
+  root.x = 0;
+  root.y = 0;
+  root.absolute = void 0;
+  root.constraints = void 0;
+  root.maxWidth = void 0;
+  root.sizing = { h: "FIXED", v: root.layout && item?.hugH ? "HUG" : "FIXED" };
+  if (!root.fills?.length) {
+    root.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1, a: 1 } }];
+  }
+  const nodes = finalize(root);
+  return { root, warnings: summarize(ctx.warnings), stats: ctx.stats, nodes };
+}
+function summarize(values) {
+  const counts = /* @__PURE__ */ new Map();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts].map(([value, count]) => count > 1 ? `${value} (\xD7${count})` : value).slice(0, 40);
+}
+
+// page-script:/Users/ennanoff/Documents/Projects/figma-cc-plugin/mcp-server/src/html/page/collect.ts
+var collect_default = '"use strict";\n(() => {\n  // mcp-server/src/html/page/collect.ts\n  var round = (value) => Math.round(value * 100) / 100;\n  var num = (value) => parseFloat(value ?? "") || 0;\n  var frameOffset = null;\n  var offsetX = () => frameOffset ? frameOffset.x : window.scrollX;\n  var offsetY = () => frameOffset ? frameOffset.y : window.scrollY;\n  function css(el, pseudo) {\n    return (el.ownerDocument.defaultView ?? window).getComputedStyle(el, pseudo);\n  }\n  function docRect(el) {\n    const r = el.getBoundingClientRect();\n    return [round(r.left + offsetX()), round(r.top + offsetY()), round(r.width), round(r.height)];\n  }\n  function innerDocument(el) {\n    if (el.tagName.toLowerCase() !== "iframe") return null;\n    try {\n      return el.contentDocument;\n    } catch {\n      return null;\n    }\n  }\n  function frameOrigin(iframe) {\n    const r = iframe.getBoundingClientRect();\n    const cs = css(iframe);\n    return {\n      x: r.left + offsetX() + num(cs.borderLeftWidth) + num(cs.paddingLeft),\n      y: r.top + offsetY() + num(cs.borderTopWidth) + num(cs.paddingTop)\n    };\n  }\n  function allDocuments() {\n    const out = [document];\n    for (let index = 0; index < out.length; index++) {\n      out[index].querySelectorAll("iframe").forEach((frame) => {\n        const inner = innerDocument(frame);\n        if (inner && !out.includes(inner)) out.push(inner);\n      });\n    }\n    return out;\n  }\n  function resolveTarget(selector) {\n    const parts = (selector && selector.trim() ? selector : "body").split(">>>").map((part) => part.trim());\n    let doc = document;\n    let offset = null;\n    for (let index = 0; index < parts.length; index++) {\n      const el = doc.querySelector(parts[index]);\n      if (!el) return null;\n      if (index === parts.length - 1) return { el, offset };\n      const inner = innerDocument(el);\n      if (!inner) return null;\n      const saved = frameOffset;\n      frameOffset = offset;\n      offset = frameOrigin(el);\n      frameOffset = saved;\n      doc = inner;\n    }\n    return null;\n  }\n  var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\n  var collapse = (text) => text.replace(/\\s+/g, " ").trim();\n  var colorCache = /* @__PURE__ */ new Map();\n  var colorProbe = null;\n  function srgb(value) {\n    if (!value || value.startsWith("rgb") || value === "transparent" || value === "currentcolor") return value;\n    const cached = colorCache.get(value);\n    if (cached !== void 0) return cached;\n    if (!colorProbe) {\n      colorProbe = document.createElement("span");\n      colorProbe.style.display = "none";\n      document.documentElement.appendChild(colorProbe);\n    }\n    colorProbe.style.color = "";\n    colorProbe.style.color = `color(from ${value} srgb r g b / alpha)`;\n    const out = css(colorProbe).color || value;\n    colorCache.set(value, out);\n    return out;\n  }\n  function isTransparent(color) {\n    if (!color || color === "transparent") return true;\n    const alpha = /rgba\\([^)]*,\\s*([\\d.]+)\\)$/.exec(color) ?? /\\/\\s*([\\d.]+)\\)$/.exec(color);\n    return !!alpha && parseFloat(alpha[1]) < 0.02;\n  }\n  function cssPath(el) {\n    const label = el.getAttribute("data-screen-label");\n    if (label && document.querySelectorAll(`[data-screen-label="${CSS.escape(label)}"]`).length === 1) {\n      return `[data-screen-label="${CSS.escape(label)}"]`;\n    }\n    if (el.id && !/\\d{3,}|^:/.test(el.id) && document.querySelectorAll(`#${CSS.escape(el.id)}`).length === 1) {\n      return `#${CSS.escape(el.id)}`;\n    }\n    const parts = [];\n    let current = el;\n    while (current && current !== document.body && current !== document.documentElement) {\n      const parent = current.parentElement;\n      if (!parent) break;\n      const index = Array.prototype.indexOf.call(parent.children, current) + 1;\n      parts.unshift(`${current.tagName.toLowerCase()}:nth-child(${index})`);\n      current = parent;\n    }\n    return parts.length ? `body > ${parts.join(" > ")}` : "body";\n  }\n  function busyMarkers() {\n    return !!(document.getElementById("__bundler_loading") || document.getElementById("__bundler_thumbnail"));\n  }\n  async function waitStable(quietMs = 500, maxMs = 15e3) {\n    let last = performance.now();\n    const observers = [];\n    const watched = /* @__PURE__ */ new Set();\n    const watch = () => {\n      for (const doc of allDocuments()) {\n        if (watched.has(doc)) continue;\n        watched.add(doc);\n        last = performance.now();\n        const observer = new MutationObserver(() => {\n          last = performance.now();\n        });\n        observer.observe(doc, { subtree: true, childList: true, attributes: true, characterData: true });\n        observers.push(observer);\n      }\n    };\n    const started = performance.now();\n    try {\n      while (performance.now() - started < maxMs) {\n        await sleep(100);\n        watch();\n        if (busyMarkers()) continue;\n        const docs = allDocuments();\n        if (docs.some((doc) => doc.readyState !== "complete")) continue;\n        if (docs.some((doc) => Array.prototype.some.call(doc.images, (img) => !img.complete))) continue;\n        if (docs.some((doc) => doc.fonts && doc.fonts.status !== "loaded")) continue;\n        if (performance.now() - last >= quietMs) return true;\n      }\n      return false;\n    } finally {\n      observers.forEach((observer) => observer.disconnect());\n    }\n  }\n  function finishAnimations() {\n    const animations = allDocuments().flatMap((doc) => typeof doc.getAnimations === "function" ? doc.getAnimations() : []);\n    for (const animation of animations) {\n      try {\n        animation.finish();\n      } catch {\n        try {\n          animation.pause();\n          animation.currentTime = 0;\n        } catch {\n        }\n      }\n    }\n  }\n  async function prepare() {\n    for (const img of Array.from(document.images)) {\n      if (img.loading === "lazy") img.loading = "eager";\n    }\n    const stable = await waitStable(600, 2e4);\n    for (const doc of allDocuments()) {\n      for (const img of Array.from(doc.images)) if (img.loading === "lazy") img.loading = "eager";\n      if (doc.fonts) await doc.fonts.ready;\n    }\n    finishAnimations();\n    window.scrollTo(0, 0);\n    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));\n    const errors = [];\n    const sink = document.getElementById("__bundler_err");\n    if (sink && sink.textContent) errors.push(sink.textContent.slice(0, 500));\n    return { stable, errors };\n  }\n  async function settle() {\n    await waitStable(300, 5e3);\n    finishAnimations();\n    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));\n  }\n  function scrollExtra(root) {\n    let extra = 0;\n    const scan = (el) => {\n      const cs = css(el);\n      if (/(auto|scroll)/.test(cs.overflowY) && el.clientHeight > 0) extra = Math.max(extra, el.scrollHeight - el.clientHeight);\n    };\n    scan(root);\n    root.querySelectorAll("*").forEach(scan);\n    return extra;\n  }\n  function hiddenOverflow(selector) {\n    if (selector.includes(">>>")) return 0;\n    const root = document.querySelector(selector) ?? document.body;\n    let extra = scrollExtra(root);\n    for (let el = root.parentElement; el; el = el.parentElement) {\n      const cs = css(el);\n      if (/(auto|scroll)/.test(cs.overflowY) && el.clientHeight > 0) extra = Math.max(extra, el.scrollHeight - el.clientHeight);\n    }\n    return Math.max(0, Math.ceil(extra));\n  }\n  function expandFrames(selector, width) {\n    const parts = selector.split(">>>").map((part) => part.trim());\n    let doc = document;\n    let grown = 0;\n    for (let index = 0; index < parts.length - 1; index++) {\n      const frame = doc.querySelector(parts[index]);\n      const inner = frame ? innerDocument(frame) : null;\n      if (!frame || !inner) return grown;\n      if (width && index === parts.length - 2 && Math.abs(frame.clientWidth - width) > 0.5) {\n        frame.style.setProperty("width", `${width}px`, "important");\n        frame.style.setProperty("max-width", "none", "important");\n        grown += 2;\n        continue;\n      }\n      const extra = Math.max(inner.documentElement.scrollHeight - frame.clientHeight, scrollExtra(inner.documentElement));\n      if (extra > 1) {\n        frame.style.setProperty("height", `${frame.clientHeight + Math.ceil(extra)}px`, "important");\n        frame.style.setProperty("max-height", "none", "important");\n        grown += extra;\n      }\n      doc = inner;\n    }\n    return Math.ceil(grown);\n  }\n  var BOX_PROPS = [\n    ["display", ""],\n    ["position", "static"],\n    ["top", "auto"],\n    ["right", "auto"],\n    ["bottom", "auto"],\n    ["left", "auto"],\n    ["z-index", "auto"],\n    ["float", "none"],\n    ["min-width", "auto"],\n    ["max-width", "none"],\n    ["min-height", "auto"],\n    ["max-height", "none"],\n    ["padding-top", "0px"],\n    ["padding-right", "0px"],\n    ["padding-bottom", "0px"],\n    ["padding-left", "0px"],\n    ["margin-top", "0px"],\n    ["margin-right", "0px"],\n    ["margin-bottom", "0px"],\n    ["margin-left", "0px"],\n    ["border-top-width", "0px"],\n    ["border-right-width", "0px"],\n    ["border-bottom-width", "0px"],\n    ["border-left-width", "0px"],\n    ["border-top-style", "none"],\n    ["border-right-style", "none"],\n    ["border-bottom-style", "none"],\n    ["border-left-style", "none"],\n    ["border-top-color", ""],\n    ["border-right-color", ""],\n    ["border-bottom-color", ""],\n    ["border-left-color", ""],\n    ["border-top-left-radius", "0px"],\n    ["border-top-right-radius", "0px"],\n    ["border-bottom-right-radius", "0px"],\n    ["border-bottom-left-radius", "0px"],\n    ["background-color", "rgba(0, 0, 0, 0)"],\n    ["background-image", "none"],\n    ["background-size", "auto"],\n    ["background-position", "0% 0%"],\n    ["background-repeat", "repeat"],\n    ["box-shadow", "none"],\n    ["opacity", "1"],\n    ["overflow-x", "visible"],\n    ["overflow-y", "visible"],\n    ["mix-blend-mode", "normal"],\n    ["filter", "none"],\n    ["backdrop-filter", "none"],\n    ["transform", "none"],\n    ["flex-direction", "row"],\n    ["flex-wrap", "nowrap"],\n    ["justify-content", "normal"],\n    ["align-items", "normal"],\n    ["align-content", "normal"],\n    ["align-self", "auto"],\n    ["flex-grow", "0"],\n    ["flex-shrink", "1"],\n    ["flex-basis", "auto"],\n    ["order", "0"],\n    ["row-gap", "normal"],\n    ["column-gap", "normal"],\n    ["grid-template-columns", "none"],\n    ["grid-template-rows", "none"],\n    ["grid-column-start", "auto"],\n    ["grid-column-end", "auto"],\n    ["grid-row-start", "auto"],\n    ["grid-row-end", "auto"],\n    ["object-fit", "fill"],\n    ["object-position", "50% 50%"],\n    ["vertical-align", "baseline"],\n    ["cursor", "auto"],\n    ["text-align", "start"],\n    ["white-space", "normal"],\n    ["box-sizing", "content-box"]\n  ];\n  var COLOR_PROPS = /* @__PURE__ */ new Set(["border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "background-color"]);\n  var TEXT_PROPS = [\n    ["font-family", ""],\n    ["font-size", ""],\n    ["font-weight", ""],\n    ["font-style", "normal"],\n    ["line-height", ""],\n    ["letter-spacing", "normal"],\n    ["text-transform", "none"],\n    ["text-decoration-line", "none"],\n    ["color", ""],\n    ["-webkit-text-fill-color", ""],\n    ["text-shadow", "none"],\n    ["text-align", "start"],\n    ["white-space", "normal"],\n    ["text-overflow", "clip"],\n    ["-webkit-line-clamp", "none"],\n    ["overflow-x", "visible"],\n    ["font-variant-caps", "normal"],\n    ["vertical-align", "baseline"],\n    ["direction", "ltr"]\n  ];\n  function readBoxStyle(cs) {\n    const out = {};\n    for (const [prop, initial] of BOX_PROPS) {\n      let value = cs.getPropertyValue(prop);\n      if (!value || value === initial) continue;\n      if ((prop === "min-width" || prop === "min-height") && value === "0px") continue;\n      if (COLOR_PROPS.has(prop)) value = srgb(value);\n      out[prop] = value;\n    }\n    for (const side of ["top", "right", "bottom", "left"]) {\n      if (!out[`border-${side}-width`] || out[`border-${side}-style`] === void 0) {\n        delete out[`border-${side}-color`];\n      }\n    }\n    const mask = cs.getPropertyValue("mask-image") || cs.getPropertyValue("-webkit-mask-image");\n    if (mask && mask !== "none") out["mask-image"] = mask;\n    const clip = cs.getPropertyValue("clip-path");\n    if (clip && clip !== "none") out["clip-path"] = clip;\n    return out;\n  }\n  function readTextStyle(cs) {\n    const out = {};\n    for (const [prop, initial] of TEXT_PROPS) {\n      let value = cs.getPropertyValue(prop);\n      if (!value || value === initial) continue;\n      if (prop === "color" || prop === "-webkit-text-fill-color") value = srgb(value);\n      out[prop] = value;\n    }\n    if (out["-webkit-text-fill-color"] === out.color) delete out["-webkit-text-fill-color"];\n    return out;\n  }\n  function textStyleIndex(ctx, el) {\n    const style = readTextStyle(css(el));\n    const key = JSON.stringify(style);\n    let index = ctx.styleKeys.get(key);\n    if (index === void 0) {\n      index = ctx.styles.length;\n      ctx.styles.push(style);\n      ctx.styleKeys.set(key, index);\n    }\n    return index;\n  }\n  function addAsset(ctx, kind, src, box, element) {\n    if (kind !== "raster") {\n      const known = ctx.assetBySrc.get(src);\n      if (known) {\n        const asset2 = ctx.assets.find((candidate) => candidate.id === known);\n        if (asset2?.box && box[2] * box[3] > asset2.box[2] * asset2.box[3]) asset2.box = box;\n        return known;\n      }\n    }\n    const id = `a${ctx.assets.length}`;\n    ctx.assets.push({ id, kind, src, box, ...element !== void 0 ? { element } : {} });\n    if (kind !== "raster") ctx.assetBySrc.set(src, id);\n    return id;\n  }\n  var SKIP_TAGS = /* @__PURE__ */ new Set([\n    "script",\n    "style",\n    "link",\n    "meta",\n    "head",\n    "title",\n    "template",\n    "noscript",\n    "base",\n    "helmet",\n    "source",\n    "track",\n    "param",\n    "map",\n    "area",\n    "datalist"\n  ]);\n  var REPLACED = /* @__PURE__ */ new Set(["img", "svg", "video", "canvas", "iframe", "object", "embed", "input", "textarea", "select", "button", "picture", "audio", "meter", "progress"]);\n  var FIELD_TAGS = /* @__PURE__ */ new Set(["input", "textarea", "select"]);\n  var ICON_FONT = /material[\\s-]?(icons|symbols)|font\\s?awesome|fontawesome|icomoon|glyphicons|ionicons|feather|remixicon|bootstrap-icons|phosphor|tabler-icons|lucide/i;\n  var PRIVATE_USE = /[\\uE000-\\uF8FF]/;\n  function parseTransform(value) {\n    if (!value || value === "none") return { kind: "none", scale: 1, matrix: [1, 0, 0, 1, 0, 0] };\n    const match = /^matrix\\(([^)]+)\\)$/.exec(value);\n    if (!match) return { kind: "complex", scale: 1, matrix: [] };\n    const [a, b, c, d, e, f] = match[1].split(",").map((part) => parseFloat(part));\n    const near = (x, y) => Math.abs(x - y) < 1e-4;\n    if (near(b, 0) && near(c, 0)) {\n      if (near(a, 1) && near(d, 1)) return { kind: "translate", scale: 1, matrix: [a, b, c, d, e, f] };\n      if (near(a, d) && a > 0) return { kind: "scale", scale: a, matrix: [a, b, c, d, e, f] };\n      return { kind: "complex", scale: 1, matrix: [a, b, c, d, e, f] };\n    }\n    const scaleX = Math.hypot(a, b);\n    const scaleY = Math.hypot(c, d);\n    if (near(scaleX, 1) && near(scaleY, 1) && near(a, d) && near(b, -c)) {\n      return { kind: "rotate", scale: 1, matrix: [a, b, c, d, e, f] };\n    }\n    return { kind: "complex", scale: 1, matrix: [a, b, c, d, e, f] };\n  }\n  var SVG_PROPS = [\n    "fill",\n    "fill-opacity",\n    "fill-rule",\n    "stroke",\n    "stroke-width",\n    "stroke-opacity",\n    "stroke-linecap",\n    "stroke-linejoin",\n    "stroke-dasharray",\n    "stroke-dashoffset",\n    "stroke-miterlimit",\n    "opacity",\n    "stop-color",\n    "stop-opacity",\n    "clip-rule",\n    "font-family",\n    "font-size",\n    "font-weight",\n    "text-anchor",\n    "visibility"\n  ];\n  var SVG_DEFAULTS = {\n    "fill-opacity": "1",\n    "fill-rule": "nonzero",\n    "stroke": "none",\n    "stroke-opacity": "1",\n    "stroke-linecap": "butt",\n    "stroke-linejoin": "miter",\n    "stroke-dasharray": "none",\n    "stroke-dashoffset": "0px",\n    "stroke-miterlimit": "4",\n    "opacity": "1",\n    "stop-opacity": "1",\n    "clip-rule": "nonzero",\n    "text-anchor": "start",\n    "visibility": "visible"\n  };\n  function serializeSvg(svg, box, transform) {\n    if (svg.querySelector("foreignObject")) return null;\n    const clone = svg.cloneNode(true);\n    const originals = [svg, ...Array.from(svg.querySelectorAll("*"))];\n    const copies = [clone, ...Array.from(clone.querySelectorAll("*"))];\n    for (let index = 0; index < originals.length; index++) {\n      const original = originals[index];\n      const copy = copies[index];\n      if (!copy) continue;\n      const cs = css(original);\n      if (cs.display === "none") {\n        copy.setAttribute("display", "none");\n        continue;\n      }\n      for (const prop of SVG_PROPS) {\n        let value = cs.getPropertyValue(prop);\n        if (!value || SVG_DEFAULTS[prop] === value) continue;\n        if (prop === "fill" || prop === "stroke" || prop === "stop-color") {\n          if (value.startsWith("url(")) {\n            const id = /#([^")]+)/.exec(value)?.[1];\n            if (id) value = `url(#${id})`;\n          } else if (value !== "none") {\n            value = srgb(value);\n          }\n        }\n        copy.setAttribute(prop, value);\n      }\n      copy.removeAttribute("class");\n      copy.removeAttribute("style");\n    }\n    const defs = [];\n    for (const use of Array.from(clone.querySelectorAll("use"))) {\n      const ref = use.getAttribute("href") ?? use.getAttribute("xlink:href") ?? "";\n      const id = ref.startsWith("#") ? ref.slice(1) : "";\n      if (!id || clone.querySelector(`#${CSS.escape(id)}`)) continue;\n      const target = svg.ownerDocument.getElementById(id);\n      if (target) defs.push(target.cloneNode(true));\n    }\n    if (defs.length) {\n      const container = svg.ownerDocument.createElementNS("http://www.w3.org/2000/svg", "defs");\n      defs.forEach((def) => container.appendChild(def));\n      clone.insertBefore(container, clone.firstChild);\n    }\n    const width = svg.clientWidth || box[2];\n    const height = svg.clientHeight || box[3];\n    if (!clone.getAttribute("viewBox")) clone.setAttribute("viewBox", `0 0 ${width} ${height}`);\n    clone.setAttribute("width", String(width));\n    clone.setAttribute("height", String(height));\n    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");\n    const color = css(svg).color;\n    let markup = new XMLSerializer().serializeToString(clone).replace(/currentColor/gi, srgb(color));\n    if (transform.kind === "rotate" || transform.kind === "scale" || transform.kind === "complex") {\n      const [a, b, c, d] = transform.matrix.length ? transform.matrix : [1, 0, 0, 1];\n      const [, , outerWidth, outerHeight] = box;\n      markup = `<svg xmlns="http://www.w3.org/2000/svg" width="${outerWidth}" height="${outerHeight}" viewBox="0 0 ${outerWidth} ${outerHeight}"><g transform="translate(${outerWidth / 2} ${outerHeight / 2}) matrix(${a} ${b} ${c} ${d} 0 0) translate(${-width / 2} ${-height / 2})">` + markup.replace(/^<svg/, `<svg x="0" y="0"`) + `</g></svg>`;\n    }\n    return markup;\n  }\n  function lineBoxes(rects) {\n    const sorted = Array.from(rects).filter((r) => r.width > 0.1 && r.height > 0.1).sort((a, b) => a.top - b.top || a.left - b.left);\n    const lines = [];\n    for (const r of sorted) {\n      const line = lines.find((candidate) => {\n        const overlap = Math.min(candidate.bottom, r.bottom) - Math.max(candidate.top, r.top);\n        return overlap >= Math.min(candidate.bottom - candidate.top, r.height) * 0.5;\n      });\n      if (line) {\n        line.top = Math.min(line.top, r.top);\n        line.bottom = Math.max(line.bottom, r.bottom);\n        line.left = Math.min(line.left, r.left);\n        line.right = Math.max(line.right, r.right);\n      } else {\n        lines.push({ top: r.top, bottom: r.bottom, left: r.left, right: r.right });\n      }\n    }\n    return lines.map((line) => [\n      round(line.left + offsetX()),\n      round(line.top + offsetY()),\n      round(line.right - line.left),\n      round(line.bottom - line.top)\n    ]);\n  }\n  function preservesSpace(ws) {\n    return ws === "pre" || ws === "pre-wrap" || ws === "break-spaces" || ws === "pre-line";\n  }\n  function hasText(node) {\n    if (node.nodeType === Node.TEXT_NODE) {\n      const text = node.data;\n      if (/\\S/.test(text)) return true;\n      const parent = node.parentElement;\n      return !!parent && preservesSpace(css(parent).whiteSpace) && text.length > 0 && /[^\\n\\r]/.test(text);\n    }\n    if (node.nodeType !== Node.ELEMENT_NODE) return false;\n    const el = node;\n    if (el.tagName.toLowerCase() === "br") return true;\n    for (const child of Array.from(el.childNodes)) if (hasText(child)) return true;\n    return false;\n  }\n  function hasOwnBox(cs) {\n    if (!isTransparent(cs.backgroundColor) || cs.backgroundImage !== "none") return true;\n    if (cs.boxShadow !== "none") return true;\n    for (const side of ["Top", "Right", "Bottom", "Left"]) {\n      if (parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== "none") return true;\n    }\n    if (parseFloat(cs.paddingLeft) > 0 || parseFloat(cs.paddingRight) > 0) return true;\n    if (parseFloat(cs.paddingTop) > 0 || parseFloat(cs.paddingBottom) > 0) return true;\n    return false;\n  }\n  function isInlineOnly(el, blockified) {\n    for (const node of Array.from(el.childNodes)) {\n      if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.COMMENT_NODE) continue;\n      if (node.nodeType !== Node.ELEMENT_NODE) continue;\n      const child = node;\n      const tag = child.tagName.toLowerCase();\n      if (SKIP_TAGS.has(tag)) continue;\n      const cs = css(child);\n      if (cs.display === "none") continue;\n      if (blockified) return false;\n      if (tag === "br") continue;\n      if (REPLACED.has(tag)) return false;\n      if (cs.display !== "inline" && cs.display !== "contents") return false;\n      if (cs.position === "absolute" || cs.position === "fixed") return false;\n      if (hasOwnBox(cs)) return false;\n      if (parseTransform(cs.transform).kind !== "none") return false;\n      if (!isInlineOnly(child, false)) return false;\n    }\n    return true;\n  }\n  function collectRuns(ctx, el, runs, href) {\n    const ws = css(el).whiteSpace;\n    for (const node of Array.from(el.childNodes)) {\n      if (node.nodeType === Node.TEXT_NODE) {\n        const text = node.data;\n        if (text) runs.push({ text, style: textStyleIndex(ctx, el), ws, href });\n        continue;\n      }\n      if (node.nodeType !== Node.ELEMENT_NODE) continue;\n      const child = node;\n      const tag = child.tagName.toLowerCase();\n      if (SKIP_TAGS.has(tag) || css(child).display === "none") continue;\n      if (tag === "br") {\n        runs.push({ text: "", br: true, style: textStyleIndex(ctx, el), ws });\n        continue;\n      }\n      const link = tag === "a" ? child.href || href : href;\n      collectRuns(ctx, child, runs, link);\n    }\n  }\n  function paragraph(ctx, el) {\n    const runs = [];\n    collectRuns(ctx, el, runs, el.tagName.toLowerCase() === "a" ? el.href : void 0);\n    const range = el.ownerDocument.createRange();\n    range.selectNodeContents(el);\n    return { base: textStyleIndex(ctx, el), runs, lines: lineBoxes(range.getClientRects()) };\n  }\n  function isPhrasing(el, cs) {\n    const tag = el.tagName.toLowerCase();\n    if (tag === "br") return true;\n    if (cs.display !== "inline" || REPLACED.has(tag)) return false;\n    if (cs.position === "absolute" || cs.position === "fixed") return false;\n    if (hasOwnBox(cs) || parseTransform(cs.transform).kind !== "none") return false;\n    return isInlineOnly(el, false);\n  }\n  function anonymousParagraph(ctx, owner, nodes, block) {\n    const ws = css(owner).whiteSpace;\n    const base = textStyleIndex(ctx, owner);\n    const runs = [];\n    for (const node of nodes) {\n      if (node.nodeType === Node.TEXT_NODE) {\n        const text2 = node.data;\n        if (text2) runs.push({ text: text2, style: base, ws });\n        continue;\n      }\n      const el = node;\n      if (el.tagName.toLowerCase() === "br") {\n        runs.push({ text: "", br: true, style: base, ws });\n        continue;\n      }\n      collectRuns(ctx, el, runs, el.tagName.toLowerCase() === "a" ? el.href || void 0 : void 0);\n    }\n    if (!runs.some((run) => run.br || /\\S/.test(run.text) || preservesSpace(run.ws) && run.text.length > 0)) return null;\n    const range = owner.ownerDocument.createRange();\n    range.setStartBefore(nodes[0]);\n    range.setEndAfter(nodes[nodes.length - 1]);\n    const lines = lineBoxes(range.getClientRects());\n    if (!lines.length) return null;\n    ctx.stats.texts = (ctx.stats.texts ?? 0) + 1;\n    const text = { k: "tx", para: { base, runs, lines } };\n    if (block) text.block = true;\n    return text;\n  }\n  var PSEUDO_HOST = "data-ff-pseudo-host";\n  function materializePseudos(root) {\n    const doc = root.ownerDocument;\n    if (!doc.getElementById("ff-pseudo-style")) {\n      const style = doc.createElement("style");\n      style.id = "ff-pseudo-style";\n      style.textContent = `[${PSEUDO_HOST}]::before, [${PSEUDO_HOST}]::after { content: none !important; }`;\n      (doc.head ?? doc.documentElement).appendChild(style);\n    }\n    let count = 0;\n    const hosts = [root, ...Array.from(root.querySelectorAll("*"))];\n    const planned = [];\n    for (const host of hosts) {\n      if (host.hasAttribute(PSEUDO_HOST) || host.namespaceURI === "http://www.w3.org/2000/svg") continue;\n      const tag = host.tagName.toLowerCase();\n      if (REPLACED.has(tag) || SKIP_TAGS.has(tag)) continue;\n      for (const which of ["before", "after"]) {\n        const cs = css(host, `::${which}`);\n        const content = cs.content;\n        if (!content || content === "none" || content === "normal") continue;\n        if (cs.display === "none") continue;\n        const node = doc.createElement("ff-pseudo");\n        for (let index = 0; index < cs.length; index++) {\n          const prop = cs[index];\n          if (prop === "content") continue;\n          node.style.setProperty(prop, cs.getPropertyValue(prop));\n        }\n        const quoted = /^"((?:[^"\\\\]|\\\\.)*)"$/.exec(content);\n        if (quoted) {\n          node.textContent = quoted[1].replace(/\\\\([0-9a-fA-F]{1,6})\\s?/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16))).replace(/\\\\(.)/g, "$1");\n        } else if (/^url\\(/.test(content)) {\n          node.style.backgroundImage = content;\n          node.style.backgroundSize = "100% 100%";\n        }\n        node.setAttribute("data-ff-pseudo", which);\n        planned.push({ host, which, node });\n      }\n    }\n    for (const { host, which, node } of planned) {\n      host.setAttribute(PSEUDO_HOST, "");\n      if (which === "before") host.insertBefore(node, host.firstChild);\n      else host.appendChild(node);\n      count++;\n    }\n    return count;\n  }\n  function attrsOf(el) {\n    const a = {};\n    const get = (name) => {\n      const value = el.getAttribute(name);\n      return value && value.trim() ? value.trim().slice(0, 80) : void 0;\n    };\n    a.label = get("data-screen-label") ?? get("data-name") ?? get("data-label");\n    a.ariaLabel = get("aria-label");\n    a.id = get("id");\n    const className = typeof el.className === "string" ? el.className : "";\n    if (className) a.className = className.slice(0, 80);\n    a.role = get("role");\n    a.name = get("name");\n    a.alt = get("alt");\n    a.title = get("title");\n    if (el.tagName.toLowerCase() === "a") a.href = el.href || void 0;\n    a.type = get("type");\n    for (const key of Object.keys(a)) if (a[key] === void 0) delete a[key];\n    return Object.keys(a).length ? a : void 0;\n  }\n  function rasterReason(ctx, el, tag, cs, transform) {\n    if (ctx.rasterize && el.matches(ctx.rasterize)) return "requested";\n    if (tag === "canvas" || tag === "video" || tag === "iframe" || tag === "object" || tag === "embed") return tag;\n    if (tag === "input") {\n      const type = el.type;\n      if (/^(checkbox|radio|range|color|file)$/.test(type) && cs.appearance !== "none") return `native ${type}`;\n    }\n    if (tag === "meter" || tag === "progress") return tag;\n    const mask = cs.getPropertyValue("mask-image") || cs.getPropertyValue("-webkit-mask-image");\n    if (mask && mask !== "none") return "mask";\n    const clip = cs.getPropertyValue("clip-path");\n    if (clip && clip !== "none" && !/^inset\\(/.test(clip)) return "clip-path";\n    const backgroundClip = cs.getPropertyValue("background-clip") || cs.getPropertyValue("-webkit-background-clip");\n    if (/text/.test(backgroundClip)) return "gradient text";\n    if (cs.filter !== "none" && !/^(blur\\([^)]*\\)\\s*)+$/.test(cs.filter)) return "filter";\n    if (/conic-gradient|repeating-|image-set|cross-fade|element\\(/.test(cs.backgroundImage)) return "background";\n    if (tag !== "svg" && (transform.kind === "rotate" || transform.kind === "complex")) return "transform";\n    if (parseFloat(cs.getPropertyValue("-webkit-text-stroke-width")) > 0) return "text stroke";\n    if (cs.writingMode && cs.writingMode !== "horizontal-tb") return "vertical text";\n    const ownText = Array.from(el.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.data).join("");\n    if (ownText.trim() && (ICON_FONT.test(cs.fontFamily) || PRIVATE_USE.test(ownText))) return "icon font";\n    return null;\n  }\n  function onlySvgChild(el) {\n    let found = null;\n    for (const node of Array.from(el.childNodes)) {\n      if (node.nodeType === Node.TEXT_NODE) {\n        if (/\\S/.test(node.data)) return null;\n        continue;\n      }\n      if (node.nodeType !== Node.ELEMENT_NODE) continue;\n      const child = node;\n      if (SKIP_TAGS.has(child.tagName.toLowerCase())) continue;\n      if (css(child).display === "none") continue;\n      if (child.tagName.toLowerCase() !== "svg" || found) return null;\n      found = child;\n    }\n    return found;\n  }\n  function backgroundUrls(value) {\n    const out = [];\n    const pattern = /url\\(\\s*(?:"([^"]*)"|\'([^\']*)\'|([^)]*))\\s*\\)/g;\n    let match;\n    while (match = pattern.exec(value)) out.push((match[1] ?? match[2] ?? match[3] ?? "").trim());\n    return out.filter(Boolean);\n  }\n  function visitChildren(ctx, parent, owner, out, scale) {\n    const blockified = /flex|grid/.test(css(owner).display);\n    const elements = Array.from(parent.childNodes).filter((node) => node.nodeType === Node.ELEMENT_NODE);\n    const hasBlocks = !blockified && elements.some((el) => {\n      const cs = css(el);\n      return cs.display !== "none" && !/^inline|^contents$/.test(cs.display) && cs.position !== "absolute" && cs.position !== "fixed";\n    });\n    let run = [];\n    const flush = () => {\n      if (run.length) {\n        const text = anonymousParagraph(ctx, owner, run, hasBlocks);\n        if (text) out.push(text);\n      }\n      run = [];\n    };\n    for (const node of Array.from(parent.childNodes)) {\n      if (ctx.truncated) return;\n      if (node.nodeType === Node.TEXT_NODE) {\n        run.push(node);\n        continue;\n      }\n      if (node.nodeType !== Node.ELEMENT_NODE) continue;\n      const child = node;\n      const tag = child.tagName.toLowerCase();\n      if (SKIP_TAGS.has(tag)) continue;\n      const cs = css(child);\n      if (cs.display === "none") continue;\n      if (!blockified && isPhrasing(child, cs)) {\n        run.push(child);\n        continue;\n      }\n      flush();\n      if (tag === "slot") {\n        for (const assigned of child.assignedNodes({ flatten: true })) {\n          if (assigned.nodeType === Node.ELEMENT_NODE) {\n            const raw2 = visit(ctx, assigned, scale);\n            if (raw2) out.push(raw2);\n          }\n        }\n        continue;\n      }\n      if (cs.display === "contents") {\n        visitChildren(ctx, child, child, out, scale);\n        continue;\n      }\n      const raw = visit(ctx, child, scale);\n      if (raw) out.push(raw);\n    }\n    flush();\n  }\n  function visit(ctx, el, parentScale) {\n    const tag = el.tagName.toLowerCase();\n    if (SKIP_TAGS.has(tag)) return null;\n    const cs = css(el);\n    if (cs.display === "none") return null;\n    if (ctx.exclude && el.matches(ctx.exclude)) {\n      ctx.stats.excluded = (ctx.stats.excluded ?? 0) + 1;\n      if (ctx.stats.excluded <= 5) {\n        const box2 = el.getBoundingClientRect();\n        const text = collapse(el.innerText ?? "").slice(0, 40);\n        ctx.warnings.push(`Excluded ${tag} ${Math.round(box2.width)}\\xD7${Math.round(box2.height)}${text ? ` "${text}"` : ""}.`);\n      }\n      return null;\n    }\n    if (ctx.nextId >= ctx.max) {\n      if (!ctx.truncated) ctx.warnings.push(`Stopped after ${ctx.max} elements; the rest of this screen was not imported.`);\n      ctx.truncated = true;\n      return null;\n    }\n    const box = docRect(el);\n    const raw = { k: "el", i: ctx.nextId++, tag, r: box, s: readBoxStyle(cs) };\n    el.setAttribute("data-ff-i", String(raw.i));\n    const attrs = attrsOf(el);\n    if (attrs) raw.a = attrs;\n    const pseudo = el.getAttribute("data-ff-pseudo");\n    if (pseudo === "before" || pseudo === "after") raw.pseudo = pseudo;\n    ctx.stats.elements = (ctx.stats.elements ?? 0) + 1;\n    const transform = parseTransform(cs.transform);\n    const scale = transform.kind === "scale" ? parentScale * transform.scale : parentScale;\n    if (Math.abs(scale - 1) > 1e-4) raw.z = round(scale * 1e4) / 1e4;\n    if (cs.visibility === "hidden" || parseFloat(cs.opacity) === 0) {\n      raw.hidden = true;\n      return raw;\n    }\n    if (tag === "iframe") {\n      const inner = innerDocument(el);\n      if (inner && inner.body) {\n        const saved = frameOffset;\n        frameOffset = frameOrigin(el);\n        materializePseudos(inner.body);\n        const body = visit(ctx, inner.body, scale);\n        frameOffset = saved;\n        raw.s["overflow-x"] = "hidden";\n        raw.s["overflow-y"] = "hidden";\n        const htmlBackground = css(inner.documentElement).backgroundColor;\n        const canvas = !isTransparent(htmlBackground) ? htmlBackground : css(inner.body).backgroundColor;\n        if (!isTransparent(canvas)) raw.s["background-color"] = srgb(canvas);\n        if (body) raw.c = [body];\n        ctx.stats.frames = (ctx.stats.frames ?? 0) + 1;\n        return raw;\n      }\n    }\n    if (tag === "svg") {\n      const markup = serializeSvg(el, box, transform);\n      if (markup) {\n        raw.svg = markup;\n        ctx.stats.svgs = (ctx.stats.svgs ?? 0) + 1;\n        return raw;\n      }\n    }\n    if (transform.kind === "rotate") {\n      const child = onlySvgChild(el);\n      if (child) {\n        const markup = serializeSvg(child, box, transform);\n        if (markup) {\n          raw.svg = markup;\n          ctx.stats.svgs = (ctx.stats.svgs ?? 0) + 1;\n          return raw;\n        }\n      }\n    }\n    const reason = tag === "svg" ? "svg with foreignObject" : rasterReason(ctx, el, tag, cs, transform);\n    if (reason) {\n      raw.raster = reason;\n      const id = addAsset(ctx, "raster", "", box, raw.i);\n      raw.img = { asset: id, natural: [box[2], box[3]] };\n      ctx.stats.rasters = (ctx.stats.rasters ?? 0) + 1;\n      return raw;\n    }\n    if (tag === "img") {\n      const img = el;\n      const src = img.currentSrc || img.src;\n      if (src && img.naturalWidth > 0) {\n        raw.img = { asset: addAsset(ctx, "img", src, box), natural: [img.naturalWidth, img.naturalHeight] };\n        ctx.stats.images = (ctx.stats.images ?? 0) + 1;\n      } else {\n        ctx.warnings.push(`Image ${src ? src.slice(0, 80) : "(no src)"} did not load; kept as an empty box.`);\n      }\n      return raw;\n    }\n    for (const url of backgroundUrls(cs.backgroundImage)) addAsset(ctx, "background", url, box);\n    if (FIELD_TAGS.has(tag)) {\n      const field = el;\n      let text = "";\n      let placeholder = false;\n      if (tag === "select") {\n        const select = field;\n        text = select.selectedOptions[0]?.textContent ?? "";\n      } else {\n        text = field.value;\n        if (field.type === "password") text = "\\u2022".repeat(text.length);\n        if (!text) {\n          text = field.placeholder ?? "";\n          placeholder = true;\n        }\n      }\n      if (text) {\n        let style = textStyleIndex(ctx, el);\n        if (placeholder) {\n          const ph = readTextStyle(css(el, "::placeholder"));\n          const merged = { ...ctx.styles[style], ...ph };\n          const key = JSON.stringify(merged);\n          style = ctx.styleKeys.get(key) ?? ctx.styles.push(merged) - 1;\n          ctx.styleKeys.set(key, style);\n        }\n        raw.field = { text, placeholder, style };\n      }\n      return raw;\n    }\n    const blockified = /flex|grid/.test(cs.display);\n    if (hasText(el) && isInlineOnly(el, blockified) && !el.shadowRoot) {\n      raw.para = paragraph(ctx, el);\n      ctx.stats.paragraphs = (ctx.stats.paragraphs ?? 0) + 1;\n      return raw;\n    }\n    const children = [];\n    visitChildren(ctx, el.shadowRoot ?? el, el, children, scale);\n    if (children.length) raw.c = children;\n    return raw;\n  }\n  function collect(options = {}) {\n    const target = resolveTarget(options.root);\n    if (!target) throw new Error(`Nothing matches "${options.root}" on this page.`);\n    const root = target.el;\n    for (const doc of allDocuments()) doc.querySelectorAll("[data-ff-i]").forEach((el) => el.removeAttribute("data-ff-i"));\n    const pseudos = materializePseudos(root);\n    finishAnimations();\n    frameOffset = target.offset;\n    const ctx = {\n      nextId: 0,\n      styles: [],\n      styleKeys: /* @__PURE__ */ new Map(),\n      assets: [],\n      assetBySrc: /* @__PURE__ */ new Map(),\n      warnings: [],\n      stats: { pseudos },\n      exclude: options.exclude && options.exclude.length ? options.exclude.join(", ") : null,\n      rasterize: options.rasterize && options.rasterize.length ? options.rasterize.join(", ") : null,\n      max: options.maxElements ?? 12e3,\n      truncated: false\n    };\n    const started = performance.now();\n    let rootRaw;\n    try {\n      rootRaw = visit(ctx, root, 1);\n    } finally {\n      frameOffset = null;\n    }\n    if (!rootRaw) throw new Error(`"${options.root ?? "body"}" is not rendered (display: none?).`);\n    ctx.stats.ms = Math.round(performance.now() - started);\n    return {\n      root: rootRaw,\n      textStyles: ctx.styles,\n      assets: ctx.assets,\n      viewport: { width: window.innerWidth, height: window.innerHeight },\n      document: {\n        width: document.documentElement.scrollWidth,\n        height: document.documentElement.scrollHeight\n      },\n      stats: ctx.stats,\n      warnings: ctx.warnings\n    };\n  }\n  function toBase64(buffer) {\n    const bytes = new Uint8Array(buffer);\n    let binary = "";\n    for (let index = 0; index < bytes.length; index += 32768) {\n      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(index, index + 32768)));\n    }\n    return btoa(binary);\n  }\n  async function asset(src, maxWidth, maxHeight) {\n    try {\n      const response = await fetch(src);\n      if (!response.ok) return { kind: "error", error: `HTTP ${response.status}` };\n      const blob = await response.blob();\n      const type = blob.type || "";\n      if (type.includes("svg") || /^data:image\\/svg/i.test(src) || /\\.svg([?#]|$)/i.test(src)) {\n        return { kind: "svg", text: await blob.text() };\n      }\n      const bitmap = await createImageBitmap(blob);\n      const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height, 4096 / bitmap.width, 4096 / bitmap.height);\n      const native = /^image\\/(png|jpeg|gif)$/.test(type);\n      if (scale >= 1 && native && blob.size < 24 * 1024 * 1024) {\n        const result = { kind: "bitmap", mime: type, data: toBase64(await blob.arrayBuffer()), width: bitmap.width, height: bitmap.height };\n        bitmap.close();\n        return result;\n      }\n      const width = Math.max(1, Math.round(bitmap.width * scale));\n      const height = Math.max(1, Math.round(bitmap.height * scale));\n      const canvas = new OffscreenCanvas(width, height);\n      const context = canvas.getContext("2d");\n      if (!context) return { kind: "error", error: "no 2d context" };\n      context.drawImage(bitmap, 0, 0, width, height);\n      bitmap.close();\n      const mime = type === "image/jpeg" ? "image/jpeg" : "image/png";\n      const out = await canvas.convertToBlob({ type: mime, quality: 0.92 });\n      return { kind: "bitmap", mime, data: toBase64(await out.arrayBuffer()), width, height };\n    } catch (error) {\n      return { kind: "error", error: String(error instanceof Error ? error.message : error) };\n    }\n  }\n  function isolate(index) {\n    for (const doc of allDocuments()) {\n      doc.getElementById("ff-isolate")?.remove();\n      doc.querySelectorAll("[data-ff-raster]").forEach((el) => el.removeAttribute("data-ff-raster"));\n    }\n    if (index === null) return null;\n    let found = null;\n    let owner = null;\n    for (const doc of allDocuments()) {\n      found = doc.querySelector(`[data-ff-i="${index}"]`);\n      if (found) {\n        owner = doc;\n        break;\n      }\n    }\n    if (!found || !owner) return null;\n    const hide = (doc) => {\n      const style = doc.createElement("style");\n      style.id = "ff-isolate";\n      style.textContent = "html, body { background: transparent !important; } * { visibility: hidden !important; } [data-ff-raster], [data-ff-raster] * { visibility: visible !important; }";\n      (doc.head ?? doc.documentElement).appendChild(style);\n    };\n    found.setAttribute("data-ff-raster", "");\n    hide(owner);\n    let chainOffset = null;\n    if (owner !== document) {\n      const chain = [];\n      let doc = owner;\n      while (doc !== document) {\n        const frame = doc.defaultView?.frameElement;\n        if (!frame) break;\n        chain.unshift(frame);\n        doc = frame.ownerDocument;\n      }\n      for (const frame of chain) {\n        frame.setAttribute("data-ff-raster", "");\n        if (!frame.ownerDocument.getElementById("ff-isolate")) hide(frame.ownerDocument);\n        const saved2 = frameOffset;\n        frameOffset = chainOffset;\n        chainOffset = frameOrigin(frame);\n        frameOffset = saved2;\n      }\n    }\n    window.scrollTo(0, 0);\n    const saved = frameOffset;\n    frameOffset = chainOffset;\n    const box = docRect(found);\n    frameOffset = saved;\n    return box;\n  }\n  var MIN_SCREEN_WIDTH = 160;\n  var MIN_SCREEN_HEIGHT = 100;\n  function isOpaque(el, cs = css(el)) {\n    if (!isTransparent(cs.backgroundColor) || cs.backgroundImage !== "none") return true;\n    if (cs.boxShadow !== "none") return true;\n    const widths = ["Top", "Right", "Bottom", "Left"].map((side) => parseFloat(cs.getPropertyValue(`border-${side.toLowerCase()}-width`)) || 0);\n    return widths.every((width) => width > 0) && cs.borderTopStyle !== "none";\n  }\n  function isVisible(el) {\n    const cs = css(el);\n    if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) === 0) return false;\n    const r = el.getBoundingClientRect();\n    return r.width > 0 && r.height > 0;\n  }\n  function topMostOpaque(root, minWidth, minHeight) {\n    const out = [];\n    const walk = (el) => {\n      const tag = el.tagName.toLowerCase();\n      if (SKIP_TAGS.has(tag) || el.id === "__bundler_err") return;\n      const cs = css(el);\n      if (cs.display === "none") return;\n      if (cs.position === "fixed") return;\n      const r = el.getBoundingClientRect();\n      if (el !== root && r.width >= minWidth && r.height >= minHeight && (isOpaque(el, cs) || tag === "iframe" || tag === "img" || tag === "canvas")) {\n        out.push(el);\n        return;\n      }\n      for (const child of Array.from(el.children)) walk(child);\n    };\n    for (const child of Array.from(root.children)) walk(child);\n    return out;\n  }\n  function textPieces(el, limit = 8) {\n    const out = [];\n    const walk = (node) => {\n      if (out.length >= limit) return;\n      const cs = css(node);\n      if (cs.display === "none" || cs.visibility === "hidden") return;\n      const own = Array.from(node.childNodes).filter((child) => child.nodeType === Node.TEXT_NODE).map((child) => child.data).join(" ");\n      if (collapse(own)) out.push(collapse(node.textContent ?? "").slice(0, 600));\n      else for (const child of Array.from(node.children)) walk(child);\n    };\n    walk(el);\n    return out;\n  }\n  function containsAny(el, targets) {\n    return targets.some((target) => el === target || el.contains(target));\n  }\n  function isCaptionLike(el, screens) {\n    if (containsAny(el, screens)) return false;\n    if (!isVisible(el)) return false;\n    const cs = css(el);\n    if (!isTransparent(cs.backgroundColor)) return false;\n    return collapse(el.textContent ?? "").length >= 1;\n  }\n  function largestFont(el) {\n    let size = parseFloat(css(el).fontSize) || 0;\n    el.querySelectorAll("*").forEach((child) => {\n      if (Array.from(child.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && /\\S/.test(node.data))) {\n        size = Math.max(size, parseFloat(css(child).fontSize) || 0);\n      }\n    });\n    return size;\n  }\n  function survey() {\n    const docWidth = document.documentElement.scrollWidth;\n    const docHeight = document.documentElement.scrollHeight;\n    let screens = topMostOpaque(document.body, MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT);\n    if (screens.length === 1) {\n      const only = screens[0].getBoundingClientRect();\n      if (only.width * only.height >= docWidth * docHeight * 0.8) {\n        const inner = topMostOpaque(screens[0], MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT);\n        const captioned = inner.filter((candidate) => {\n          const parent = candidate.parentElement;\n          if (!parent) return false;\n          const index = Array.prototype.indexOf.call(parent.children, candidate);\n          return index > 0 && isCaptionLike(parent.children[index - 1], inner);\n        });\n        if (inner.length >= 2 && captioned.length >= Math.max(2, inner.length / 2)) screens = inner;\n      }\n    }\n    screens = screens.map((el) => {\n      const parent = el.parentElement;\n      if (!parent || parent === document.body || screens.includes(parent)) return el;\n      const cs = css(parent);\n      if (isOpaque(parent, cs) || cs.display.startsWith("inline") && !/flex|grid/.test(cs.display)) return el;\n      const blocks = Array.from(parent.children).filter((child) => isVisible(child));\n      const ownText = Array.from(parent.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && /\\S/.test(node.data));\n      if (blocks.length < 2 || ownText || !blocks.every((child) => isOpaque(child))) return el;\n      if (blocks.some((child) => child !== el && screens.includes(child) && child.getBoundingClientRect().height >= MIN_SCREEN_HEIGHT * 2)) return el;\n      return parent;\n    }).filter((el, index, all) => all.indexOf(el) === index && !all.some((other) => other !== el && other.contains(el)));\n    const rows = [];\n    const rowElements = [];\n    const sections = [];\n    const sectionElements = [];\n    const findCaptioned = (from, levels, options) => {\n      let current = from;\n      for (let depth = 0; current && current !== document.body && depth < levels; depth++) {\n        const parent = current.parentElement;\n        if (!parent) break;\n        const index = Array.prototype.indexOf.call(parent.children, current);\n        for (let i = index - 1; i >= 0; i--) {\n          const sibling = parent.children[i];\n          if (containsAny(sibling, screens)) {\n            if (options.stepOverScreens) continue;\n            break;\n          }\n          if (!isCaptionLike(sibling, screens)) continue;\n          if (options.minFont && largestFont(sibling) < options.minFont) continue;\n          return { container: parent, caption: sibling };\n        }\n        current = parent;\n      }\n      return null;\n    };\n    const findLabel = (el) => {\n      const own = el.getBoundingClientRect();\n      let current = el;\n      for (let depth = 0; depth < 6 && current.parentElement && current !== document.body; depth++) {\n        const previous = current.previousElementSibling;\n        if (previous) {\n          if (!isCaptionLike(previous, screens)) return null;\n          const box = previous.getBoundingClientRect();\n          const text = collapse(previous.textContent ?? "");\n          if (box.height <= 40 && box.bottom <= own.top + 2 && own.top - box.bottom <= 48 && text.length <= 80) {\n            return { text, owner: current.parentElement };\n          }\n          return null;\n        }\n        const parent = current.parentElement;\n        const outer = parent.getBoundingClientRect();\n        if (Math.abs(outer.top - own.top) > 1 || Math.abs(outer.left - own.left) > 1) return null;\n        current = parent;\n      }\n      return null;\n    };\n    const surveyed = screens.map((el) => {\n      const cs = css(el);\n      const label = findLabel(el);\n      const frames = (el.tagName.toLowerCase() === "iframe" ? [el] : Array.from(el.querySelectorAll("iframe"))).filter((frame) => {\n        const r = frame.getBoundingClientRect();\n        return r.width >= 200 && r.height >= 200 && !!innerDocument(frame);\n      }).sort((a, b) => {\n        const ra = a.getBoundingClientRect();\n        const rb = b.getBoundingClientRect();\n        return rb.width * rb.height - ra.width * ra.height;\n      });\n      const device = frames[0];\n      const base = `${location.origin}/${location.pathname.split("/")[1] ?? ""}/`;\n      const src = device ? device.src : "";\n      const innerPage = src.startsWith(base) ? decodeURIComponent(src.slice(base.length)) : void 0;\n      const row = findCaptioned(label ? label.owner : el, 6, { stepOverScreens: false });\n      let rowIndex;\n      if (row) {\n        rowIndex = rowElements.indexOf(row.container);\n        if (rowIndex < 0) {\n          rowIndex = rowElements.push(row.container) - 1;\n          rows.push({ caption: textPieces(row.caption), box: docRect(row.container) });\n        }\n      }\n      return {\n        selector: cssPath(el),\n        box: docRect(el),\n        label: label?.text,\n        inner: device ? `${cssPath(device)} >>> body` : void 0,\n        innerPage,\n        row: rowIndex,\n        text: collapse(el.innerText ?? el.textContent ?? "").slice(0, 120),\n        background: srgb(cs.backgroundColor),\n        elements: el.querySelectorAll("*").length\n      };\n    });\n    rowElements.forEach((container, index) => {\n      for (let ancestor = container.parentElement; ancestor && ancestor !== document.body; ancestor = ancestor.parentElement) {\n        const known = sectionElements.indexOf(ancestor);\n        if (known >= 0) {\n          rows[index].section = known;\n          return;\n        }\n      }\n      const section = findCaptioned(container, 4, { stepOverScreens: true, minFont: 20 });\n      if (!section) return;\n      let sectionIndex = sectionElements.indexOf(section.container);\n      if (sectionIndex < 0) {\n        sectionIndex = sectionElements.push(section.container) - 1;\n        sections.push({ heading: textPieces(section.caption, 4), box: docRect(section.container) });\n      }\n      rows[index].section = sectionIndex;\n    });\n    const clickables = [];\n    const seen = /* @__PURE__ */ new Set();\n    document.querySelectorAll("body *").forEach((el) => {\n      if (clickables.length >= 150) return;\n      const tag = el.tagName.toLowerCase();\n      if (SKIP_TAGS.has(tag)) return;\n      const cs = css(el);\n      const semantic = tag === "button" || tag === "a" && el.hasAttribute("href") || el.getAttribute("role") === "button" || tag === "select" || tag === "summary";\n      const pointer = cs.cursor === "pointer" && (!el.parentElement || css(el.parentElement).cursor !== "pointer");\n      if (!semantic && !pointer) return;\n      if (!isVisible(el)) return;\n      const text = collapse(el.innerText || el.getAttribute("aria-label") || el.getAttribute("title") || "").slice(0, 60);\n      if (!text) return;\n      const box = docRect(el);\n      const key = `${text}|${Math.round(box[0] / 4)}|${Math.round(box[1] / 4)}`;\n      if (seen.has(key)) return;\n      seen.add(key);\n      let fixed = false;\n      for (let node = el; node; node = node.parentElement) {\n        const position = css(node).position;\n        if (position === "fixed" || position === "sticky") {\n          fixed = true;\n          break;\n        }\n      }\n      clickables.push({ text, selector: cssPath(el), box, fixed });\n    });\n    let heading = [];\n    let best = 0;\n    document.querySelectorAll("body *").forEach((el) => {\n      const r = el.getBoundingClientRect();\n      if (r.top + window.scrollY > 600 || !isVisible(el)) return;\n      const own = Array.from(el.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && /\\S/.test(node.data));\n      if (!own) return;\n      const size = parseFloat(css(el).fontSize) || 0;\n      if (size > best && !screens.some((screen) => screen.contains(el))) {\n        best = size;\n        heading = [collapse(el.textContent ?? "").slice(0, 160)];\n        const next = el.nextElementSibling;\n        if (next && collapse(next.textContent ?? "")) heading.push(collapse(next.textContent ?? "").slice(0, 300));\n      }\n    });\n    const fonts = /* @__PURE__ */ new Set();\n    if (document.fonts) document.fonts.forEach((face) => {\n      if (face.status === "loaded") fonts.add(face.family.replace(/["\']/g, ""));\n    });\n    fonts.add(css(document.body).fontFamily.split(",")[0].replace(/["\']/g, "").trim());\n    return {\n      title: document.title,\n      viewport: { width: window.innerWidth, height: window.innerHeight },\n      document: { width: docWidth, height: docHeight },\n      background: srgb(css(document.body).backgroundColor),\n      screens: surveyed,\n      rows,\n      sections,\n      clickables,\n      heading,\n      fonts: [...fonts].filter(Boolean),\n      elements: document.querySelectorAll("body *").length\n    };\n  }\n  function norm(text) {\n    return collapse(text).toLowerCase().replace(/\u0451/g, "\\u0435");\n  }\n  function viewportOrigin(doc) {\n    let x = 0;\n    let y = 0;\n    let current = doc;\n    while (current !== document) {\n      const frame = current.defaultView?.frameElement;\n      if (!frame) break;\n      const r = frame.getBoundingClientRect();\n      const cs = css(frame);\n      x += r.left + num(cs.borderLeftWidth) + num(cs.paddingLeft);\n      y += r.top + num(cs.borderTopWidth) + num(cs.paddingTop);\n      current = frame.ownerDocument;\n    }\n    return { x, y };\n  }\n  function locate(target) {\n    let el = null;\n    if (target.startsWith("css:")) {\n      el = resolveTarget(target.slice(4))?.el ?? null;\n      if (!el) return { error: `No element matches ${target.slice(4)}.` };\n    } else {\n      const wanted = norm(target.replace(/^text:/, ""));\n      const candidates = [];\n      for (const doc of allDocuments()) {\n        doc.querySelectorAll("body *").forEach((node) => {\n          if (SKIP_TAGS.has(node.tagName.toLowerCase()) || !isVisible(node)) return;\n          const label = norm(node.innerText || node.getAttribute("aria-label") || node.getAttribute("title") || "");\n          if (!label) return;\n          const rank = label === wanted ? 0 : label.startsWith(wanted) ? 1 : label.includes(wanted) ? 2 : -1;\n          if (rank < 0) return;\n          const cs = css(node);\n          const interactive = cs.cursor === "pointer" || /^(button|a|select|summary|label|input)$/i.test(node.tagName) || node.getAttribute("role") === "button";\n          const r2 = node.getBoundingClientRect();\n          candidates.push({ el: node, area: r2.width * r2.height, rank: rank * 2 + (interactive ? 0 : 1) });\n        });\n      }\n      candidates.sort((a, b) => a.rank - b.rank || a.area - b.area);\n      el = candidates[0]?.el ?? null;\n      if (!el) return { error: `Nothing on the page says "${target}".` };\n    }\n    const found = el;\n    found.scrollIntoView({ block: "center", inline: "center" });\n    const r = found.getBoundingClientRect();\n    const origin = viewportOrigin(found.ownerDocument);\n    const text = collapse(found.innerText ?? "").slice(0, 60);\n    const points = [\n      [r.left + r.width / 2, r.top + r.height / 2],\n      [r.left + Math.min(8, r.width / 2), r.top + r.height / 2],\n      [r.right - Math.min(8, r.width / 2), r.top + r.height / 2]\n    ];\n    for (const [x, y] of points) {\n      const hit = found.ownerDocument.elementFromPoint(x, y);\n      if (hit && (hit === found || found.contains(hit) || hit.contains(found))) return { x: x + origin.x, y: y + origin.y, text };\n    }\n    return { x: points[0][0] + origin.x, y: points[0][1] + origin.y, text };\n  }\n  function boxOf(selector) {\n    const target = resolveTarget(selector);\n    if (!target) return null;\n    const saved = frameOffset;\n    frameOffset = target.offset;\n    try {\n      return docRect(target.el);\n    } finally {\n      frameOffset = saved;\n    }\n  }\n  function annotate(boxes) {\n    document.getElementById("ff-annotations")?.remove();\n    if (!boxes) return;\n    const layer = document.createElement("div");\n    layer.id = "ff-annotations";\n    layer.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none";\n    boxes.forEach(([x, y, w, h], index) => {\n      const frame = document.createElement("div");\n      frame.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;outline:4px solid #ff2d55;outline-offset:2px`;\n      const tag = document.createElement("div");\n      tag.textContent = `s${index + 1}`;\n      tag.style.cssText = "position:absolute;left:-6px;top:-6px;transform:translateY(-100%);background:#ff2d55;color:#fff;font:700 28px/1.2 -apple-system,Arial,sans-serif;padding:2px 10px;border-radius:6px";\n      frame.appendChild(tag);\n      layer.appendChild(frame);\n    });\n    document.documentElement.appendChild(layer);\n  }\n  window.__ff = {\n    prepare,\n    settle,\n    hiddenOverflow,\n    expandFrames,\n    collect,\n    survey,\n    asset,\n    isolate,\n    locate,\n    boxOf,\n    annotate\n  };\n})();\n';
+
+// mcp-server/src/html/serve.ts
+import { randomBytes } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
+import { createServer } from "node:http";
+import { extname, join as join3, normalize as normalize3, sep } from "node:path";
+var MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".htm": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".jsx": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".avif": "image/avif",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".eot": "application/vnd.ms-fontobject",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".wasm": "application/wasm",
+  ".txt": "text/plain; charset=utf-8",
+  ".md": "text/plain; charset=utf-8",
+  ".pdf": "application/pdf"
+};
+async function serveDirectory(root) {
+  const base = normalize3(root);
+  const token = randomBytes(8).toString("hex");
+  const prefix = `/${token}/`;
+  const sockets = /* @__PURE__ */ new Set();
+  const server2 = createServer(async (req, res) => {
+    const send = (status2, body) => {
+      res.writeHead(status2, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+      res.end(body);
+    };
+    const url = req.url ?? "/";
+    if (!url.startsWith(prefix)) return send(404, "not found");
+    if (req.method !== "GET" && req.method !== "HEAD") return send(405, "method not allowed");
+    let relativePath;
+    try {
+      relativePath = decodeURIComponent(url.slice(prefix.length).split(/[?#]/)[0]);
+    } catch {
+      return send(400, "bad path");
+    }
+    const target = normalize3(join3(base, relativePath));
+    if (target !== base && !target.startsWith(base + sep)) return send(403, "forbidden");
+    try {
+      let file = target;
+      let info = await stat(file);
+      if (info.isDirectory()) {
+        file = join3(file, "index.html");
+        info = await stat(file);
+      }
+      res.writeHead(200, {
+        "content-type": MIME[extname(file).toLowerCase()] ?? "application/octet-stream",
+        "content-length": info.size,
+        "cache-control": "no-store",
+        "access-control-allow-origin": "*"
+      });
+      if (req.method === "HEAD") return res.end();
+      createReadStream(file).on("error", () => res.destroy()).pipe(res);
+    } catch {
+      send(404, "not found");
+    }
+  });
+  server2.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+  });
+  await new Promise((resolve5, reject) => {
+    server2.once("error", reject);
+    server2.listen(0, "127.0.0.1", () => resolve5());
+  });
+  const { port: port2 } = server2.address();
+  return {
+    root: base,
+    origin: `http://127.0.0.1:${port2}`,
+    url(path) {
+      const encoded = path.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+      return `http://127.0.0.1:${port2}${prefix}${encoded}`;
+    },
+    close() {
+      for (const socket of sockets) socket.destroy();
+      return new Promise((resolve5) => server2.close(() => resolve5()));
+    }
+  };
+}
+
+// mcp-server/src/html/render.ts
+var DEFAULT_VIEWPORT = { width: 1600, height: 1e3 };
+var MAX_VIEWPORT_HEIGHT = 2e4;
+var RASTER_SCALE = 2;
+var RenderSession = class _RenderSession {
+  constructor(source, server2, page) {
+    this.source = source;
+    this.server = server2;
+    this.page = page;
+  }
+  /** The collector is re-injected on every navigation, reloads included. */
+  injected = false;
+  /**
+   * The page state a capture can reuse: loaded for this key and not touched
+   * since by steps. Boards hold dozens of screens, and reloading an offline
+   * export for each one is most of an import's time.
+   */
+  reusable = null;
+  /**
+   * A browser that dies mid-import — a crashed tab, an out-of-memory kill —
+   * should cost one screen's retry, not the whole build.
+   */
+  static crashed(error2) {
+    return /browser closed|connection is closed|Target closed|Session with given id not found|did not reload/i.test(
+      error2 instanceof Error ? error2.message : String(error2)
+    );
+  }
+  async revive(viewport) {
+    const browser = await acquireBrowser();
+    this.page = await browser.newPage(viewport.width, viewport.height ?? DEFAULT_VIEWPORT.height);
+    this.injected = false;
+    this.reusable = null;
+  }
+  static async open(source) {
+    const server2 = await serveDirectory(source.root);
+    try {
+      const browser = await acquireBrowser();
+      const page = await browser.newPage(DEFAULT_VIEWPORT.width, DEFAULT_VIEWPORT.height);
+      return new _RenderSession(source, server2, page);
+    } catch (error2) {
+      await server2.close();
+      throw error2;
+    }
+  }
+  async close() {
+    await this.page.close();
+    await this.server.close();
+    releaseBrowser();
+  }
+  async load(pagePath, viewport) {
+    const width = viewport.width;
+    const height = viewport.height ?? DEFAULT_VIEWPORT.height;
+    await this.page.setViewport(width, height);
+    await this.page.transparentBackground(false);
+    await this.page.send("Storage.clearDataForOrigin", {
+      origin: this.server.origin,
+      storageTypes: "local_storage,session_storage,indexeddb,cache_storage,websql"
+    }).catch(() => void 0);
+    const cut = pagePath.search(/[?#]/);
+    const url = cut < 0 ? this.server.url(pagePath) : this.server.url(pagePath.slice(0, cut)) + pagePath.slice(cut);
+    if (!this.injected) {
+      await this.page.send("Page.addScriptToEvaluateOnNewDocument", { source: collect_default });
+      this.injected = true;
+    }
+    await this.page.goto(url);
+    const hasCollector = await this.page.evaluate('typeof __ff === "object"').catch(() => false);
+    if (!hasCollector) await this.page.evaluate(collect_default);
+    const ready = await this.page.call("__ff.prepare");
+    return { errors: [...ready.errors, ...this.page.errors], unstable: !ready.stable };
+  }
+  async survey(pagePath, viewport, screenshots, steps = []) {
+    const started = Date.now();
+    this.reusable = null;
+    const loaded = await this.load(pagePath, viewport);
+    const warnings = [];
+    await this.runSteps(steps, warnings);
+    const survey2 = await this.page.call("__ff.survey");
+    const shots = [];
+    if (screenshots) {
+      await this.page.call("__ff.annotate", survey2.screens.map((screen) => screen.box));
+      const { width, height } = survey2.document;
+      const tiles = Math.max(1, Math.min(6, Math.ceil(height / (width * 1.25))));
+      const tileHeight = Math.ceil(height / tiles);
+      const scale = Math.min(1, 1e3 / width, 1400 / tileHeight);
+      for (let index = 0; index < tiles; index++) {
+        const y = index * tileHeight;
+        shots.push(
+          await this.page.screenshot({ x: 0, y, width, height: Math.min(tileHeight, height - y) }, scale)
+        );
+      }
+      await this.page.call("__ff.annotate", null);
+    }
+    return { survey: survey2, shots, errors: [...loaded.errors, ...warnings], unstable: loaded.unstable, ms: Date.now() - started };
+  }
+  async runSteps(steps, warnings) {
+    for (const [index, step] of steps.entries()) {
+      try {
+        await this.runStep(step, warnings);
+      } catch (error2) {
+        throw new Error(`Step ${index + 1} (${JSON.stringify(step)}) failed: ${error2 instanceof Error ? error2.message : error2}`);
+      }
+    }
+  }
+  async runStep(step, warnings) {
+    const locate = async (target) => {
+      const found = await this.page.call("__ff.locate", target);
+      if ("error" in found) throw new Error(found.error);
+      return found;
+    };
+    if ("click" in step) {
+      const point = await locate(step.click);
+      await this.page.click(point.x, point.y);
+    } else if ("hover" in step) {
+      const point = await locate(step.hover);
+      await this.page.mouse("mouseMoved", point.x, point.y);
+    } else if ("type" in step) {
+      if (step.into) {
+        const point = await locate(step.into);
+        await this.page.click(point.x, point.y);
+      }
+      await this.page.insertText(step.type);
+    } else if ("press" in step) {
+      await this.page.send("Input.dispatchKeyEvent", { type: "keyDown", key: step.press });
+      await this.page.send("Input.dispatchKeyEvent", { type: "keyUp", key: step.press });
+    } else if ("wait" in step) {
+      await new Promise((resolve5) => setTimeout(resolve5, Math.min(1e4, Math.max(0, step.wait))));
+    } else if ("eval" in step) {
+      await this.page.evaluate(step.eval).catch((error2) => {
+        if (!/context was destroyed|Execution context/i.test(String(error2))) throw error2;
+      });
+    } else if ("reload" in step) {
+      await this.page.reload();
+      await this.page.call("__ff.prepare");
+      return;
+    } else if ("viewport" in step) {
+      await this.page.setViewport(step.viewport.width, step.viewport.height ?? DEFAULT_VIEWPORT.height);
+    } else if ("scroll" in step) {
+      await this.page.evaluate(`window.scrollTo(0, ${Number(step.scroll) || 0})`);
+    } else {
+      warnings.push(`Unknown step ${JSON.stringify(step)} was skipped.`);
+      return;
+    }
+    await this.page.call("__ff.settle");
+  }
+  async capture(request) {
+    try {
+      return await this.captureOnce(request);
+    } catch (error2) {
+      if (!_RenderSession.crashed(error2)) throw error2;
+      await this.revive(request.viewport ?? DEFAULT_VIEWPORT);
+      return await this.captureOnce(request);
+    }
+  }
+  async captureOnce(request) {
+    const started = Date.now();
+    const viewport = { width: request.viewport?.width ?? DEFAULT_VIEWPORT.width, height: request.viewport?.height ?? DEFAULT_VIEWPORT.height };
+    const key = JSON.stringify([request.page, viewport.width, viewport.height]);
+    const steps = request.steps ?? [];
+    let loaded;
+    if (!steps.length && !request.frameWidth && this.reusable?.key === key) {
+      loaded = this.reusable;
+    } else {
+      loaded = await this.load(request.page, viewport);
+      this.reusable = { key, ...loaded };
+    }
+    const warnings = [];
+    if (loaded.unstable) warnings.push("The page kept changing; it was captured after 20 seconds anyway.");
+    if (steps.length || request.frameWidth) this.reusable = null;
+    await this.runSteps(steps, warnings);
+    const selector = request.selector && request.selector !== "auto" ? request.selector : "body";
+    let height = viewport.height;
+    if (selector.includes(">>>") && (request.fullHeight !== false || request.frameWidth)) {
+      for (let pass = 0; pass < 4; pass++) {
+        const grown = await this.page.call("__ff.expandFrames", selector, request.frameWidth);
+        if (grown <= 1) break;
+        await this.page.call("__ff.settle");
+      }
+    }
+    if (request.fullHeight !== false) {
+      for (let pass = 0; pass < 4; pass++) {
+        const hidden = await this.page.call("__ff.hiddenOverflow", selector);
+        if (hidden <= 1 || height >= MAX_VIEWPORT_HEIGHT) break;
+        height = Math.min(MAX_VIEWPORT_HEIGHT, height + hidden);
+        await this.page.setViewport(viewport.width, height);
+        await this.page.call("__ff.settle");
+      }
+    }
+    await this.page.evaluate("window.scrollTo(0, 0)");
+    const hovering = request.steps?.some((step) => "hover" in step);
+    if (!hovering) await this.page.mouse("mouseMoved", 0, 0);
+    let shot;
+    if (request.screenshot) {
+      const box = await this.page.call("__ff.boxOf", selector);
+      if (box && box[2] >= 1 && box[3] >= 1) {
+        const scale = Math.min(1, 4096 / box[3]);
+        shot = await this.page.screenshot({ x: box[0], y: box[1], width: box[2], height: box[3] }, scale);
+      }
+    }
+    const collection = await this.page.call("__ff.collect", {
+      root: selector,
+      exclude: request.exclude,
+      rasterize: request.rasterize
+    });
+    warnings.push(...collection.warnings);
+    const assets = /* @__PURE__ */ new Map();
+    const fetched = collection.assets.filter((asset) => asset.kind !== "raster");
+    for (const asset of fetched) {
+      const [, , boxWidth, boxHeight] = asset.box ?? [0, 0, 1024, 1024];
+      const maxWidth = Math.min(4096, Math.max(64, Math.ceil(boxWidth * RASTER_SCALE)));
+      const maxHeight = Math.min(4096, Math.max(64, Math.ceil(boxHeight * RASTER_SCALE)));
+      const result = await this.page.call("__ff.asset", asset.src, maxWidth, maxHeight);
+      if (result.kind === "bitmap") {
+        assets.set(asset.id, { kind: "bitmap", mime: result.mime, bytes: Buffer.from(result.data, "base64"), width: result.width, height: result.height });
+      } else if (result.kind === "svg") {
+        assets.set(asset.id, result);
+      } else {
+        assets.set(asset.id, { kind: "missing", reason: result.error });
+        warnings.push(`Image ${asset.src.slice(0, 80)} could not be read (${result.error}).`);
+      }
+    }
+    const rasters = collection.assets.filter((asset) => asset.kind === "raster");
+    if (rasters.length) {
+      await this.page.transparentBackground(true);
+      try {
+        for (const asset of rasters) {
+          const box = await this.page.call("__ff.isolate", asset.element ?? -1);
+          if (!box || box[2] < 1 || box[3] < 1) {
+            assets.set(asset.id, { kind: "missing", reason: "element vanished before it could be captured" });
+            continue;
+          }
+          const scale = Math.min(RASTER_SCALE, 4096 / box[2], 4096 / box[3]);
+          const bytes = await this.page.screenshot({ x: box[0], y: box[1], width: box[2], height: box[3] }, scale);
+          assets.set(asset.id, { kind: "bitmap", mime: "image/png", bytes, width: Math.round(box[2] * scale), height: Math.round(box[3] * scale) });
+        }
+      } finally {
+        await this.page.call("__ff.isolate", null);
+        await this.page.transparentBackground(false);
+      }
+    }
+    return {
+      collection,
+      assets,
+      viewport: { width: viewport.width, height },
+      errors: [...loaded.errors, ...this.page.errors].filter((value, index, all) => all.indexOf(value) === index),
+      warnings,
+      shot,
+      ms: Date.now() - started
+    };
+  }
+};
+
+// mcp-server/src/html/source.ts
+import { createHash } from "node:crypto";
+import { open, readdir as readdir2, readFile as readFile7, stat as stat3, writeFile as writeFile4 } from "node:fs/promises";
+import { homedir as homedir4 } from "node:os";
+import { basename as basename3, dirname as dirname2, extname as extname2, join as join6, relative as relative2, resolve as resolve4, sep as sep3 } from "node:path";
+
 // mcp-server/src/store.ts
-import { mkdir as mkdir2, readdir, readFile as readFile5, rm as rm2, writeFile as writeFile2 } from "node:fs/promises";
-import { homedir as homedir2 } from "node:os";
-import { join as join2, resolve as resolve3 } from "node:path";
+import { mkdir as mkdir2, readdir, readFile as readFile5, rm as rm3, writeFile as writeFile2 } from "node:fs/promises";
+import { homedir as homedir3 } from "node:os";
+import { join as join4, resolve as resolve3 } from "node:path";
 var INDEX_SCHEMA_VERSION = 1;
 var LIBRARY_TTL_MS = 15 * 60 * 1e3;
 function dataRoot2() {
   const configured = process.env.FIGMA_FORGE_DATA_DIR;
   if (configured && configured.trim() && !configured.includes("${")) return resolve3(configured);
-  return join2(homedir2(), ".figma-forge");
+  return join4(homedir3(), ".figma-forge");
 }
 function slug2(value) {
   return (value || "unknown").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
@@ -26412,7 +28537,7 @@ async function writeJson(path, value) {
   await writeFile2(path, JSON.stringify(value, null, 2), "utf8");
 }
 function indexPath(fileKey, scope) {
-  return join2(dataRoot2(), "index", `${slug2(fileKey)}--${slug2(scope)}.json`);
+  return join4(dataRoot2(), "index", `${slug2(fileKey)}--${slug2(scope)}.json`);
 }
 async function readIndex(fileKey, scope, pluginVersion) {
   const cached2 = await readJson(indexPath(fileKey, scope));
@@ -26421,7 +28546,7 @@ async function readIndex(fileKey, scope, pluginVersion) {
   return cached2;
 }
 async function writeIndex(fileKey, scope, pluginVersion, index) {
-  await ensureDir(join2(dataRoot2(), "index"));
+  await ensureDir(join4(dataRoot2(), "index"));
   const record2 = {
     schemaVersion: INDEX_SCHEMA_VERSION,
     pluginVersion,
@@ -26443,10 +28568,10 @@ async function markDirty(fileKey, scope, nodeIds) {
   await writeJson(path, cached2);
 }
 function journalPath(operationId) {
-  return join2(dataRoot2(), "journals", `${slug2(operationId)}.json`);
+  return join4(dataRoot2(), "journals", `${slug2(operationId)}.json`);
 }
 async function writeJournal(journal) {
-  await ensureDir(join2(dataRoot2(), "journals"));
+  await ensureDir(join4(dataRoot2(), "journals"));
   const path = journalPath(journal.operationId);
   await writeJson(path, journal);
   return path;
@@ -26455,12 +28580,12 @@ async function readJournal(operationId) {
   return await readJson(journalPath(operationId));
 }
 async function listJournals(limit = 20) {
-  const dir = join2(dataRoot2(), "journals");
+  const dir = join4(dataRoot2(), "journals");
   const out = [];
   try {
     for (const name of await readdir(dir)) {
       if (!name.endsWith(".json")) continue;
-      const journal = await readJson(join2(dir, name));
+      const journal = await readJson(join4(dir, name));
       if (journal) out.push(journal);
     }
   } catch {
@@ -26480,10 +28605,10 @@ async function updateJournalStatus(operationId, status2, error2) {
   await writeJournal(journal);
 }
 function sessionPath(channel) {
-  return join2(dataRoot2(), "sessions", `${slug2(channel)}.json`);
+  return join4(dataRoot2(), "sessions", `${slug2(channel)}.json`);
 }
 async function writeSession(session) {
-  await ensureDir(join2(dataRoot2(), "sessions"));
+  await ensureDir(join4(dataRoot2(), "sessions"));
   await writeJson(sessionPath(session.channel), session);
 }
 async function readSession(channel) {
@@ -26493,22 +28618,670 @@ function dataDirectory() {
   return dataRoot2();
 }
 function previewPath(fileId) {
-  return join2(dataRoot2(), "preview", `${slug2(fileId)}.json`);
+  return join4(dataRoot2(), "preview", `${slug2(fileId)}.json`);
 }
 async function writePreview(preview) {
-  await ensureDir(join2(dataRoot2(), "preview"));
+  await ensureDir(join4(dataRoot2(), "preview"));
   await writeJson(previewPath(preview.fileId), preview);
 }
 async function readPreview(fileId) {
   return await readJson(previewPath(fileId));
 }
 async function clearPreview(fileId) {
-  await rm2(previewPath(fileId), { force: true });
+  await rm3(previewPath(fileId), { force: true });
+}
+
+// mcp-server/src/html/zip.ts
+import { mkdir as mkdir3, readFile as readFile6, stat as stat2, writeFile as writeFile3 } from "node:fs/promises";
+import { dirname, join as join5, normalize as normalize4, sep as sep2 } from "node:path";
+import { inflateRawSync } from "node:zlib";
+var EOCD = 101010256;
+var ZIP64_EOCD = 101075792;
+var ZIP64_LOCATOR = 117853008;
+var CENTRAL = 33639248;
+var LOCAL = 67324752;
+var MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024;
+var MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
+var MAX_ENTRIES = 5e4;
+var utf8 = new TextDecoder("utf-8", { fatal: true });
+var cp866 = new TextDecoder("ibm866");
+function decodeName(raw, flagged, unicodeExtra) {
+  if (unicodeExtra) return unicodeExtra;
+  if (flagged) return raw.toString("utf8");
+  try {
+    return utf8.decode(raw);
+  } catch {
+    return cp866.decode(raw);
+  }
+}
+function findEndOfCentralDirectory(data) {
+  const floor = Math.max(0, data.length - 65557);
+  for (let offset = data.length - 22; offset >= floor; offset--) {
+    if (data.readUInt32LE(offset) === EOCD) return offset;
+  }
+  throw new Error("Not a zip archive: no end-of-central-directory record.");
+}
+function readExtras(extra) {
+  const out = /* @__PURE__ */ new Map();
+  let offset = 0;
+  while (offset + 4 <= extra.length) {
+    const id = extra.readUInt16LE(offset);
+    const size2 = extra.readUInt16LE(offset + 2);
+    out.set(id, extra.subarray(offset + 4, offset + 4 + size2));
+    offset += 4 + size2;
+  }
+  return out;
+}
+function listEntries(data) {
+  const eocd = findEndOfCentralDirectory(data);
+  let count = data.readUInt16LE(eocd + 10);
+  let directoryOffset = data.readUInt32LE(eocd + 16);
+  if (count === 65535 || directoryOffset === 4294967295) {
+    const locator = eocd - 20;
+    if (locator >= 0 && data.readUInt32LE(locator) === ZIP64_LOCATOR) {
+      const zip64 = Number(data.readBigUInt64LE(locator + 8));
+      if (data.readUInt32LE(zip64) !== ZIP64_EOCD) throw new Error("Corrupt zip64 end-of-central-directory record.");
+      count = Number(data.readBigUInt64LE(zip64 + 32));
+      directoryOffset = Number(data.readBigUInt64LE(zip64 + 48));
+    }
+  }
+  if (count > MAX_ENTRIES) throw new Error(`The archive has ${count} entries; the limit is ${MAX_ENTRIES}.`);
+  const entries = [];
+  let offset = directoryOffset;
+  for (let index = 0; index < count; index++) {
+    if (data.readUInt32LE(offset) !== CENTRAL) throw new Error(`Corrupt central directory at entry ${index}.`);
+    const flags = data.readUInt16LE(offset + 8);
+    const method = data.readUInt16LE(offset + 10);
+    let compressedSize = data.readUInt32LE(offset + 20);
+    let size2 = data.readUInt32LE(offset + 24);
+    const nameLength = data.readUInt16LE(offset + 28);
+    const extraLength = data.readUInt16LE(offset + 30);
+    const commentLength = data.readUInt16LE(offset + 32);
+    let localOffset = data.readUInt32LE(offset + 42);
+    const rawName = data.subarray(offset + 46, offset + 46 + nameLength);
+    const extras = readExtras(data.subarray(offset + 46 + nameLength, offset + 46 + nameLength + extraLength));
+    const zip64 = extras.get(1);
+    if (zip64) {
+      let cursor = 0;
+      if (size2 === 4294967295) {
+        size2 = Number(zip64.readBigUInt64LE(cursor));
+        cursor += 8;
+      }
+      if (compressedSize === 4294967295) {
+        compressedSize = Number(zip64.readBigUInt64LE(cursor));
+        cursor += 8;
+      }
+      if (localOffset === 4294967295) {
+        localOffset = Number(zip64.readBigUInt64LE(cursor));
+      }
+    }
+    const unicode = extras.get(28789);
+    const unicodeName = unicode && unicode.length > 5 && unicode[0] === 1 ? unicode.subarray(5).toString("utf8") : null;
+    const name = decodeName(rawName, (flags & 2048) !== 0, unicodeName);
+    entries.push({
+      name,
+      directory: name.endsWith("/"),
+      method,
+      encrypted: (flags & 1) !== 0,
+      compressedSize,
+      size: size2,
+      offset: localOffset
+    });
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+  return entries;
+}
+function readEntry(data, entry) {
+  if (data.readUInt32LE(entry.offset) !== LOCAL) throw new Error(`Corrupt local header for ${entry.name}.`);
+  const nameLength = data.readUInt16LE(entry.offset + 26);
+  const extraLength = data.readUInt16LE(entry.offset + 28);
+  const start2 = entry.offset + 30 + nameLength + extraLength;
+  const body = data.subarray(start2, start2 + entry.compressedSize);
+  if (entry.method === 0) return Buffer.from(body);
+  if (entry.method === 8) return inflateRawSync(body, { maxOutputLength: Math.max(entry.size, 1) });
+  throw new Error(`${entry.name} uses compression method ${entry.method}, which is not supported.`);
+}
+function safeTarget(root, name) {
+  const cleaned = name.replace(/\\/g, "/");
+  if (cleaned.startsWith("/") || /^[a-zA-Z]:/.test(cleaned)) return null;
+  const target = normalize4(join5(root, cleaned));
+  return target === root || target.startsWith(root + sep2) ? target : null;
+}
+function isJunk(name) {
+  return name.startsWith("__MACOSX/") || /(^|\/)\.DS_Store$/.test(name) || /(^|\/)Thumbs\.db$/i.test(name);
+}
+async function extractZip(archivePath, destination) {
+  const info = await stat2(archivePath);
+  if (info.size > MAX_ARCHIVE_BYTES) {
+    throw new Error(`${archivePath} is ${Math.round(info.size / 1048576)} MB; archives over 1 GB are not supported.`);
+  }
+  const data = await readFile6(archivePath);
+  const root = normalize4(destination);
+  await mkdir3(root, { recursive: true });
+  const result = { files: 0, bytes: 0, skipped: [] };
+  for (const entry of listEntries(data)) {
+    if (entry.directory || isJunk(entry.name)) continue;
+    if (entry.encrypted) {
+      result.skipped.push({ name: entry.name, reason: "encrypted" });
+      continue;
+    }
+    const target = safeTarget(root, entry.name);
+    if (!target) {
+      result.skipped.push({ name: entry.name, reason: "path escapes the archive" });
+      continue;
+    }
+    if (result.bytes + entry.size > MAX_TOTAL_BYTES) {
+      throw new Error("The archive expands to more than 2 GB.");
+    }
+    try {
+      const body = readEntry(data, entry);
+      await mkdir3(dirname(target), { recursive: true });
+      await writeFile3(target, body);
+      result.files++;
+      result.bytes += body.length;
+    } catch (error2) {
+      result.skipped.push({ name: entry.name, reason: error2 instanceof Error ? error2.message : String(error2) });
+    }
+  }
+  return result;
+}
+
+// mcp-server/src/html/source.ts
+var HTML_FILE = /\.html?$/i;
+var SKIP_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", "__MACOSX", "uploads", "screenshots", "dist-cache"]);
+var MAX_PAGES = 400;
+var HEAD_BYTES = 96 * 1024;
+function expandHome(path) {
+  return path === "~" || path.startsWith("~/") ? join6(homedir4(), path.slice(1)) : path;
+}
+async function readHead(path, bytes = HEAD_BYTES) {
+  const handle = await open(path, "r");
+  try {
+    const buffer = Buffer.alloc(bytes);
+    const { bytesRead } = await handle.read(buffer, 0, bytes, 0);
+    return buffer.subarray(0, bytesRead).toString("utf8");
+  } finally {
+    await handle.close();
+  }
+}
+function decodeEntities(value) {
+  return value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+async function classifyPage(root, absolute) {
+  const info = await stat3(absolute);
+  const head = await readHead(absolute);
+  const path = relative2(root, absolute).split(sep3).join("/");
+  const name = basename3(absolute);
+  const title = /<title>([^<]{1,200})<\/title>/i.exec(head)?.[1]?.trim();
+  const entry = {
+    path,
+    kind: "html",
+    role: "design",
+    bytes: info.size,
+    title: title && title !== "Bundled Page" ? title : void 0
+  };
+  if (head.includes("__bundler/manifest") || head.includes("__bundler/template")) {
+    entry.kind = "bundle";
+    entry.note = "offline export \u2014 unpacks itself in the browser";
+  } else if (/<x-dc[\s>]/.test(head) || name.endsWith(".dc.html")) {
+    entry.kind = "dc";
+    const full = info.size > HEAD_BYTES ? await readFile7(absolute, "utf8") : head;
+    const props = /data-props="([^"]*)"/.exec(full)?.[1];
+    if (props) {
+      try {
+        const parsed = JSON.parse(decodeEntities(props));
+        if (parsed.$preview?.width && parsed.$preview.height) {
+          entry.preview = { width: parsed.$preview.width, height: parsed.$preview.height };
+        }
+      } catch {
+      }
+    }
+    const body = /<x-dc[^>]*>([\s\S]*?)<\/x-dc>/.exec(full)?.[1] ?? "";
+    if (!body.replace(/<helmet>[\s\S]*?<\/helmet>/g, "").trim()) {
+      entry.role = "empty";
+      entry.note = "empty canvas";
+    } else if (/(^|[-_ ])(src|source)([-_. ]|$)|standalone|^bake-|^export-/i.test(name)) {
+      entry.role = "source";
+      entry.note = "build input for an offline export \u2014 prefer the exported file";
+    } else if (entry.preview && entry.preview.width <= 640 && entry.preview.height <= 640 && info.size < 24 * 1024) {
+      entry.role = "component";
+      entry.note = `component preview ${entry.preview.width}\xD7${entry.preview.height}`;
+    } else {
+      entry.note = "Claude Design source \u2014 needs network for React";
+    }
+  }
+  return entry;
+}
+async function walk(root, dir, depth, out, extras) {
+  if (out.length >= MAX_PAGES) return true;
+  let truncated = false;
+  const entries = await readdir2(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name.startsWith(".")) continue;
+    const absolute = join6(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (depth < 4 && !SKIP_DIRS.has(entry.name)) {
+        truncated = await walk(root, absolute, depth + 1, out, extras) || truncated;
+      }
+    } else if (HTML_FILE.test(entry.name)) {
+      if (out.length >= MAX_PAGES) return true;
+      out.push(absolute);
+    } else if (/\.(css|md)$/i.test(entry.name)) {
+      extras.push(absolute);
+    }
+  }
+  return truncated;
+}
+async function unpack(archive) {
+  const info = await stat3(archive);
+  const key = createHash("sha1").update(`${archive}|${info.size}|${info.mtimeMs}`).digest("hex").slice(0, 16);
+  const root = join6(dataDirectory(), "html-sources", key);
+  const marker = join6(root, ".ff-extracted.json");
+  try {
+    return { root, extracted: JSON.parse(await readFile7(marker, "utf8")) };
+  } catch {
+    const extracted = await extractZip(archive, root);
+    await writeFile4(marker, JSON.stringify(extracted));
+    return { root, extracted };
+  }
+}
+async function singleChild(root) {
+  const entries = (await readdir2(root, { withFileTypes: true })).filter((entry) => !entry.name.startsWith("."));
+  if (entries.length === 1 && entries[0].isDirectory()) return join6(root, entries[0].name);
+  return root;
+}
+function rank(entry) {
+  const roleScore = { design: 0, source: 2, component: 3, empty: 4 }[entry.role];
+  return roleScore * 10 + (entry.kind === "bundle" ? 0 : entry.kind === "html" ? 1 : 2);
+}
+async function resolveHtmlSource(input) {
+  const location = await resolveSourcePath(expandHome(input.trim()));
+  const info = await stat3(location.absolute);
+  let kind;
+  let root;
+  let files = [];
+  const extras = [];
+  let extracted;
+  let truncated = false;
+  if (info.isDirectory()) {
+    kind = "directory";
+    root = location.absolute;
+    truncated = await walk(root, root, 0, files, extras);
+  } else if (extname2(location.absolute).toLowerCase() === ".zip") {
+    kind = "zip";
+    const unpacked = await unpack(location.absolute);
+    extracted = unpacked.extracted;
+    root = await singleChild(unpacked.root);
+    truncated = await walk(root, root, 0, files, extras);
+  } else if (HTML_FILE.test(location.absolute)) {
+    kind = "file";
+    root = dirname2(location.absolute);
+    files = [location.absolute];
+  } else {
+    throw new Error(`${location.display} is not an HTML file, a folder or a .zip.`);
+  }
+  const pages = [];
+  for (const file of files) pages.push(await classifyPage(root, file));
+  pages.sort((a, b) => rank(a) - rank(b) || a.path.localeCompare(b.path, "ru"));
+  const tokens = extras.filter((file) => /token|variables|theme/i.test(basename3(file)) && file.endsWith(".css")).map((file) => relative2(root, file).split(sep3).join("/"));
+  const readme = extras.find((file) => /^readme\.md$/i.test(basename3(file)));
+  return {
+    input: location.absolute,
+    display: location.display,
+    kind,
+    root,
+    pages,
+    defaultPage: kind === "file" ? pages[0]?.path : pages.find((page) => page.role === "design")?.path,
+    tokens,
+    readme: readme ? relative2(root, readme).split(sep3).join("/") : void 0,
+    extracted,
+    truncated: truncated || void 0
+  };
+}
+function findPage(source, wanted) {
+  const cut = wanted ? wanted.search(/[?#]/) : -1;
+  const suffix = cut >= 0 ? wanted.slice(cut) : "";
+  const page = findPageFile(source, cut >= 0 ? wanted.slice(0, cut) : wanted);
+  return { ...page, url: page.path + suffix };
+}
+function findPageFile(source, wanted) {
+  if (!wanted) {
+    const fallback = source.pages.find((page) => page.path === source.defaultPage) ?? source.pages[0];
+    if (!fallback) throw new Error(`${source.display} contains no HTML pages.`);
+    return fallback;
+  }
+  const normalized = wanted.replace(/\\/g, "/").replace(/^\.\//, "");
+  const exact = source.pages.find((page) => page.path === normalized);
+  if (exact) return exact;
+  const lower = normalized.toLowerCase();
+  const partial2 = source.pages.filter((page) => page.path.toLowerCase().includes(lower));
+  if (partial2.length === 1) return partial2[0];
+  if (partial2.length > 1) {
+    throw new Error(`"${wanted}" matches ${partial2.length} pages: ${partial2.slice(0, 8).map((page) => page.path).join(", ")}.`);
+  }
+  throw new Error(`No page "${wanted}" in ${source.display}.`);
+}
+
+// mcp-server/src/html/import.ts
+function prettyName(path) {
+  return basename4(path, extname3(path)).replace(/\.dc$/, "").replace(/\s*\((офлайн|offline|standalone)[^)]*\)\s*/gi, " ").replace(/\s*\(\d+\)\s*$/, "").trim();
+}
+function capitalize(text2) {
+  const lower = text2 === text2.toUpperCase() ? text2.toLowerCase() : text2;
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+function splitCaption(pieces) {
+  const parts = pieces.map((piece) => piece.trim()).filter(Boolean);
+  if (!parts.length) return {};
+  let title = parts[0];
+  let rest = parts.slice(1);
+  if (title.length <= 4 && rest.length) {
+    title = `${title} \xB7 ${rest[0]}`;
+    rest = rest.slice(1);
+  }
+  if (title.length > 90) return { title: title.slice(0, 60).trim() + "\u2026", note: parts.join(" ") };
+  return { title, note: rest.length ? rest.join(" ") : void 0 };
+}
+async function survey(args) {
+  const source = await resolveHtmlSource(args.source);
+  const page = findPage(source, args.page);
+  const viewport = args.viewport ?? DEFAULT_VIEWPORT;
+  const session = await RenderSession.open(source);
+  try {
+    const result = await session.survey(page.url, viewport, args.screenshots !== false, args.steps ?? []);
+    const raw = result.survey;
+    const screens = raw.screens.map((screen, index) => ({ id: `s${index + 1}`, ...screen }));
+    const pageName = raw.heading[0] || raw.title || page.title || prettyName(page.path);
+    const sections = /* @__PURE__ */ new Map();
+    const rowSpecs = /* @__PURE__ */ new Map();
+    for (const screen of screens) {
+      const row = screen.row !== void 0 ? raw.rows[screen.row] : void 0;
+      const sectionIndex = row?.section;
+      const heading = sectionIndex !== void 0 ? raw.sections[sectionIndex]?.heading : void 0;
+      const sectionName = heading?.[0] ?? pageName;
+      let section = sections.get(sectionName);
+      if (!section) {
+        section = { name: sectionName, note: heading?.[1], rows: [] };
+        sections.set(sectionName, section);
+      }
+      const rowKey = `${sectionName}|${screen.row ?? "loose"}`;
+      let rowSpec = rowSpecs.get(rowKey);
+      if (!rowSpec) {
+        const caption = row ? splitCaption(row.caption) : {};
+        rowSpec = { title: caption.title, note: caption.note, screens: [] };
+        rowSpecs.set(rowKey, rowSpec);
+        section.rows.push(rowSpec);
+      }
+      const label = screen.label ? capitalize(screen.label) : void 0;
+      const base = rowSpec.title ?? (screens.length === 1 ? pageName : void 0);
+      const name = [base, label].filter(Boolean).join(" / ") || `Screen ${screen.id.slice(1)}`;
+      const spec = { name, page: page.url, selector: screen.selector, viewport: { width: viewport.width } };
+      if (args.steps?.length) spec.steps = args.steps;
+      rowSpec.screens.push(spec);
+    }
+    const report = {
+      source: {
+        path: source.display,
+        kind: source.kind,
+        served: source.kind === "file" ? void 0 : source.root,
+        pages: source.pages.slice(0, 60).map((entry) => ({
+          path: entry.path,
+          kind: entry.kind,
+          role: entry.role,
+          kb: Math.round(entry.bytes / 1024),
+          title: entry.title,
+          preview: entry.preview,
+          note: entry.note
+        })),
+        morePages: Math.max(0, source.pages.length - 60) || void 0,
+        tokens: source.tokens.length ? source.tokens : void 0,
+        readme: source.readme,
+        skipped: source.extracted?.skipped.length ? source.extracted.skipped.slice(0, 10) : void 0
+      },
+      page: {
+        path: page.url,
+        kind: page.kind,
+        viewport,
+        document: raw.document,
+        background: raw.background,
+        heading: raw.heading,
+        fonts: raw.fonts,
+        elements: raw.elements,
+        loadMs: result.ms,
+        unstable: result.unstable || void 0,
+        errors: result.errors.length ? result.errors : void 0
+      },
+      screens: screens.map((screen) => ({
+        id: screen.id,
+        selector: screen.selector,
+        box: screen.box,
+        label: screen.label,
+        row: screen.row,
+        inner: screen.inner,
+        innerPage: screen.innerPage,
+        background: screen.background,
+        elements: screen.elements,
+        text: screen.text
+      })),
+      rows: raw.rows.map((row, index) => ({ index, section: row.section, caption: row.caption })),
+      sections: raw.sections.map((section, index) => ({ index, heading: section.heading })),
+      clickables: raw.clickables.slice(0, 80).map((item) => ({ text: item.text, target: `css:${item.selector}`, fixed: item.fixed || void 0 })),
+      proposal: { sections: [...sections.values()] }
+    };
+    return { report, shots: result.shots };
+  } finally {
+    await session.close();
+  }
+}
+async function prepare(sourcePath, sections, progress) {
+  const source = await resolveHtmlSource(sourcePath);
+  const total = sections.reduce((sum, section) => sum + section.rows.reduce((rows, row) => rows + row.screens.length, 0), 0);
+  if (!total) throw new Error("The build names no screens.");
+  const session = await RenderSession.open(source);
+  const screens = [];
+  try {
+    let done = 0;
+    for (const [sectionIndex, section] of sections.entries()) {
+      for (const [rowIndex, row] of section.rows.entries()) {
+        for (const spec of row.screens) {
+          const page = findPage(source, spec.page);
+          progress(done, total, `Rendering ${spec.name}`);
+          const request = {
+            page: page.url,
+            selector: spec.selector,
+            viewport: spec.viewport,
+            steps: spec.steps,
+            fullHeight: spec.fullHeight,
+            frameWidth: spec.frameWidth,
+            exclude: spec.exclude,
+            rasterize: spec.rasterize
+          };
+          let capture;
+          try {
+            capture = await session.capture(request);
+          } catch (error2) {
+            throw new Error(`"${spec.name}": ${error2 instanceof Error ? error2.message : String(error2)}`);
+          }
+          const converted = convertCollection(capture.collection, capture.assets, { name: spec.name });
+          screens.push({
+            key: `screen${screens.length}`,
+            section: sectionIndex,
+            row: rowIndex,
+            spec,
+            layer: converted.root,
+            assets: capture.assets,
+            nodes: converted.nodes,
+            stats: converted.stats,
+            warnings: [...capture.warnings, ...converted.warnings],
+            errors: capture.errors,
+            source: { page: page.url, selector: spec.selector ?? "body", viewport: capture.viewport }
+          });
+          done++;
+        }
+      }
+    }
+  } finally {
+    await session.close();
+  }
+  return { source, screens };
+}
+var RETRY_WAITS = [3e3, 8e3, 2e4];
+function transient(error2) {
+  return /connection|timed? ?out|network|disconnect/i.test(error2 instanceof Error ? error2.message : String(error2));
+}
+async function attempt(run, onRetry) {
+  for (let tries = 0; ; tries++) {
+    try {
+      return await run();
+    } catch (error2) {
+      const wait = RETRY_WAITS[tries];
+      if (wait === void 0 || !transient(error2)) throw error2;
+      onRetry(wait, error2 instanceof Error ? error2.message : String(error2));
+      await new Promise((resolve5) => setTimeout(resolve5, wait));
+    }
+  }
+}
+var UPLOAD_BATCH_CHARS = 8 * 1024 * 1024;
+var NOTE_WIDTH = 880;
+async function writeToFigma(screens, options) {
+  const { call: call2, operationId } = options;
+  const entries = [];
+  const created = [];
+  const record2 = async (batch2, ids, failure2) => {
+    for (const entry of batch2 ?? []) entries.push({ ...entry, seq: entries.length });
+    created.push(...ids);
+    await options.saveJournal(entries, created, failure2);
+  };
+  const byHash = /* @__PURE__ */ new Map();
+  for (const screen of screens) {
+    for (const [asset, data] of screen.assets) {
+      if (data.kind !== "bitmap") continue;
+      const digest = createHash2("sha1").update(data.bytes).digest("hex");
+      const entry = byHash.get(digest) ?? { data: data.bytes, refs: [] };
+      entry.refs.push({ screen, asset });
+      byHash.set(digest, entry);
+    }
+  }
+  const figmaHashes = /* @__PURE__ */ new Map();
+  const failedImages = [];
+  let batch = [];
+  let batchChars = 0;
+  const flush = async () => {
+    if (!batch.length) return;
+    options.progress(0, 1, `Uploading ${batch.length} image(s)`);
+    const result2 = await attempt(
+      () => call2("import_images", { images: batch }, 18e4),
+      (wait) => options.progress(0, 1, `Retrying the upload in ${Math.round(wait / 1e3)}s`)
+    );
+    for (const [id, hash2] of Object.entries(result2.hashes)) figmaHashes.set(id, hash2);
+    failedImages.push(...result2.failed);
+    batch = [];
+    batchChars = 0;
+  };
+  for (const [digest, entry] of byHash) {
+    const data = entry.data.toString("base64");
+    if (batchChars + data.length > UPLOAD_BATCH_CHARS) await flush();
+    batch.push({ id: digest, data });
+    batchChars += data.length;
+  }
+  await flush();
+  const imagesFor = (screen) => {
+    const map = {};
+    for (const [digest, entry] of byHash) {
+      const hash2 = figmaHashes.get(digest);
+      if (!hash2) continue;
+      for (const ref of entry.refs) if (ref.screen === screen) map[ref.asset] = hash2;
+    }
+    return map;
+  };
+  const sectionIRs = options.sections.map((section, sectionIndex) => {
+    const notes = [];
+    if (section.note) notes.push({ key: `s${sectionIndex}`, x: 0, y: 0, width: NOTE_WIDTH, title: void 0, body: section.note });
+    section.rows.forEach((row, rowIndex) => {
+      if (row.title || row.note) {
+        notes.push({ key: `s${sectionIndex}r${rowIndex}`, x: 0, y: 0, width: NOTE_WIDTH, title: row.title, body: row.note });
+      }
+    });
+    return { key: `s${sectionIndex}`, name: section.name, x: sectionIndex * 200, y: -2e4, width: 400, height: 400, notes };
+  });
+  const canvasIR = { operationId, page: { id: options.target.pageId, name: options.target.pageName }, sections: sectionIRs };
+  const canvas = await attempt(
+    () => call2("import_canvas", canvasIR, 12e4),
+    (wait) => options.progress(0, 1, `Retrying the page in ${Math.round(wait / 1e3)}s`)
+  );
+  await record2(canvas.journal, Object.values(canvas.sections));
+  const result = {
+    pageId: canvas.pageId,
+    pageName: canvas.pageName,
+    sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
+    images: { uploaded: figmaHashes.size, failed: failedImages },
+    boundColors: 0,
+    missingFonts: [],
+    warnings: []
+  };
+  const missingFonts = /* @__PURE__ */ new Set();
+  for (const [index, screen] of screens.entries()) {
+    options.progress(index, screens.length, `Building ${screen.spec.name}`);
+    const parentId = canvas.sections[`s${screen.section}`];
+    const buildScreen = () => call2(
+      "import_screen",
+      {
+        operationId,
+        parentId,
+        x: 0,
+        y: 0,
+        layer: screen.layer,
+        images: imagesFor(screen),
+        bindTokens: options.bindTokens,
+        meta: { name: screen.spec.name, ...screen.source, importedAt: (/* @__PURE__ */ new Date()).toISOString() }
+      },
+      18e4
+    );
+    let built;
+    try {
+      built = await attempt(buildScreen, (wait, why) => options.progress(index, screens.length, `Retrying ${screen.spec.name} in ${Math.round(wait / 1e3)}s \u2014 ${why}`));
+    } catch (error2) {
+      const message = `"${screen.spec.name}" failed in Figma: ${error2 instanceof Error ? error2.message : String(error2)}`;
+      await record2([], [], message);
+      throw new Error(message);
+    }
+    await record2(built.journal, [built.nodeId]);
+    result.sections[screen.section].screens.push({ name: built.name, id: built.nodeId, nodes: built.nodes, width: Math.round(built.width), height: Math.round(built.height) });
+    result.boundColors += built.bound;
+    built.missingFonts.forEach((font) => missingFonts.add(font));
+    for (const warning of built.warnings) result.warnings.push(`${screen.spec.name}: ${warning}`);
+  }
+  result.missingFonts = [...missingFonts];
+  const screenIds = /* @__PURE__ */ new Map();
+  screens.forEach((screen, index) => {
+    const section = result.sections[screen.section];
+    const position2 = screens.filter((other2, otherIndex) => other2.section === screen.section && otherIndex < index).length;
+    screenIds.set(screen, section.screens[position2].id);
+  });
+  await attempt(
+    () => call2(
+      "import_arrange",
+      {
+        pageId: canvas.pageId,
+        sections: options.sections.map((section, sectionIndex) => ({
+          id: canvas.sections[`s${sectionIndex}`],
+          noteId: canvas.notes[`s${sectionIndex}`],
+          rows: section.rows.map((_, rowIndex) => ({
+            noteId: canvas.notes[`s${sectionIndex}r${rowIndex}`],
+            screenIds: screens.filter((screen) => screen.section === sectionIndex && screen.row === rowIndex).map((screen) => screenIds.get(screen))
+          }))
+        }))
+      },
+      12e4
+    ),
+    (wait) => options.progress(screens.length, screens.length, `Retrying the arrangement in ${Math.round(wait / 1e3)}s`)
+  );
+  return result;
 }
 
 // mcp-server/src/index.ts
 var PLUGIN_VERSION = "0.1.0";
-var here = dirname(fileURLToPath(import.meta.url));
+var here = dirname3(fileURLToPath(import.meta.url));
 function envValue(name) {
   const value = process.env[name];
   if (!value || !value.trim() || value.includes("${")) return void 0;
@@ -26518,14 +29291,14 @@ function defaultChannel() {
   const explicit = envValue("FIGMA_FORGE_CHANNEL");
   if (explicit) return explicit;
   const projectDir = envValue("FIGMA_FORGE_PROJECT_DIR") ?? process.cwd();
-  const name = basename3(projectDir).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
+  const name = basename5(projectDir).toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
   return name || "figma-forge";
 }
 var port = Number(envValue("FIGMA_FORGE_BRIDGE_PORT") ?? 3055) || 3055;
 var bridge = new Bridge({
   port,
   channel: defaultChannel(),
-  bridgeScript: join3(here, "bridge.js")
+  bridgeScript: join7(here, "bridge.js")
 });
 function text(value) {
   return { content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] };
@@ -27020,8 +29793,8 @@ server.registerTool(
         for (const component of storybook.components) {
           let hits = [];
           for (const candidate of component.nameCandidates) {
-            const attempt = search(cached2.index, candidate, { kinds: ["component"], limit: 3 });
-            if (attempt[0] && (!hits[0] || attempt[0].score > hits[0].score)) hits = attempt;
+            const attempt2 = search(cached2.index, candidate, { kinds: ["component"], limit: 3 });
+            if (attempt2[0] && (!hits[0] || attempt2[0].score > hits[0].score)) hits = attempt2;
           }
           const best = hits[0];
           if (best && best.score >= 250) {
@@ -27400,6 +30173,204 @@ server.registerTool(
     }
   }
 );
+var viewportSchema = external_exports.object({
+  width: external_exports.number().int().min(200).max(4e3),
+  height: external_exports.number().int().min(200).max(2e4).optional()
+});
+var stepSchema = external_exports.union([
+  external_exports.object({ click: external_exports.string().describe('Visible text, or "css:<selector>" (">>>" enters an iframe).') }).strict(),
+  external_exports.object({ hover: external_exports.string() }).strict(),
+  external_exports.object({ type: external_exports.string(), into: external_exports.string().optional() }).strict(),
+  external_exports.object({ press: external_exports.string().describe('A key name, e.g. "Enter".') }).strict(),
+  external_exports.object({ wait: external_exports.number().describe("Milliseconds, up to 10000.") }).strict(),
+  external_exports.object({ eval: external_exports.string().describe("JavaScript run in the page.") }).strict(),
+  external_exports.object({ reload: external_exports.literal(true).describe("Reload the page \u2014 for prototypes that restore their state from storage.") }).strict(),
+  external_exports.object({ viewport: viewportSchema }).strict(),
+  external_exports.object({ scroll: external_exports.number() }).strict()
+]);
+var screenSchema = external_exports.object({
+  name: external_exports.string().describe('Frame name in Figma, e.g. "1b \xB7 \u041F\u0440\u043E\u043C\u043E\u043A\u043E\u0434: \u043D\u0435\u0442 \u0442\u0430\u043A\u043E\u0433\u043E / \u041C\u043E\u0431\u0430\u0439\u043B".'),
+  page: external_exports.string().optional().describe("Page inside a folder or zip; a unique part of its path is enough. May carry ?query#hash."),
+  selector: external_exports.string().optional().describe('Root element; "a >>> b" selects b inside iframe a. Default: body.'),
+  viewport: viewportSchema.optional(),
+  steps: external_exports.array(stepSchema).optional().describe("Interactions that bring the page into this state, from a fresh load."),
+  fullHeight: external_exports.boolean().optional().describe("Grow scroll containers and iframes to show everything. Default true."),
+  frameWidth: external_exports.number().optional().describe('For ">>>" selectors: width to give the innermost iframe (the device).'),
+  exclude: external_exports.array(external_exports.string()).optional().describe("Selectors to leave out, e.g. prototype controls."),
+  rasterize: external_exports.array(external_exports.string()).optional().describe("Selectors to import as images.")
+});
+var sectionSchema = external_exports.object({
+  name: external_exports.string().describe("Figma section name \u2014 a flow or a group of states."),
+  note: external_exports.string().optional().describe("Description card at the top of the section."),
+  rows: external_exports.array(
+    external_exports.object({
+      title: external_exports.string().optional().describe('Caption card title for this row, e.g. "1b \xB7 \u041F\u0440\u043E\u043C\u043E\u043A\u043E\u0434: \u043D\u0435\u0442 \u0442\u0430\u043A\u043E\u0433\u043E".'),
+      note: external_exports.string().optional().describe("Caption card text: what this state is and when it happens."),
+      screens: external_exports.array(screenSchema).min(1)
+    })
+  ).min(1)
+});
+function progressReporter(extra) {
+  const token = extra?._meta?.progressToken;
+  let last = 0;
+  return (done, total, message) => {
+    if (token === void 0 || !extra?.sendNotification) return;
+    const now = Date.now();
+    if (now - last < 250) return;
+    last = now;
+    extra.sendNotification({ method: "notifications/progress", params: { progressToken: token, progress: done, total, message } }).catch(() => void 0);
+  };
+}
+server.registerTool(
+  "figma_forge_import_html",
+  {
+    title: "Import HTML screens into Figma",
+    description: 'Turns finished HTML mockups \u2014 Claude Design exports, `.dc.html` sources, project folders or .zip archives, or any HTML page \u2014 into editable Figma screens with auto layout, grouped into sections with captions.\n\nPages are rendered in a local headless Chromium, so what is imported is what the browser shows, including states reached by clicking through a prototype.\n\nActions: "survey" renders one page and reports its screens (with annotated screenshots), the captions around them, clickable controls, and a ready-to-edit build proposal \u2014 always start here. "build" renders every screen in `sections` and writes them to Figma under one journalled operation (dryRun converts without writing). "cleanup" removes everything an import created, by operationId.',
+    inputSchema: {
+      action: external_exports.enum(["survey", "build", "cleanup"]).default("survey"),
+      source: external_exports.string().optional().describe('An .html file, a folder, or a .zip. "~" is expanded.'),
+      page: external_exports.string().optional().describe('For "survey": which page of a folder or zip.'),
+      viewport: viewportSchema.optional().describe('For "survey". Default 1600\xD71000.'),
+      steps: external_exports.array(stepSchema).optional().describe('For "survey": interactions to perform before looking.'),
+      screenshots: external_exports.boolean().optional().describe('For "survey": return annotated screenshots. Default true.'),
+      sections: external_exports.array(sectionSchema).optional().describe('For "build": what to import and how to group it.'),
+      target: external_exports.object({ pageId: external_exports.string().optional(), pageName: external_exports.string().optional() }).optional().describe('For "build": an existing page id, or a page name to find or create. Default: a new page named after the source.'),
+      bindTokens: external_exports.boolean().optional().describe('For "build": bind colours to matching local variables. Default true.'),
+      dryRun: external_exports.boolean().optional().describe('For "build": render and convert, report, write nothing.'),
+      operationId: external_exports.string().optional().describe('For "cleanup".')
+    }
+  },
+  async (params, extra) => {
+    try {
+      const action = params.action ?? "survey";
+      if (action === "cleanup") {
+        if (!params.operationId) return failure(new Error('"cleanup" needs the `operationId` of an import.'));
+        const result = await call("import_cleanup", { operationId: params.operationId }, 12e4);
+        await updateJournalStatus(params.operationId, "recovered").catch(() => void 0);
+        return text({ operationId: params.operationId, removed: result.removed.length });
+      }
+      if (!params.source) return failure(new Error(`"${action}" needs a \`source\`: an .html file, a folder or a .zip.`));
+      if (action === "survey") {
+        const { report: report2, shots } = await survey({
+          source: params.source,
+          page: params.page,
+          viewport: params.viewport,
+          steps: params.steps,
+          screenshots: params.screenshots
+        });
+        report2.next = 'Review the proposal with the user: section names, row captions, screen names. Drop duplicates and prototype chrome (use `exclude` for fixed toggles). For states behind clicks, add `steps`. For a device mock, prefer `innerPage` with a device-width viewport, or the `inner` selector. Then run action "build" with the edited `sections` \u2014 dryRun first for large imports.';
+        const content2 = [{ type: "text", text: JSON.stringify(report2, null, 2) }];
+        shots.forEach((shot, index) => {
+          content2.push({ type: "text", text: `Page overview ${index + 1}/${shots.length} \u2014 red boxes are the screens found (s1, s2, \u2026).` });
+          content2.push({ type: "image", data: shot.toString("base64"), mimeType: "image/png" });
+        });
+        return { content: content2 };
+      }
+      const sections = params.sections ?? [];
+      if (!sections.length) {
+        return failure(new Error('"build" needs `sections`. Run "survey" first and start from its `proposal`.'));
+      }
+      const report = progressReporter(extra);
+      let info = null;
+      if (!params.dryRun) info = await sessionInfo();
+      const started = Date.now();
+      const prepared = await prepare(params.source, sections, report);
+      const renderMs = Date.now() - started;
+      const screenReport = prepared.screens.map((screen) => ({
+        name: screen.spec.name,
+        size: `${Math.round(screen.layer.width)}\xD7${Math.round(screen.layer.height)}`,
+        layers: screen.nodes,
+        autoLayoutFrames: screen.stats.autoLayout,
+        absoluteFrames: screen.stats.absoluteContainers || void 0,
+        rasterized: screen.stats.rasters || void 0,
+        warnings: screen.warnings.length ? screen.warnings.slice(0, 8) : void 0,
+        pageErrors: screen.errors.length ? screen.errors.slice(0, 3) : void 0
+      }));
+      if (params.dryRun) {
+        return text({
+          dryRun: true,
+          screens: screenReport,
+          totalLayers: prepared.screens.reduce((sum, screen) => sum + screen.nodes, 0),
+          renderMs,
+          next: "Nothing was written. Re-run without dryRun to build these in Figma."
+        });
+      }
+      const operationId = `ff-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+      const pageName = params.target?.pageName ?? (params.target?.pageId ? void 0 : prettySourceName(prepared.source.input));
+      const description = `Import HTML: ${prepared.source.display}`;
+      const written = await writeToFigma(prepared.screens, {
+        operationId,
+        target: { pageId: params.target?.pageId, pageName },
+        bindTokens: params.bindTokens !== false,
+        sections,
+        call: (command, commandParams, timeout) => call(command, commandParams, timeout),
+        progress: report,
+        saveJournal: async (entries, created, error2) => {
+          await writeJournal({
+            operationId,
+            channel: bridge.channel,
+            fileKey: info?.fileKey ?? null,
+            description,
+            createdAt: started,
+            status: error2 ? "failed" : "applied",
+            error: error2,
+            created,
+            modified: [],
+            quarantined: [],
+            entries
+          });
+        }
+      });
+      if (info) await markDirty(fileIdentity(info), "file", written.sections.flatMap((section) => [section.id, ...section.screens.map((screen) => screen.id)]));
+      const content = [];
+      for (const section of written.sections.slice(0, 4)) {
+        try {
+          const shot = await call("inspect", { scope: "screenshot", nodeId: section.id }, 12e4);
+          content.push({ type: "text", text: `${section.name} \u2014 ${figmaLink(section.id) ?? `section ${section.id}`}` });
+          content.push({ type: "image", data: shot.bytes, mimeType: "image/png" });
+        } catch {
+        }
+      }
+      content.unshift({
+        type: "text",
+        text: JSON.stringify(
+          {
+            imported: true,
+            operationId,
+            page: { id: written.pageId, name: written.pageName },
+            sections: written.sections.map((section) => ({
+              name: section.name,
+              link: figmaLink(section.id),
+              id: section.id,
+              screens: section.screens.map((screen) => ({ name: screen.name, id: screen.id, link: figmaLink(screen.id), size: `${screen.width}\xD7${screen.height}`, layers: screen.nodes }))
+            })),
+            screens: screenReport,
+            images: { uploaded: written.images.uploaded, failed: written.images.failed.length ? written.images.failed : void 0 },
+            colorsBoundToVariables: written.boundColors,
+            fontsMissingInFigma: written.missingFonts.length ? written.missingFonts : void 0,
+            figmaWarnings: written.warnings.length ? written.warnings.slice(0, 20) : void 0,
+            ms: Date.now() - started,
+            undo: `figma_forge_recover { operationId: "${operationId}" }`
+          },
+          null,
+          2
+        )
+      });
+      return { content };
+    } catch (error2) {
+      if (error2 instanceof BrowserUnavailable) {
+        return { isError: true, content: [{ type: "text", text: `${error2.message}
+
+${error2.remedy}` }] };
+      }
+      return failure(error2);
+    }
+  }
+);
+function prettySourceName(path) {
+  const name = basename5(path).replace(/\.(zip|html?)$/i, "").replace(/\.dc$/, "");
+  return name.replace(/\s*\((офлайн|offline|standalone)[^)]*\)\s*/gi, " ").replace(/\s*\(\d+\)\s*$/, "").trim() || "Imported HTML";
+}
 server.registerTool(
   "figma_forge_modules",
   {

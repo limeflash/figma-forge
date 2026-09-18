@@ -54,6 +54,7 @@ Then:
 /figma-forge:build a settings page     plan and build
 /figma-forge:modify all buttons to secondary
 /figma-forge:import-code src/tokens.css   import code tokens as Figma variables
+/figma-forge:import-html ~/Downloads/handoff.zip   Claude Design mockups → Figma screens
 /figma-forge:setup                     check Ollama and the rest of the setup
 /figma-forge:verify page
 /figma-forge:recover                   roll back a failed write
@@ -74,9 +75,10 @@ Code restarts — you only reopen the Figma plugin if you closed it.
 | `figma_forge_apply_plan` | The write lane: ordered ops under a journal, with dry run |
 | `figma_forge_verify` | Design-system and structural invariants |
 | `figma_forge_recover` | Roll back a journalled operation; manage quarantine |
-| `figma_forge_preview` | Render a plan to HTML for review before it touches Figma |
+| `figma_forge_preview` | Build a plan on the scratch page for review, then commit or discard it |
 | `figma_forge_graph` | Index every screen; find them by meaning or by word |
 | `figma_forge_import_code` | Import CSS/Tailwind tokens as variables; map Storybook components |
+| `figma_forge_import_html` | Import finished HTML mockups as auto-layout screens in captioned sections |
 | `figma_forge_execute` | Raw Plugin API JavaScript, read-only by default |
 | `figma_forge_modules` | Persistent helper modules stored in the document |
 
@@ -89,12 +91,46 @@ screenshot, and a wrong result lands in the real document.
 /figma-forge:design экран отмены подписки
 ```
 
-Claude drafts a plan from your components, `figma_forge_preview` renders it to a
-local HTML file with the real exported component images, and you iterate there
-for free. When it is right, the same plan applies to Figma unchanged.
+Claude drafts a plan from your components, `figma_forge_preview` builds it on a
+scratch page, and you iterate there without touching your pages. When it is
+right, committing moves those exact nodes to their target.
 
-The plan is the single source of truth and the HTML is never parsed back — that
-conversion is what produces detached rectangles where instances belong.
+For a new design the plan is the single source of truth: drafting in HTML and
+converting it would produce detached rectangles where your components belong.
+Mockups that are already finished are a different job — see below.
+
+## Importing Claude Design mockups
+
+```
+/figma-forge:import-html ~/Downloads/Termoland handoff.zip
+```
+
+Finished mockups from Claude Design — offline exports, `.dc.html` sources,
+handoff folders and project archives, or any HTML — become editable Figma
+screens:
+
+- **Rendered, not parsed.** Pages open in a local headless Chromium (Chrome,
+  Edge, Brave or Chromium — whichever is installed), so offline bundles unpack
+  and React sources render exactly as they do for you.
+- **Auto layout that matches the code.** Flex, grid and block flow become auto
+  layout with the page's padding, spacing, alignment and fill/hug behaviour.
+  Only where that cannot reproduce the page — overlapping items, floats — does
+  a frame fall back to absolute positions.
+- **Real text.** One text layer per paragraph, with bold and colour runs,
+  line height, letter spacing, case and truncation. Your fonts are used when
+  Figma has them.
+- **Organised.** A survey finds the artboards, state captions and headings on a
+  board and proposes sections, captioned rows and screen names; you adjust them
+  before anything is written. Sections are laid out side by side, rows wrap,
+  and every row gets a caption card.
+- **All states.** Screens can carry click, type and hover steps, so states that
+  only exist inside a prototype are captured one by one. Device mocks are
+  imported as the screen inside them, at device width and full length.
+- **Tokens.** Colours bind to the file's matching colour variables. Import a
+  handoff's `tokens.css` first and the imported screens use those variables.
+
+The whole import is one journalled operation, so `/figma-forge:recover` undoes
+it.
 
 ## Finding things in a large file
 
@@ -145,7 +181,9 @@ authored by hand is never overwritten without `takeOwnership`.
 
 Storybook is a **mapping**, not a conversion — it reports which stories already
 have a Figma component and which do not. Figma Forge does not turn React into
-Figma components, because the result is neither faithful nor editable.
+Figma components, because the result is neither faithful nor editable. Finished
+screens are imported differently: rendered, then rebuilt as frames — see
+*Importing Claude Design mockups*.
 
 ## Architecture
 
@@ -202,6 +240,11 @@ repo, with no build step.
 - A Tailwind v3 config is executed to read its theme, so it must import cleanly
   on its own. A config that only sets `content` inherits the default palette from
   Tailwind itself, and there is nothing in the file to import.
+- HTML import needs a Chromium-based browser installed (set
+  `FIGMA_FORGE_BROWSER` to use a specific one). Imported screens are frames,
+  not component instances. Canvas, video, CSS masks, gradient text and icon
+  fonts come in as images, and so do cross-origin iframes. `.dc.html` sources
+  load React from unpkg, so they need network access.
 - The screen graph is a snapshot, not a live view. It indexes screens rather
   than every node, and caps text per screen, so rebuild it after real changes.
 - Figma's manifest rejects raw IP addresses in `allowedDomains`, so the plugin

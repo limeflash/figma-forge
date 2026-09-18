@@ -58,6 +58,12 @@ export class Bridge {
   private connecting: Promise<void> | null = null;
   private readonly pending = new Map<string, Pending>();
   private nextId = 1;
+  /**
+   * The bridge broadcasts a response to every agent on the channel, so two
+   * Claude Code sessions numbering requests from 1 would resolve each other's
+   * calls. A per-process prefix keeps the ids apart.
+   */
+  private readonly idPrefix = `a${Math.random().toString(36).slice(2, 7)}-`;
   private joined = false;
   private figmaPeers = 0;
   private lastError: string | null = null;
@@ -232,7 +238,7 @@ export class Bridge {
       throw new BridgeError('BRIDGE_CLOSED', 'The bridge connection is not open.');
     }
 
-    const id = `a${this.nextId++}`;
+    const id = `${this.idPrefix}${this.nextId++}`;
     const limit = timeoutMs ?? this.options.requestTimeoutMs;
 
     return new Promise<T>((resolve, reject) => {

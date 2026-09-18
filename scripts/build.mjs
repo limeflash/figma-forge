@@ -29,6 +29,37 @@ const nodeBanner = {
   ].join('\n'),
 };
 
+/**
+ * `import source from 'page-script:collect'` yields the in-page collector as a
+ * string. It runs inside the rendered page, not in Node, so it is bundled on
+ * its own — as a browser IIFE with DOM types — and embedded as text.
+ */
+const pageScripts = {
+  name: 'page-scripts',
+  setup(pluginBuild) {
+    pluginBuild.onResolve({ filter: /^page-script:/ }, (args) => ({
+      path: resolve(root, 'mcp-server/src/html/page', `${args.path.slice('page-script:'.length)}.ts`),
+      namespace: 'page-script',
+    }));
+    pluginBuild.onLoad({ filter: /.*/, namespace: 'page-script' }, async (args) => {
+      const result = await build({
+        entryPoints: [args.path],
+        bundle: true,
+        write: false,
+        format: 'iife',
+        target: 'chrome110',
+        platform: 'browser',
+        legalComments: 'none',
+      });
+      return {
+        contents: result.outputFiles[0].text,
+        loader: 'text',
+        watchFiles: [args.path, resolve(root, 'shared/html-import.ts')],
+      };
+    });
+  },
+};
+
 const targets = [
   {
     name: 'figma-plugin',
@@ -55,6 +86,7 @@ const targets = [
       platform: 'node',
       target: 'node20',
       banner: nodeBanner,
+      plugins: [pageScripts],
       logLevel: 'info',
     },
   },

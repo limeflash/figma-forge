@@ -172,6 +172,18 @@ export async function rollback(entries: JournalEntry[]): Promise<RecoveryResult>
 
       switch (inverse.kind) {
         case 'remove':
+          // Figma refuses to remove the page the user is looking at, which is
+          // exactly where an import leaves them.
+          if (node.type === 'PAGE') {
+            if (figma.root.children.length < 2) {
+              result.skipped.push({ seq: entry.seq, reason: 'a document must keep one page' });
+              continue;
+            }
+            if (figma.currentPage.id === node.id) {
+              const other = figma.root.children.find((page) => page.id !== node.id);
+              if (other) await figma.setCurrentPageAsync(other);
+            }
+          }
           (node as unknown as { remove: () => void }).remove();
           break;
         case 'restore_props':

@@ -1435,7 +1435,13 @@ server.registerTool(
           {
             imported: true,
             operationId,
-            page: { id: written.pageId, name: written.pageName },
+            page: {
+              id: written.pageId,
+              name: written.pageName,
+              // An import that joins a page keeps what was there: say so, or a
+              // stale set sitting next to the new one reads as a bad import.
+              joined: written.pageHeld ? `${written.pageHeld} item(s) were already on this page` : undefined,
+            },
             sections: written.sections.map((section) => ({
               name: section.name,
               link: figmaLink(section.id),

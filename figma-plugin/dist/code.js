@@ -3745,20 +3745,20 @@ ${body}
       const node = await figma.getNodeByIdAsync(page.id);
       if (!node || node.type !== "PAGE") throw new Error(`${page.id} is not a page.`);
       await node.loadAsync();
-      return node;
+      return { page: node, created: false };
     }
     if (page.name) {
       const existing = figma.root.children.find((candidate) => candidate.name === page.name);
       if (existing) {
         await existing.loadAsync();
-        return existing;
+        return { page: existing, created: false };
       }
       const created = figma.createPage();
       created.name = page.name;
       journal.recordCreate("import_html", created);
-      return created;
+      return { page: created, created: true };
     }
-    return figma.currentPage;
+    return { page: figma.currentPage, created: false };
   }
   var NOTE = {
     width: 880,
@@ -3806,7 +3806,8 @@ ${body}
   }
   async function importCanvas(params) {
     const journal = new Journal(params.operationId);
-    const page = await resolvePage2(params.page ?? {}, journal);
+    const { page, created } = await resolvePage2(params.page ?? {}, journal);
+    const held = page.children.length;
     const sections = {};
     const notes = {};
     for (const spec of params.sections) {
@@ -3824,7 +3825,7 @@ ${body}
         notes[note.key] = card.id;
       }
     }
-    return { pageId: page.id, pageName: page.name, sections, notes, journal: journal.toArray() };
+    return { pageId: page.id, pageName: page.name, pageCreated: created, pageHeld: held, sections, notes, journal: journal.toArray() };
   }
   async function importScreen(params) {
     const journal = new Journal(params.operationId);

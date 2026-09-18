@@ -1057,13 +1057,15 @@ function imageLayer(ctx: Context, el: RawElement, z: number): LayerIR | null {
   const fit = el.s['object-fit'];
   const scaleMode: ScaleMode = el.raster ? 'FILL' : fit === 'contain' || fit === 'scale-down' ? 'FIT' : 'FILL';
   const layer: ImageIR = { type: 'IMAGE', name, x: 0, y: 0, width, height, asset, scaleMode };
+  // The radius belongs to the box, not to the picture in it: a rasterized
+  // element is a square bitmap that still has to be clipped to its corners.
+  const radius = radiusOf(el.s, el.r, z);
+  if (radius !== undefined) layer.radius = radius;
   if (el.raster) {
     ctx.stats.rasters++;
     ctx.warnings.push(`${nameFor(el)}: rasterized (${el.raster}).`);
     return layer;
   }
-  const radius = radiusOf(el.s, el.r, z);
-  if (radius !== undefined) layer.radius = radius;
   const stroke = strokeOf(el.s, z);
   if (stroke) layer.stroke = stroke;
   const effects = effectsOf(el.s, z);
@@ -1135,6 +1137,7 @@ function addBackgroundVectors(ctx: Context, frame: FrameIR, vectors: { svg: stri
     !frame.children.length &&
     !frame.fills?.length &&
     !frame.stroke &&
+    frame.radius === undefined &&
     !frame.effects?.length &&
     near(only.rect[0], 0, 1) &&
     near(only.rect[1], 0, 1) &&
@@ -1154,6 +1157,7 @@ function addBackgroundVectors(ctx: Context, frame: FrameIR, vectors: { svg: stri
       sizing: frame.sizing,
     };
   }
+  const placed = frame.layout ? { absolute: true as const, sizing: { h: 'FIXED' as const, v: 'FIXED' as const } } : {};
   const children = vectors.map(({ svg, rect }): VectorIR => {
     ctx.stats.vectors++;
     const width = Math.max(rect[2], 0.01);
@@ -1166,10 +1170,29 @@ function addBackgroundVectors(ctx: Context, frame: FrameIR, vectors: { svg: stri
       width,
       height,
       svg: withSvgSize(svg, width, height),
-      ...(frame.layout ? { absolute: true as const, sizing: { h: 'FIXED' as const, v: 'FIXED' as const } } : {}),
     };
   });
-  frame.children = [...children, ...frame.children];
+  // A rounded box clips its background in CSS; a vector layer in Figma keeps
+  // its square corners over the radius unless something clips it. One frame
+  // does that, and leaves the element's real children unclipped.
+  if (frame.radius !== undefined) {
+    ctx.stats.frames++;
+    const clipped: FrameIR = {
+      type: 'FRAME',
+      name: 'Background',
+      x: 0,
+      y: 0,
+      width: frame.width,
+      height: frame.height,
+      radius: frame.radius,
+      clip: true,
+      children,
+      ...placed,
+    };
+    frame.children = [clipped, ...frame.children];
+    return frame;
+  }
+  frame.children = [...children.map((child) => ({ ...child, ...placed })), ...frame.children];
   return frame;
 }
 

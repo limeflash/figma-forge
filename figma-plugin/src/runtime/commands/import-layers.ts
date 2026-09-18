@@ -655,25 +655,25 @@ function tag(node: BaseNode, operationId: string, meta?: Record<string, unknown>
   }
 }
 
-async function resolvePage(page: CanvasIR['page'], journal: Journal): Promise<PageNode> {
+async function resolvePage(page: CanvasIR['page'], journal: Journal): Promise<{ page: PageNode; created: boolean }> {
   if (page.id) {
     const node = await figma.getNodeByIdAsync(page.id);
     if (!node || node.type !== 'PAGE') throw new Error(`${page.id} is not a page.`);
     await node.loadAsync();
-    return node;
+    return { page: node, created: false };
   }
   if (page.name) {
     const existing = figma.root.children.find((candidate) => candidate.name === page.name);
     if (existing) {
       await existing.loadAsync();
-      return existing;
+      return { page: existing, created: false };
     }
     const created = figma.createPage();
     created.name = page.name;
     journal.recordCreate('import_html', created as unknown as BaseNode & { children?: readonly SceneNode[] });
-    return created;
+    return { page: created, created: true };
   }
-  return figma.currentPage;
+  return { page: figma.currentPage, created: false };
 }
 
 const NOTE = {
@@ -728,6 +728,10 @@ async function buildNote(parent: Container, note: CanvasIR['sections'][number]['
 export interface ImportCanvasResult {
   pageId: string;
   pageName: string;
+  /** False when the import joined a page that was already there. */
+  pageCreated: boolean;
+  /** What that page held before this import — silent duplicates start here. */
+  pageHeld: number;
   sections: Record<string, string>;
   notes: Record<string, string>;
   journal: JournalEntry[];
@@ -735,7 +739,8 @@ export interface ImportCanvasResult {
 
 export async function importCanvas(params: CanvasIR): Promise<ImportCanvasResult> {
   const journal = new Journal(params.operationId);
-  const page = await resolvePage(params.page ?? {}, journal);
+  const { page, created } = await resolvePage(params.page ?? {}, journal);
+  const held = page.children.length;
   const sections: Record<string, string> = {};
   const notes: Record<string, string> = {};
 
@@ -754,7 +759,7 @@ export async function importCanvas(params: CanvasIR): Promise<ImportCanvasResult
       notes[note.key] = card.id;
     }
   }
-  return { pageId: page.id, pageName: page.name, sections, notes, journal: journal.toArray() };
+  return { pageId: page.id, pageName: page.name, pageCreated: created, pageHeld: held, sections, notes, journal: journal.toArray() };
 }
 
 export interface ImportScreenResult {

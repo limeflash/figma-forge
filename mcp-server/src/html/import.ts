@@ -283,6 +283,8 @@ export interface WriteOptions {
 export interface WriteResult {
   pageId: string;
   pageName: string;
+  /** What the target page already held: an import can stack on an older one. */
+  pageHeld?: number;
   sections: { name: string; id: string; screens: { name: string; id: string; nodes: number; width: number; height: number }[] }[];
   images: { uploaded: number; failed: { id: string; error: string }[] };
   boundColors: number;
@@ -390,6 +392,8 @@ export async function writeToFigma(screens: PreparedScreen[], options: WriteOpti
       call<{
         pageId: string;
         pageName: string;
+        pageCreated: boolean;
+        pageHeld: number;
         sections: Record<string, string>;
         notes: Record<string, string>;
         journal: JournalEntryLike[];
@@ -402,6 +406,7 @@ export async function writeToFigma(screens: PreparedScreen[], options: WriteOpti
   const result: WriteResult = {
     pageId: canvas.pageId,
     pageName: canvas.pageName,
+    pageHeld: canvas.pageCreated ? undefined : canvas.pageHeld,
     sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
     images: { uploaded: figmaHashes.size, failed: failedImages },
     boundColors: 0,

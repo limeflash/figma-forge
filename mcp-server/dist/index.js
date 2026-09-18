@@ -27855,13 +27855,13 @@ function imageLayer(ctx, el, z) {
   const fit = el.s["object-fit"];
   const scaleMode = el.raster ? "FILL" : fit === "contain" || fit === "scale-down" ? "FIT" : "FILL";
   const layer = { type: "IMAGE", name, x: 0, y: 0, width, height, asset, scaleMode };
+  const radius = radiusOf(el.s, el.r, z);
+  if (radius !== void 0) layer.radius = radius;
   if (el.raster) {
     ctx.stats.rasters++;
     ctx.warnings.push(`${nameFor(el)}: rasterized (${el.raster}).`);
     return layer;
   }
-  const radius = radiusOf(el.s, el.r, z);
-  if (radius !== void 0) layer.radius = radius;
   const stroke = strokeOf(el.s, z);
   if (stroke) layer.stroke = stroke;
   const effects = effectsOf(el.s, z);
@@ -27914,7 +27914,7 @@ function frameFor(ctx, el, z, name) {
 function addBackgroundVectors(ctx, frame, vectors, name) {
   if (!vectors.length) return frame;
   const [only] = vectors;
-  const covers = vectors.length === 1 && !frame.children.length && !frame.fills?.length && !frame.stroke && !frame.effects?.length && near(only.rect[0], 0, 1) && near(only.rect[1], 0, 1) && near(only.rect[2], frame.width, 1) && near(only.rect[3], frame.height, 1);
+  const covers = vectors.length === 1 && !frame.children.length && !frame.fills?.length && !frame.stroke && frame.radius === void 0 && !frame.effects?.length && near(only.rect[0], 0, 1) && near(only.rect[1], 0, 1) && near(only.rect[2], frame.width, 1) && near(only.rect[3], frame.height, 1);
   if (covers) {
     ctx.stats.frames--;
     ctx.stats.vectors++;
@@ -27929,6 +27929,7 @@ function addBackgroundVectors(ctx, frame, vectors, name) {
       sizing: frame.sizing
     };
   }
+  const placed = frame.layout ? { absolute: true, sizing: { h: "FIXED", v: "FIXED" } } : {};
   const children = vectors.map(({ svg, rect }) => {
     ctx.stats.vectors++;
     const width = Math.max(rect[2], 0.01);
@@ -27940,11 +27941,27 @@ function addBackgroundVectors(ctx, frame, vectors, name) {
       y: rect[1],
       width,
       height,
-      svg: withSvgSize(svg, width, height),
-      ...frame.layout ? { absolute: true, sizing: { h: "FIXED", v: "FIXED" } } : {}
+      svg: withSvgSize(svg, width, height)
     };
   });
-  frame.children = [...children, ...frame.children];
+  if (frame.radius !== void 0) {
+    ctx.stats.frames++;
+    const clipped = {
+      type: "FRAME",
+      name: "Background",
+      x: 0,
+      y: 0,
+      width: frame.width,
+      height: frame.height,
+      radius: frame.radius,
+      clip: true,
+      children,
+      ...placed
+    };
+    frame.children = [clipped, ...frame.children];
+    return frame;
+  }
+  frame.children = [...children.map((child) => ({ ...child, ...placed })), ...frame.children];
   return frame;
 }
 function textElement(ctx, el, z, frame, hasBackgrounds) {
@@ -29213,6 +29230,7 @@ async function writeToFigma(screens, options) {
   const result = {
     pageId: canvas.pageId,
     pageName: canvas.pageName,
+    pageHeld: canvas.pageCreated ? void 0 : canvas.pageHeld,
     sections: options.sections.map((section, index) => ({ name: section.name, id: canvas.sections[`s${index}`], screens: [] })),
     images: { uploaded: figmaHashes.size, failed: failedImages },
     boundColors: 0,
@@ -30337,7 +30355,13 @@ server.registerTool(
           {
             imported: true,
             operationId,
-            page: { id: written.pageId, name: written.pageName },
+            page: {
+              id: written.pageId,
+              name: written.pageName,
+              // An import that joins a page keeps what was there: say so, or a
+              // stale set sitting next to the new one reads as a bad import.
+              joined: written.pageHeld ? `${written.pageHeld} item(s) were already on this page` : void 0
+            },
             sections: written.sections.map((section) => ({
               name: section.name,
               link: figmaLink(section.id),

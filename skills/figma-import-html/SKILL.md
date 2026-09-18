@@ -102,6 +102,13 @@ Two things are worth checking before clicking through a long flow:
    { "reload": true }, { "wait": 1200 }]
   ```
 
+Time the last `wait` deliberately: a state that moves on by itself is missed
+by a pause that is too long. A payment prototype that shows «Ждём ответа» for
+two seconds and then replaces the whole page with a waiting screen gives one
+state at `wait: 900` and a different one at `wait: 2000` — both real, worth
+importing as two screens. When a capture comes out looking like a later step,
+halve the wait and look again.
+
 Leave prototype chrome out with `exclude`, e.g. the fixed
 «ДЕСКТОП | МОБИЛЬНАЯ» switcher. **Anchor those selectors at `body`** — a
 selector like `[data-screen-label] > div:nth-child(1)` matches every nested
@@ -150,6 +157,13 @@ parts and warnings. Then build for real:
   (two weights installed) and "Golos" (five) gets "Golos", not every text in
   SemiBold. Families Figma has nothing for fall back to Inter and are listed in
   `fontsMissingInFigma`; tell the user which fonts to install.
+
+Figma sometimes loses its own connection to its servers mid-write, and every
+plugin call then fails with "Unable to establish connection to Figma after 10
+seconds" until it is back. A build retries such a write three times on its own;
+the rendered screens are kept, so nothing is re-rendered. If it still fails,
+run the same build again rather than hunting the screen — it is Figma, not the
+layer tree.
 
 The whole import is one journalled operation: `figma_forge_recover
 { operationId }` removes it. If a build was interrupted and the journal is

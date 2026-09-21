@@ -203,6 +203,15 @@ wrong, it is usually one of them failing, and that is where to look.
   is lifted to the screen and kept last in the layer list, because Figma has no
   z-index. A screen under a modal backdrop is captured at the height of the
   viewport: growing it would move the dialog and stretch the page behind it.
+- **A screen is a viewport, so it clips.** The rest of a long page under an open
+  modal stays below the fold here as it does in the browser. Without the clip it
+  is drawn anyway, a couple of thousand pixels of it, straight over the screens
+  standing underneath on the board — no amount of spacing between them helps.
+- **Ellipsis is an outcome, not a rule.** `text-overflow: ellipsis` is carried
+  over only where the words really ran past their box on the page. A title that
+  fit there hugs its words here and grows, because a box measured to the pixel
+  in one font renderer cuts the same line in another: «Отдых на 5!» arriving as
+  «Отдых на…» is this rule failing.
 - **Borders and corners.** `box-shadow: inset 0 0 0 1px` is a border, so it
   becomes a stroke; a rounded box clips its background image the way CSS does;
   a rasterised element keeps the radius of the box it sat in.

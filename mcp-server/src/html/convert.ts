@@ -532,7 +532,13 @@ function makeText(ctx: Context, source: TextSource, available: Box, z: number, w
     runs.length = 0;
   }
 
-  const truncate = baseMap['text-overflow'] === 'ellipsis' && !!baseMap['overflow-x'] && baseMap['overflow-x'] !== 'visible';
+  // `text-overflow: ellipsis` is a rule, not an outcome: the page only shows the
+  // ellipsis when the words really run past the box. Carrying the rule over
+  // regardless cuts a title at a width measured to the pixel in another font
+  // renderer — «Отдых на 5!» arrives as «Отдых на…». Truncate only where the
+  // page truncated; elsewhere let the layer hug and grow.
+  const ellipsis = baseMap['text-overflow'] === 'ellipsis' && !!baseMap['overflow-x'] && baseMap['overflow-x'] !== 'visible';
+  const truncate = ellipsis && words[2] > available[2] + 1;
   const clamp = parseInt(baseMap['-webkit-line-clamp'] ?? '', 10);
   const singleLine = lines.length <= 1 && !characters.includes('\n');
   const hug = width !== 'fixed' && !truncate && singleLine && (width === 'content' || available[2] - words[2] <= 8);
@@ -1537,6 +1543,10 @@ export function convertCollection(collection: RawCollection, assets: Map<string,
   root.maxWidth = undefined;
   // A screen keeps its width; its height follows the content when it can.
   root.sizing = { h: 'FIXED', v: root.layout && item?.hugH ? 'HUG' : 'FIXED' };
+  // A screen is a viewport. Whatever the page hid below the fold — the rest of
+  // a long page under an open modal — stays hidden here too, or it spills over
+  // the neighbouring screens on the board.
+  root.clip = true;
   if (!root.fills?.length) {
     // A see-through artboard reads as broken on the canvas.
     root.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1, a: 1 } }];

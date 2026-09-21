@@ -27662,7 +27662,8 @@ function makeText(ctx, source, available, z, width = "auto") {
     Object.assign(base, runs[0].style);
     runs.length = 0;
   }
-  const truncate = baseMap["text-overflow"] === "ellipsis" && !!baseMap["overflow-x"] && baseMap["overflow-x"] !== "visible";
+  const ellipsis = baseMap["text-overflow"] === "ellipsis" && !!baseMap["overflow-x"] && baseMap["overflow-x"] !== "visible";
+  const truncate = ellipsis && words[2] > available[2] + 1;
   const clamp = parseInt(baseMap["-webkit-line-clamp"] ?? "", 10);
   const singleLine = lines.length <= 1 && !characters.includes("\n");
   const hug = width !== "fixed" && !truncate && singleLine && (width === "content" || available[2] - words[2] <= 8);
@@ -28463,6 +28464,7 @@ function convertCollection(collection, assets, options) {
   root.constraints = void 0;
   root.maxWidth = void 0;
   root.sizing = { h: "FIXED", v: root.layout && item?.hugH ? "HUG" : "FIXED" };
+  root.clip = true;
   if (!root.fills?.length) {
     root.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1, a: 1 } }];
   }

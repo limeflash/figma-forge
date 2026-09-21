@@ -176,6 +176,41 @@ The whole import is one journalled operation: `figma_forge_recover
 incomplete, `{ action: "cleanup", operationId }` removes everything tagged with
 that operation.
 
+## How a screen is assembled
+
+The import builds what a designer would have built by hand, not a tracing of
+the DOM. These rules are what "correct" means here; when a screen comes out
+wrong, it is usually one of them failing, and that is where to look.
+
+- **A frame earns its place.** A fill, a border, a radius, padding, or a layout
+  of its own — one of these, or it is not a layer. A box drawn only to hold one
+  line of text is dropped: the line takes its width and alignment. Chips,
+  buttons and inputs keep their frames, because they have something to show.
+- **Spacing lives between blocks.** Gaps become `itemSpacing`, not padding
+  inside the neighbour. An empty element that only pushes its siblings apart —
+  `flex: 1` with nothing in it — becomes gap Auto (space between) and stops
+  being a layer. Padding is used where the page has padding, and where an item
+  cannot be placed any other way.
+- **Auto layout wherever the page allows it.** Flex, grid and block flow become
+  horizontal, vertical or wrapped auto layout with the page's own alignment and
+  fill/hug behaviour. Absolute positions are the fallback for overlapping
+  items, and they are reported as `absoluteFrames`.
+- **Text is text.** One layer per paragraph with its styled runs; the real
+  weight, not the nearest bold. A line that its own words size hugs; a line the
+  block sizes fills. A box that only centres a line is gone — the line carries
+  its height to the parent.
+- **Overlays sit on top.** A tooltip that hangs out of the badge it belongs to
+  is lifted to the screen and kept last in the layer list, because Figma has no
+  z-index. A screen under a modal backdrop is captured at the height of the
+  viewport: growing it would move the dialog and stretch the page behind it.
+- **Borders and corners.** `box-shadow: inset 0 0 0 1px` is a border, so it
+  becomes a stroke; a rounded box clips its background image the way CSS does;
+  a rasterised element keeps the radius of the box it sat in.
+- **Colours keep their alpha** when they bind to a variable — a 20% wash stays
+  a wash.
+- **Names say what the block turned out to be**: Card, Row, Stack, Button, or
+  the element's own class when it has one.
+
 ## What to check afterwards
 
 The build returns a screenshot of each section and links to every screen.

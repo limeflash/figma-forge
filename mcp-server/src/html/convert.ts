@@ -67,6 +67,8 @@ interface Context {
   stats: ConvertStats;
   /** SVG backgrounds waiting to be added to their frame as vector children. */
   backgrounds: Map<FrameIR, { svg: string; rect: Box }[]>;
+  /** Overlays lifted out of a small parent; they belong on top of the screen. */
+  overlays: { layer: LayerIR; box: Box }[];
 }
 
 /** A converted child, with what its parent needs to place it. */
@@ -1238,6 +1240,16 @@ function addBackgroundVectors(ctx: Context, frame: FrameIR, vectors: { svg: stri
   return frame;
 }
 
+/** Whether the inner box stays inside the outer one, give or take a pixel. */
+function within(inner: Box, outer: Box): boolean {
+  return (
+    inner[0] >= outer[0] - 1 &&
+    inner[1] >= outer[1] - 1 &&
+    inner[0] + inner[2] <= outer[0] + outer[2] + 1 &&
+    inner[1] + inner[3] <= outer[1] + outer[3] + 1
+  );
+}
+
 /** An element whose content is text: a bare text layer, or a frame holding one. */
 function textElement(ctx: Context, el: RawElement, z: number, frame: FrameIR, hasBackgrounds: boolean): Item | null {
   const inset = insets(el.s, z);
@@ -1266,10 +1278,10 @@ function textElement(ctx: Context, el: RawElement, z: number, frame: FrameIR, ha
   const above = made.box[1] - el.r[1];
   const below = height - above - made.box[3];
   const fills = near(made.box[3], height, 1.5) && near(above, 0, 1.5);
-  // A box that only centres its line adds nothing: the line goes to the parent
-  // with its real height, and the row that holds it centres it like any item.
-  const centredLine = made.hug && near(above, below, 1.5) && above < 12;
-  const bare = !hasVisuals(frame) && !frame.clip && !hasBackgrounds && edgeSum(inset) < 0.5 && !el.field && (fills || centredLine);
+  // A frame earns its place by doing something — a fill, a border, padding. A
+  // box that only holds one line and a few pixels of leading does none of
+  // that, so the line goes to the parent and is placed there like any item.
+  const bare = !hasVisuals(frame) && !frame.clip && !hasBackgrounds && edgeSum(inset) < 0.5 && !el.field && Math.max(above, below) < 14;
   if (bare) {
     ctx.stats.frames--;
     const layer = made.layer;
@@ -1329,6 +1341,8 @@ function convertElement(ctx: Context, el: RawElement, parentZ: number): Item | n
   }
 
   const frame = frameFor(ctx, el, z, name);
+  // Clipping nothing is noise — and it keeps an empty box from folding away.
+  if (frame.clip && (el.c ?? []).every((child) => child.k === 'tx' || within(child.r, el.r))) frame.clip = false;
   const backgrounds = ctx.backgrounds.get(frame) ?? [];
   if (el.para || el.field) {
     const item = textElement(ctx, el, z, frame, backgrounds.length > 0);
@@ -1388,6 +1402,18 @@ function convertElement(ctx: Context, el: RawElement, parentZ: number): Item | n
   // siblings that come after it — then positive z-index on top.
   const layerOf = (item: Item) => frame.children.find((child) => child === item.layer || contains(child, item.layer));
   for (const item of [...positioned].sort((a, b) => a.zIndex - b.zIndex)) {
+    // A tooltip hangs out of the badge it belongs to and, thanks to its
+    // z-index, paints over everything below. Figma has no z-index: the layer
+    // would sit inside that badge and disappear under the rows after it, so it
+    // is lifted to the screen and kept at its place on the page.
+    if (item.zIndex > 0 && !within(item.box, el.r)) {
+      const layer = item.layer;
+      layer.absolute = true;
+      layer.sizing = { h: 'FIXED', v: 'FIXED' };
+      layer.constraints = { h: 'MIN', v: 'MIN' };
+      ctx.overlays.push({ layer, box: item.box });
+      continue;
+    }
     const layer = place(item, el.r);
     if (frame.layout) {
       layer.absolute = true;
@@ -1411,39 +1437,38 @@ function convertElement(ctx: Context, el: RawElement, parentZ: number): Item | n
 
   addBackgroundVectors(ctx, frame, backgrounds, name);
 
-  // A wrapper that adds nothing is noise in the layers panel.
+  // A frame earns its place by doing something: a fill, a border, padding, a
+  // layout of its own. A box drawn only to hold one line of text does none of
+  // that, so the text takes its place — with the frame's width when the words
+  // filled it, and with its own box when they did not.
   if (!hasVisuals(frame) && !frame.clip && !positioned.length && flow.length === 1 && frame.children.length === 1 && edgeSum(inset) < 0.5) {
     const only = flow[0];
-    // A box around one line of text says nothing the text cannot say itself:
-    // the width becomes the text layer's own, and where the words sat in it
-    // becomes their alignment.
-    if (
-      only.layer.type === 'TEXT' &&
-      only.layer === frame.children[0] &&
-      near(only.box[1], el.r[1], 0.5) &&
-      near(only.box[3], height, 0.5) &&
-      only.box[2] <= width + 0.5 &&
-      width - only.box[2] > 0.5
-    ) {
+    if (only.layer.type === 'TEXT' && only.layer === frame.children[0] && within(only.box, el.r)) {
       const text = only.layer;
       const left = only.box[0] - el.r[0];
-      const slack = width - only.box[2];
-      text.align = near(left, slack / 2, 1) ? 'CENTER' : near(left + only.box[2], width, 1) ? 'RIGHT' : 'LEFT';
-      text.width = width;
-      text.resize = text.resize === 'WIDTH_AND_HEIGHT' ? 'HEIGHT' : text.resize;
-      ctx.stats.frames--;
-      if (plan) ctx.stats.autoLayout--;
-      text.maxWidth ??= frame.maxWidth;
-      text.minWidth ??= frame.minWidth;
-      return {
-        ...only,
-        box: el.r,
-        hugW: false,
-        style: el.s,
-        inline: /^inline/.test(display),
-        positioned: isPositioned(el.s),
-        zIndex: parseInt(el.s['z-index'] ?? '0', 10) || 0,
-      };
+      const right = width - left - only.box[2];
+      const above = only.box[1] - el.r[1];
+      const below = height - above - only.box[3];
+      // Half-leading and optical nudges are a few pixels; a real box is more.
+      if (Math.max(above, below) < 14) {
+        ctx.stats.frames--;
+        if (plan) ctx.stats.autoLayout--;
+        text.maxWidth ??= frame.maxWidth;
+        text.minWidth ??= frame.minWidth;
+        const rest = {
+          style: el.s,
+          inline: /^inline/.test(display),
+          positioned: isPositioned(el.s),
+          zIndex: parseInt(el.s['z-index'] ?? '0', 10) || 0,
+        };
+        if (!only.hugW || left + right < 1.5) {
+          text.align = left > 1 && near(left, right, 1) ? 'CENTER' : left > 1 && right < 1.5 ? 'RIGHT' : text.align;
+          text.width = width;
+          if (text.resize === 'WIDTH_AND_HEIGHT') text.resize = 'HEIGHT';
+          return { ...only, box: el.r, hugW: false, ...rest };
+        }
+        return { ...only, ...rest };
+      }
     }
     if (near(only.box[0], el.r[0]) && near(only.box[1], el.r[1]) && near(only.box[2], width) && near(only.box[3], height)) {
       ctx.stats.frames--;
@@ -1483,6 +1508,7 @@ export function convertCollection(collection: RawCollection, assets: Map<string,
     warnings: [],
     stats: { frames: 0, texts: 0, vectors: 0, images: 0, rasters: 0, autoLayout: 0, absoluteContainers: 0, wrappers: 0, groups: 0 },
     backgrounds: new Map(),
+    overlays: [],
   };
 
   const item = convertElement(ctx, collection.root, 1);
@@ -1496,6 +1522,12 @@ export function convertCollection(collection: RawCollection, assets: Map<string,
     root.layout = { mode: 'VERTICAL', gap: 0, padding: [0, 0, 0, 0], primary: 'MIN', counter: 'MIN' };
     item.layer.sizing = { h: 'FILL', v: 'HUG' };
     ctx.stats.frames++;
+  }
+  // Lifted overlays sit on top of the screen, where the page shows them.
+  for (const overlay of ctx.overlays) {
+    overlay.layer.x = round2(overlay.box[0] - collection.root.r[0]);
+    overlay.layer.y = round2(overlay.box[1] - collection.root.r[1]);
+    root.children.push(overlay.layer);
   }
   root.name = options.name;
   root.x = 0;

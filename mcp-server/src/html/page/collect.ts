@@ -261,15 +261,50 @@ function scrollExtra(root: Element): number {
 }
 
 /** How much content scroll containers around and inside `selector` are hiding. */
+/**
+ * A modal backdrop is fixed to the viewport, so growing the viewport moves the
+ * dialog with it and leaves the page stretched out underneath. A screen in
+ * that state is exactly what the viewport shows.
+ */
+function coveredByOverlay(): boolean {
+  const width = document.documentElement.clientWidth;
+  const height = document.documentElement.clientHeight;
+  // A dimmed backdrop: see-through enough to read the page behind it, solid
+  // enough to be a scrim rather than a tint.
+  const scrim = (colour: string): boolean => {
+    const parts = /rgba?\(([^)]+)\)/.exec(colour);
+    if (!parts) return false;
+    const values = parts[1].split(',').map((value) => parseFloat(value));
+    const alpha = values.length > 3 ? values[3] : 1;
+    return alpha > 0.15 && alpha < 0.98;
+  };
+  for (const el of document.querySelectorAll('body *')) {
+    const cs = css(el);
+    if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    const dialog = cs.position === 'fixed' || (cs.position === 'absolute' && scrim(cs.backgroundColor));
+    if (!dialog) continue;
+    const box = el.getBoundingClientRect();
+    if (box.width >= width * 0.6 && box.height >= height * 0.6) return true;
+  }
+  return false;
+}
+
 function hiddenOverflow(selector: string): number {
   // Content inside iframes grows by resizing the frames instead.
   if (selector.includes('>>>')) return 0;
+  if (coveredByOverlay()) return 0;
   const root = document.querySelector(selector) ?? document.body;
   let extra = scrollExtra(root);
   for (let el = root.parentElement; el; el = el.parentElement) {
     const cs = css(el);
     if (/(auto|scroll)/.test(cs.overflowY) && el.clientHeight > 0) extra = Math.max(extra, el.scrollHeight - el.clientHeight);
   }
+  // The page itself scrolls without saying so: `overflow` stays `visible` on
+  // the document, so a screen built on `100vh` keeps the viewport's height
+  // while its content runs past it. That is the difference between a screen
+  // that ends where its content ends and one whose content hangs out of it.
+  const doc = document.documentElement;
+  extra = Math.max(extra, doc.scrollHeight - doc.clientHeight, document.body.scrollHeight - doc.clientHeight);
   return Math.max(0, Math.ceil(extra));
 }
 

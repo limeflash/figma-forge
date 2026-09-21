@@ -208,10 +208,15 @@ wrong, it is usually one of them failing, and that is where to look.
   is drawn anyway, a couple of thousand pixels of it, straight over the screens
   standing underneath on the board — no amount of spacing between them helps.
 - **Ellipsis is an outcome, not a rule.** `text-overflow: ellipsis` is carried
-  over only where the words really ran past their box on the page. A title that
-  fit there hugs its words here and grows, because a box measured to the pixel
-  in one font renderer cuts the same line in another: «Отдых на 5!» arriving as
-  «Отдых на…» is this rule failing.
+  over only where the words really ran past their box on the page. Where they
+  fit, they keep fitting: Figma sets the same line a little wider than Chromium
+  does, so a box measured to the pixel would cut it — «Отдых на 5!» arriving as
+  «Отдых на…» — or wrap it onto a second line. A line the page never wraps and
+  whose box is that tight hugs its words and grows by those few pixels; a line
+  with room to spare keeps its box, where its alignment still means something
+  and a sibling may be leaning on it. Where the page did cut the line, so do we:
+  on a narrow screen «Абонемент 25 часов» is a 140px box with one clipped line,
+  not a title that shoulders the chip next to it out of the row.
 - **Borders and corners.** `box-shadow: inset 0 0 0 1px` is a border, so it
   becomes a stroke; a rounded box clips its background image the way CSS does;
   a rasterised element keeps the radius of the box it sat in.

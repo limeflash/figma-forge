@@ -541,7 +541,15 @@ function makeText(ctx: Context, source: TextSource, available: Box, z: number, w
   const truncate = ellipsis && words[2] > available[2] + 1;
   const clamp = parseInt(baseMap['-webkit-line-clamp'] ?? '', 10);
   const singleLine = lines.length <= 1 && !characters.includes('\n');
-  const hug = width !== 'fixed' && !truncate && singleLine && (width === 'content' || available[2] - words[2] <= 8);
+  // A line the page never wraps must not wrap here either. Figma sets the same
+  // words a little wider, so a box measured to the pixel turns one line into
+  // two; a line whose box is that tight hugs its words and grows instead. A
+  // line with room to spare keeps its box, where its alignment still means
+  // something and a sibling may be leaning on it.
+  const nowrap = ellipsis || /^(nowrap|pre)$/.test(baseMap['white-space'] ?? '');
+  const slack = available[2] - words[2];
+  const tight = slack <= (nowrap ? Math.max(8, words[2] * 0.06) : 8);
+  const hug = width !== 'fixed' && !truncate && singleLine && (width === 'content' || tight);
   const box: Box = hug ? words : [available[0], words[1], available[2], words[3]];
 
   const layer: TextIR = {

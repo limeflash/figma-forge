@@ -27666,7 +27666,10 @@ function makeText(ctx, source, available, z, width = "auto") {
   const truncate = ellipsis && words[2] > available[2] + 1;
   const clamp = parseInt(baseMap["-webkit-line-clamp"] ?? "", 10);
   const singleLine = lines.length <= 1 && !characters.includes("\n");
-  const hug = width !== "fixed" && !truncate && singleLine && (width === "content" || available[2] - words[2] <= 8);
+  const nowrap = ellipsis || /^(nowrap|pre)$/.test(baseMap["white-space"] ?? "");
+  const slack = available[2] - words[2];
+  const tight = slack <= (nowrap ? Math.max(8, words[2] * 0.06) : 8);
+  const hug = width !== "fixed" && !truncate && singleLine && (width === "content" || tight);
   const box = hug ? words : [available[0], words[1], available[2], words[3]];
   const layer = {
     type: "TEXT",

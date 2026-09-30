@@ -8,6 +8,9 @@ node_modules/
 # CLAUDE_PLUGIN_DATA, not here — see mcp-server/src/store.ts.
 .figma-forge/
 
+# Release archives are built from dist/ on demand, by scripts/package-plugin.mjs.
+release/
+
 # dist/ is intentionally NOT ignored. Claude Code installs a plugin by cloning
 # this repo with no build step, so mcp-server/dist and figma-plugin/dist are
 # shipped artifacts and must be committed.

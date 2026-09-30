@@ -8,6 +8,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:watch": "node scripts/build.mjs --watch",
+    "package:plugin": "node scripts/package-plugin.mjs",
     "typecheck": "tsc --noEmit -p figma-plugin/tsconfig.json && tsc --noEmit -p mcp-server/tsconfig.json && tsc --noEmit -p mcp-server/src/html/page/tsconfig.json",
     "bridge": "node bridge/server.mjs",
     "gen:api": "node scripts/gen-api-reference.mjs"

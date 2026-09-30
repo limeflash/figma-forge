@@ -35,6 +35,13 @@ Then load the Figma plugin once:
 1. In Figma: **Plugins → Development → Import plugin from manifest…**
 2. Choose `figma-plugin/manifest.json` from this repo.
 
+On a machine that has no clone of this repo, take the plugin from the
+[latest release](https://github.com/limeflash/figma-forge/releases/latest):
+download `figma-forge-plugin-*.zip`, unzip it somewhere it can stay, and point
+the same **Import plugin from manifest…** at the `manifest.json` inside. There
+is nothing to build — the archive holds the manifest and the two built files
+Figma reads, and `INSTALL.txt` repeats these steps.
+
 ## Use
 
 In Claude Code:

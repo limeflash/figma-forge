@@ -1,0 +1,41 @@
+name: Release
+
+# A tag is the whole trigger: `git tag v0.1.0 && git push --tags` builds the
+# Figma plugin and attaches the archive to the release, so the download on the
+# releases page is always the code that tag points at.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: node scripts/package-plugin.mjs
+      - name: Attach the archive to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          if [ -z "$TAG" ]; then
+            echo "No tag: built the archive only."
+            exit 0
+          fi
+          gh release view "$TAG" >/dev/null 2>&1 \
+            && gh release upload "$TAG" release/*.zip --clobber \
+            || gh release create "$TAG" release/*.zip --generate-notes --title "$TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: figma-forge-plugin
+          path: release/*.zip
